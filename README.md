@@ -331,9 +331,9 @@ Este proyecto fue creado para mejorar la eficiencia en la documentación médica
 
 ¿Tienes preguntas? ¿Necesitas ayuda? ¿Quieres colaborar?
 
-- **📧 Email**: [tu-email@ejemplo.com]
-- **🐙 GitHub**: [Abre un issue](https://github.com/tu-usuario/Notas-AI/issues)
-- **💬 Discusiones**: [GitHub Discussions](https://github.com/tu-usuario/Notas-AI/discussions)
+- **📧 Email**: nicolas@teilur.ai
+- **🐙 GitHub**: [Abre un issue](https://github.com/Nico2603/Notas-AI/issues)
+- **💬 Discusiones**: [GitHub Discussions](https://github.com/Nico2603/Notas-AI/discussions)
 
 ---
 
