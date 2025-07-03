@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOTASAI - Asistente de Notas Clínicas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              light: '#60a5fa', // blue-400
+              DEFAULT: '#3b82f6', // blue-500
+              dark: '#2563eb',  // blue-600
+            },
+            secondary: { // For accents, AI buttons
+              light: '#5eead4', // teal-300
+              DEFAULT: '#14b8a6', // teal-500
+              dark: '#0d9488',   // teal-600
+            },
+            neutral: { // For general UI elements, text, backgrounds
+              50: '#f8fafc',  // slate-50
+              100: '#f1f5f9', // slate-100
+              200: '#e2e8f0', // slate-200
+              300: '#cbd5e1', // slate-300
+              400: '#94a3b8', // slate-400
+              500: '#64748b', // slate-500
+              600: '#475569', // slate-600
+              700: '#334155', // slate-700
+              800: '#1e293b', // slate-800
+              900: '#0f172a', // slate-900
+            },
+            // Dark mode specific colors (can be used with dark: prefix or directly if needed)
+            dark: {
+              bg: '#0f172a',      // neutral-900 (overall background)
+              surface: '#1e293b', // neutral-800 (card backgrounds)
+              text: '#e2e8f0',   // neutral-200 (primary text)
+              muted: '#94a3b8',  // neutral-400 (secondary text)
+              primary: '#60a5fa', // primary-light for dark mode emphasis
+              secondary: '#2dd4bf',// secondary-light for dark mode emphasis
+              border: '#334155' // neutral-700 for borders
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.6.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="font-sans bg-neutral-100 dark:bg-dark-bg text-neutral-900 dark:text-dark-text transition-colors duration-300">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
