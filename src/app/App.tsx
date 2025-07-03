@@ -1,7 +1,7 @@
 import React from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import AuthenticatedApp from './components/AuthenticatedApp';
-import LoginPage from './components/LoginPage';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import AuthenticatedApp from '../components/AuthenticatedApp';
+import LoginPage from '../components/auth/LoginPage';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, error } = useAuth();

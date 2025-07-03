@@ -10,7 +10,7 @@ import {
   HistoricNote,
   ActiveView
 } from '../types';
-import { DEFAULT_SPECIALTIES, DEFAULT_TEMPLATES, MEDICAL_SCALES } from '../constants';
+import { DEFAULT_SPECIALTIES, DEFAULT_TEMPLATES, MEDICAL_SCALES } from '../lib/constants';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { 
   getStoredTemplates, 
@@ -21,16 +21,16 @@ import {
   saveUserTemplates,
   getUserStoredHistoricNotes,
   addUserHistoricNoteEntry
-} from '../services/storageService';
-import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../services/geminiService';
+} from '../lib/services/storageService';
+import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
-import Sidebar from './Sidebar';
-import SpecialtySelector from './SpecialtySelector';
-import TemplateEditor from './TemplateEditor';
-import NoteDisplay from './NoteDisplay';
+import Sidebar from './ui/Sidebar';
+import SpecialtySelector from './notes/SpecialtySelector';
+import TemplateEditor from './notes/TemplateEditor';
+import NoteDisplay from './notes/NoteDisplay';
 import HistoryView from './HistoryView';
-import UserProfile from './UserProfile';
-import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './Icons';
+import UserProfile from './auth/UserProfile';
+import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
 
 
 // SpeechRecognition API compatibility: Use window types which are now augmented by types.ts
