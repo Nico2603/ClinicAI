@@ -31,25 +31,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
-    // Solo ejecutar en el cliente
+    setMounted(true);
+    
+    // Solo ejecutar en el cliente después de montar
     if (typeof window === 'undefined') {
       setIsLoading(false);
-      setMounted(true);
       return;
     }
 
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
-        console.log('🔄 Obteniendo sesión inicial...');
-        
         const { session, error } = await auth.getSession();
         
         if (error) {
-          console.error('❌ Error obteniendo sesión inicial:', error);
+          console.error('Error obteniendo sesión inicial:', error);
           setError('Error al obtener la sesión');
         } else {
-          console.log('✅ Sesión inicial obtenida:', session ? 'Activa' : 'No activa');
           setSession(session);
           
           if (session?.user) {
@@ -65,11 +63,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch (err) {
-        console.error('❌ Error en getInitialSession:', err);
+        console.error('Error en getInitialSession:', err);
         setError('Error al inicializar la autenticación');
       } finally {
         setIsLoading(false);
-        setMounted(true);
       }
     };
 
@@ -77,8 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Escuchar cambios en el estado de autenticación
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
-      
       setSession(session);
       
       if (session?.user) {
@@ -94,7 +89,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Limpiar URL después de autenticación exitosa
         if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
-          console.log('🧹 Limpiando URL después de autenticación exitosa');
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
         }
@@ -108,14 +102,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (): Promise<void> => {
-    // Solo ejecutar en el cliente
     if (typeof window === 'undefined') {
       throw new Error('Sign in solo disponible en el cliente');
     }
@@ -124,20 +116,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setIsLoading(true);
       
-      console.log('🔄 Iniciando proceso de autenticación...');
       const { error } = await auth.signInWithGoogle();
       
       if (error) {
-        console.error('❌ Error durante el sign in:', error);
+        console.error('Error durante el sign in:', error);
         setError('Error al iniciar sesión con Google');
         setIsLoading(false);
         throw error;
       }
-      
-      console.log('✅ Redirección a Google iniciada');
-      // El estado se actualizará automáticamente cuando regrese el usuario
     } catch (err) {
-      console.error('❌ Error en signIn:', err);
+      console.error('Error en signIn:', err);
       setError('Error al iniciar sesión');
       setIsLoading(false);
       throw err;
@@ -145,7 +133,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async (): Promise<void> => {
-    // Solo ejecutar en el cliente
     if (typeof window === 'undefined') {
       throw new Error('Sign out solo disponible en el cliente');
     }
@@ -154,19 +141,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setIsLoading(true);
       
-      console.log('🔄 Cerrando sesión...');
       const { error } = await auth.signOut();
       
       if (error) {
-        console.error('❌ Error durante el sign out:', error);
+        console.error('Error durante el sign out:', error);
         setError('Error al cerrar sesión');
       } else {
-        console.log('✅ Sesión cerrada correctamente');
         setUser(null);
         setSession(null);
       }
     } catch (err) {
-      console.error('❌ Error en signOut:', err);
+      console.error('Error en signOut:', err);
       setError('Error al cerrar sesión');
     } finally {
       setIsLoading(false);
