@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { auth, type AuthUser } from '@/src/lib/supabase';
+import { auth, supabase, type AuthUser } from '@/src/lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -44,16 +44,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('🔄 Procesando tokens de la URL...');
         
-        // Establecer la sesión con los tokens de la URL
-        const { user, error } = await auth.getCurrentUser();
+        // Establecer la sesión directamente con los tokens de la URL
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
         
         if (error) {
-          console.error('❌ Error procesando tokens:', error);
+          console.error('❌ Error estableciendo sesión:', error);
           setError('Error al procesar la autenticación');
         } else {
-          console.log('✅ Tokens procesados correctamente');
-          // Los tokens ya están procesados por Supabase automáticamente
-          // Solo necesitamos limpiar la URL
+          console.log('✅ Sesión establecida correctamente:', data.session?.user?.email);
+          // Limpiar la URL inmediatamente después de procesar
           cleanUrlTokens();
         }
       } catch (err) {
