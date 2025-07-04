@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* Estilos globales para NOTASAI */
 * {
   box-sizing: border-box;
