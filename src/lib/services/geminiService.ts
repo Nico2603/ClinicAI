@@ -65,7 +65,7 @@ Tu respuesta para esa sección DEBE SER:
       contents: prompt,
     });
     const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text, groundingMetadata: candidate?.groundingMetadata };
+    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
   } catch (error) {
     console.error('Error generating note from template:', error);
     throw new Error(`Error al generar nota con IA: ${error instanceof Error ? error.message : String(error)}`);
