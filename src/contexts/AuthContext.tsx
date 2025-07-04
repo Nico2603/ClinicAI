@@ -26,7 +26,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = user !== null && session !== null;
 
+  // Función para limpiar tokens de la URL
+  const cleanUrlTokens = () => {
+    if (window.location.hash.includes('access_token')) {
+      // Remover los tokens de la URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  // Función para procesar tokens de la URL
+  const handleUrlTokens = async () => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+      try {
+        console.log('🔄 Procesando tokens de la URL...');
+        
+        // Establecer la sesión con los tokens de la URL
+        const { user, error } = await auth.getCurrentUser();
+        
+        if (error) {
+          console.error('❌ Error procesando tokens:', error);
+          setError('Error al procesar la autenticación');
+        } else {
+          console.log('✅ Tokens procesados correctamente');
+          // Los tokens ya están procesados por Supabase automáticamente
+          // Solo necesitamos limpiar la URL
+          cleanUrlTokens();
+        }
+      } catch (err) {
+        console.error('❌ Error en handleUrlTokens:', err);
+        setError('Error al procesar la autenticación');
+        cleanUrlTokens();
+      }
+    }
+  };
+
   useEffect(() => {
+    // Procesar tokens de la URL si existen
+    handleUrlTokens();
+
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
@@ -73,6 +114,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updated_at: session.user.updated_at,
         });
         setError(null);
+        
+        // Limpiar URL si hay tokens después de autenticación exitosa
+        if (event === 'SIGNED_IN') {
+          cleanUrlTokens();
+        }
       } else {
         setUser(null);
       }
