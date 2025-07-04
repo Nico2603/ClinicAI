@@ -1,5 +1,6 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
+// Variables de entorno
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -11,6 +12,7 @@ console.log('✅ Variables de entorno Supabase validadas correctamente');
 console.log('📍 URL:', supabaseUrl);
 console.log('🔑 Anon Key:', supabaseAnonKey.substring(0, 20) + '...');
 
+// Cliente Supabase simplificado
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type AuthUser = {
@@ -77,4 +79,4 @@ export const auth = {
   onAuthStateChange: (callback: (event: string, session: any) => void) => {
     return supabase.auth.onAuthStateChange(callback);
   }
-};
+}; 

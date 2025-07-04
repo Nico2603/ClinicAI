@@ -1,8 +1,10 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
+// Obtener variables de entorno
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Validación de variables de entorno
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Variables de entorno Supabase faltantes');
 }
@@ -11,8 +13,16 @@ console.log('✅ Variables de entorno Supabase validadas correctamente');
 console.log('📍 URL:', supabaseUrl);
 console.log('🔑 Anon Key:', supabaseAnonKey.substring(0, 20) + '...');
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Crear cliente Supabase con configuración mínima y estable
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
+// Tipos para la autenticación
 export type AuthUser = {
   id: string;
   email?: string;
@@ -22,7 +32,9 @@ export type AuthUser = {
   updated_at?: string;
 };
 
+// Funciones de autenticación optimizadas
 export const auth = {
+  // Iniciar sesión con Google
   signInWithGoogle: async () => {
     try {
       console.log('🔄 Iniciando autenticación con Google...');
@@ -44,37 +56,61 @@ export const auth = {
     }
   },
 
+  // Cerrar sesión
   signOut: async () => {
     try {
+      console.log('🔄 Cerrando sesión...');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('❌ Error en signOut:', error);
+        throw error;
+      }
+      
+      console.log('✅ Sesión cerrada correctamente');
       return { error: null };
     } catch (err) {
+      console.error('❌ Excepción en signOut:', err);
       return { error: err };
     }
   },
 
+  // Obtener el usuario actual
   getCurrentUser: async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('❌ Error obteniendo usuario actual:', error);
+        throw error;
+      }
+      
       return { user, error: null };
     } catch (err) {
+      console.error('❌ Excepción en getCurrentUser:', err);
       return { user: null, error: err };
     }
   },
 
+  // Obtener la sesión actual
   getSession: async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('❌ Error obteniendo sesión:', error);
+        throw error;
+      }
+      
       return { session, error: null };
     } catch (err) {
+      console.error('❌ Excepción en getSession:', err);
       return { session: null, error: err };
     }
   },
 
+  // Escuchar cambios en el estado de autenticación
   onAuthStateChange: (callback: (event: string, session: any) => void) => {
     return supabase.auth.onAuthStateChange(callback);
   }
-};
+}; 
