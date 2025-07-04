@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
-import NoSSR from '@/components/NoSSR'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,13 +19,11 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={inter.className}>
-        <NoSSR fallback={<div className="min-h-screen bg-gray-50" />}>
-          <Providers>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </Providers>
-        </NoSSR>
+        <Providers>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   )
