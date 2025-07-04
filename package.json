@@ -26,6 +26,9 @@
     "@supabase/supabase-js": "^2.49.4",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.81.5",
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.16",
     "axios": "^1.9.0",
@@ -43,18 +46,14 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "^3.3.5",
     "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.2.2",
     "uuid": "^11.1.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@types/node": "^20.9.0",
-    "@types/react": "^18.2.37",
-    "@types/react-dom": "^18.2.15",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.28",
     "postcss": "^8.5.6",
-    "prettier": "^3.0.0",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.2.2"
+    "prettier": "^3.0.0"
   }
 }
