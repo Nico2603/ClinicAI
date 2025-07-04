@@ -33,14 +33,14 @@ console.log('✅ Variables de entorno Supabase validadas correctamente');
 console.log('📍 URL:', supabaseUrl);
 console.log('🔑 Anon Key:', supabaseAnonKey.substring(0, 20) + '...');
 
-// Crear cliente Supabase con configuración simplificada
-// ✅ Eliminamos headers duplicados que pueden causar error 401
+// Crear cliente Supabase con configuración optimizada
+// ✅ Usar PKCE flow para mayor seguridad y confiabilidad
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'implicit'
+    flowType: 'pkce'
   }
 });
 
@@ -74,11 +74,7 @@ export const auth = {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getRedirectTo(),
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+          redirectTo: getRedirectTo()
         }
       });
       

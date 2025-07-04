@@ -27,73 +27,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
-    // Verificar si hay callback de OAuth (PKCE flow con código o tokens implícitos)
-    const hasAuthTokens = window.location.hash.includes('access_token');
-    const hasAuthCode = window.location.search.includes('code=');
-    const isOAuthCallback = hasAuthTokens || hasAuthCode;
-    
-    // Si hay callback de OAuth, dar más tiempo para procesarlos
-    if (isOAuthCallback) {
-      console.log('🔄 Detectado callback de OAuth en URL, procesando...', {
-        hasTokens: hasAuthTokens,
-        hasCode: hasAuthCode,
-        url: window.location.href
-      });
-      
-      // Si hay código de autorización pero falla el PKCE, intentar limpiar y redirigir
-      if (hasAuthCode && !hasAuthTokens) {
-        console.log('⚠️ Detectado código de autorización, intentando procesar...');
-        
-        // Dar tiempo extra para que Supabase procese el PKCE
-        setTimeout(async () => {
-          try {
-            const { session } = await auth.getSession();
-            if (!session) {
-              console.log('❌ PKCE falló, limpiando URL y redirigiendo...');
-              // Limpiar la URL y reiniciar el proceso
-              window.history.replaceState({}, document.title, window.location.pathname);
-              setIsLoading(false);
-              setError('Error de autenticación. Por favor, intenta nuevamente.');
-            }
-          } catch (err) {
-            console.error('❌ Error procesando PKCE:', err);
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setIsLoading(false);
-            setError('Error de autenticación. Por favor, intenta nuevamente.');
-          }
-        }, 8000); // Esperar 8 segundos antes de dar up
-      }
-      
-      // Mantener loading=true por más tiempo para permitir el procesamiento
-      setTimeout(() => {
-        if (isLoading) {
-          setIsLoading(false);
-        }
-      }, 6000); // 6 segundos para procesar callback
-    }
-
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
         console.log('🔄 Obteniendo sesión inicial...');
         
-        // Si hay callback de OAuth, esperar más tiempo para que Supabase procese
-        if (isOAuthCallback) {
-          console.log('⏳ Esperando procesamiento de callback OAuth...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-        
         const { session, error } = await auth.getSession();
         
         if (error) {
           console.error('❌ Error obteniendo sesión inicial:', error);
-          if (isOAuthCallback) {
-            setError('Error al procesar la autenticación. Por favor, intenta nuevamente.');
-            // Limpiar la URL problemática
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } else {
-            setError('Error al obtener la sesión');
-          }
+          setError('Error al obtener la sesión');
         } else {
           console.log('✅ Sesión inicial obtenida:', session ? 'Activa' : 'No activa');
           setSession(session);
@@ -108,32 +51,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               updated_at: session.user.updated_at,
             });
             setError(null);
-          } else if (isOAuthCallback) {
-            console.log('⚠️ No se obtuvo sesión después del callback OAuth');
-            setError('La autenticación no se completó correctamente. Por favor, intenta nuevamente.');
-            window.history.replaceState({}, document.title, window.location.pathname);
           }
         }
       } catch (err) {
         console.error('❌ Error en getInitialSession:', err);
-        if (isOAuthCallback) {
-          setError('Error al procesar la autenticación. Por favor, intenta nuevamente.');
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } else {
-          setError('Error al inicializar la autenticación');
-        }
+        setError('Error al inicializar la autenticación');
       } finally {
-        // Solo establecer loading=false si no hay callback pendiente
-        if (!isOAuthCallback) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
     getInitialSession();
 
     // Escuchar cambios en el estado de autenticación
-    // Este listener maneja automáticamente el callback de OAuth
+    // Supabase maneja automáticamente los callbacks OAuth
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
       
@@ -153,15 +84,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Limpiar URL después de autenticación exitosa
         if (event === 'SIGNED_IN') {
           console.log('🧹 Limpiando URL después de autenticación exitosa');
-          // Limpiar tanto hash como query params
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
         }
       } else {
         setUser(null);
+        if (event === 'SIGNED_OUT') {
+          setError(null);
+        }
       }
       
-      // Asegurar que loading se establece en false después del procesamiento
       setIsLoading(false);
     });
 
@@ -199,22 +131,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     try {
       setError(null);
-      console.log('🔄 Cerrando sesión...');
+      setIsLoading(true);
       
+      console.log('🔄 Cerrando sesión...');
       const { error } = await auth.signOut();
       
       if (error) {
         console.error('❌ Error durante el sign out:', error);
         setError('Error al cerrar sesión');
-        throw error;
+      } else {
+        console.log('✅ Sesión cerrada correctamente');
+        setUser(null);
+        setSession(null);
       }
-      
-      console.log('✅ Sesión cerrada correctamente');
-      // El estado se actualizará automáticamente a través del listener
     } catch (err) {
       console.error('❌ Error en signOut:', err);
       setError('Error al cerrar sesión');
-      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -238,7 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
