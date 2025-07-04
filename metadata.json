@@ -1,8 +1,0 @@
-{
-  "requestFramePermissions": [
-    "microphone"
-  ],
-  "name": "NOTASAI - Asistente de Notas Clínicas",
-  "description": "",
-  "prompt": ""
-}

@@ -4,9 +4,11 @@
 
 **Una aplicación web moderna y potente para la generación automatizada de notas médicas con Inteligencia Artificial**
 
-[![React](https://img.shields.io/badge/React-19.1.0-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.2.0-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0.4-000000?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![NextAuth](https://img.shields.io/badge/NextAuth-4.24.11-7C3AED?style=for-the-badge&logo=next-auth)](https://next-auth.js.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.7.0-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
 
 </div>
@@ -14,6 +16,11 @@
 ---
 
 ## 🌟 Características Principales
+
+### 🔐 **Autenticación Segura**
+- **Google OAuth**: Inicio de sesión seguro con Google
+- **NextAuth.js**: Manejo profesional de sesiones
+- **Base de Datos**: Sesiones persistentes con PostgreSQL
 
 ### 🚀 **Generación Inteligente de Notas**
 - **Plantillas por Especialidad**: Más de 30 especialidades médicas predefinidas
@@ -37,13 +44,13 @@
 
 ### 📝 **Editor de Plantillas Personalizable**
 - **Totalmente Editable**: Modifica plantillas existentes o crea las tuyas
-- **Guardado Automático**: Tus cambios se preservan localmente
+- **Guardado en Base de Datos**: Tus cambios se sincronizan automáticamente
 - **Formato Flexible**: Adapta las plantillas a tu estilo de trabajo
 
-### 📚 **Historial Inteligente**
-- **Almacenamiento Local**: Todas tus notas se guardan automáticamente
+### 📚 **Historial Persistente**
+- **Base de Datos Segura**: Todas tus notas se guardan en PostgreSQL
 - **Búsqueda Avanzada**: Encuentra notas rápidamente
-- **Carga Rápida**: Reutiliza notas anteriores como punto de partida
+- **Sincronización**: Accede a tus notas desde cualquier dispositivo
 
 ### 🎨 **Experiencia de Usuario Premium**
 - **Modo Oscuro/Claro**: Cambio automático según preferencias del sistema
@@ -106,19 +113,26 @@
 
 ## 🛠️ Tecnologías Utilizadas
 
-### **Frontend**
-- **React 19.1.0** - Framework de UI más moderno
-- **TypeScript 5.7.2** - Tipado estático para mayor robustez
-- **Vite 6.2.0** - Build tool ultrarrápido
-- **CSS Moderno** - Diseño responsive y mode oscuro/claro
+### **Framework y Frontend**
+- **Next.js 14.0.4** - Framework React full-stack con App Router
+- **React 18.2.0** - Biblioteca de interfaz de usuario
+- **TypeScript 5.2.2** - Tipado estático para mayor robustez
+- **Tailwind CSS** - Framework de estilos utility-first
+
+### **Autenticación y Base de Datos**
+- **NextAuth.js 4.24.11** - Autenticación completa con OAuth
+- **Prisma 6.7.0** - ORM moderno para TypeScript
+- **PostgreSQL** - Base de datos relacional robusta
+- **Google OAuth** - Autenticación segura con Google
 
 ### **Inteligencia Artificial**
 - **Google Gemini 2.5 Flash Preview** - Modelo de IA de última generación
 - **@google/genai 1.6.0** - SDK oficial de Google Generative AI
 
-### **APIs Web Nativas**
+### **APIs y Servicios**
 - **Web Speech API** - Reconocimiento de voz nativo del navegador
-- **Local Storage** - Persistencia de datos local y segura
+- **Middleware de Rate Limiting** - Protección contra abuso de API
+- **React Query** - Manejo de estado del servidor
 
 ---
 
@@ -126,7 +140,9 @@
 
 ### **Prerrequisitos**
 - Node.js 18+ instalado
+- PostgreSQL configurado
 - Una clave API de Google Gemini (gratuita)
+- Credenciales de Google OAuth
 - Navegador moderno con soporte para Web Speech API
 
 ### **1. Clonar el Repositorio**
@@ -141,206 +157,170 @@ npm install
 ```
 
 ### **3. Configurar Variables de Entorno**
-Crea un archivo `.env.local` en la raíz del proyecto:
+Crea un archivo `.env` en la raíz del proyecto:
 ```env
-API_KEY=tu_clave_api_de_gemini_aqui
+# Base de datos
+DATABASE_URL="postgresql://usuario:password@localhost:5432/notasai"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="tu-secret-super-seguro-aqui"
+
+# Google OAuth (obtener en Google Cloud Console)
+GOOGLE_CLIENT_ID="tu-google-client-id"
+GOOGLE_CLIENT_SECRET="tu-google-client-secret"
+
+# Google Gemini API
+GOOGLE_API_KEY="tu-clave-api-de-gemini"
 ```
 
-> 💡 **¿Cómo obtener tu API Key de Google Gemini?**
-> 1. Visita [Google AI Studio](https://ai.google.dev/)
-> 2. Inicia sesión con tu cuenta de Google
-> 3. Genera una nueva API Key (es gratuita)
-> 4. Copia y pega la clave en tu archivo `.env.local`
+### **4. Configurar Base de Datos**
+```bash
+# Generar cliente de Prisma
+npm run db:generate
 
-### **4. Ejecutar en Desarrollo**
+# Ejecutar migraciones
+npm run db:migrate
+
+# (Opcional) Abrir Prisma Studio
+npm run db:studio
+```
+
+### **5. Configurar Google OAuth**
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
+2. Crea un proyecto o selecciona uno existente
+3. Habilita la API de Google+ y OAuth 2.0
+4. Crea credenciales OAuth 2.0 Web Application
+5. Agrega las URLs autorizadas:
+   - **Development**: `http://localhost:3000/api/auth/callback/google`
+   - **Production**: `https://tu-dominio.com/api/auth/callback/google`
+
+### **6. Ejecutar en Desarrollo**
 ```bash
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:5173`
+La aplicación estará disponible en `http://localhost:3000`
 
-### **5. Construir para Producción**
+### **7. Construir para Producción**
 ```bash
 npm run build
-npm run preview
+npm start
 ```
 
 ---
 
 ## 📖 Cómo Usar la Aplicación
 
-### **1. Generación de Notas con Plantillas**
+### **1. Autenticación**
+1. **Visita** la aplicación en tu navegador
+2. **Haz clic** en "Iniciar sesión con Google"
+3. **Autoriza** la aplicación con tu cuenta de Google
+4. **Accede** automáticamente a la aplicación principal
+
+### **2. Generación de Notas con Plantillas**
 1. **Selecciona** una especialidad médica
 2. **Dicta o escribe** la información del paciente
 3. **Haz clic** en "Generar Nota" ✨
 4. **Revisa y edita** el resultado si es necesario
-5. **Copia** la nota a tu sistema de historia clínica
+5. **Guarda** la nota en tu historial
 
-### **2. Uso del Reconocimiento de Voz**
+### **3. Uso del Reconocimiento de Voz**
 1. **Haz clic** en el botón de micrófono 🎤
 2. **Habla claramente** con la información del paciente
 3. **La transcripción** aparece en tiempo real
 4. **Haz clic** nuevamente para detener el dictado
 
-### **3. Generación de Sugerencias Inteligentes**
+### **4. Generación de Sugerencias Inteligentes**
 1. **Ingresa** información clínica en la sección "Sugerencias de IA"
 2. **Haz clic** en "Generar Sugerencias" 💡
 3. **Recibe** recomendaciones basadas en evidencia
 4. **Incorpora** las sugerencias útiles en tu evaluación
 
-### **4. Aplicación de Escalas Médicas**
+### **5. Aplicación de Escalas Médicas**
 1. **Selecciona** la escala apropiada (PHQ-9, GAD-7, etc.)
 2. **Ingresa** la información clínica del paciente
 3. **Haz clic** en "Generar Escala" 📊
 4. **Obtén** el puntaje y la interpretación automática
 
-### **5. Personalización de Plantillas**
-1. **Ve** a la sección "Editar Plantillas"
-2. **Selecciona** la especialidad que deseas modificar
-3. **Edita** la plantilla según tus necesidades
-4. **Guarda** - Los cambios se preservan automáticamente
-
-### **6. Gestión del Historial**
-1. **Accede** a la sección "Historial"
-2. **Busca** notas anteriores por fecha o contenido
-3. **Reutiliza** notas como punto de partida
-4. **Elimina** entradas que ya no necesites
+### **6. Gestión de Historial**
+1. **Ve** a la sección "Historial"
+2. **Busca** notas por especialidad, fecha o contenido
+3. **Carga** notas anteriores para editarlas
+4. **Elimina** notas que ya no necesites
 
 ---
 
-## ⚙️ Configuración Avanzada
+## 🏗️ Arquitectura del Proyecto
 
-### **Personalización del Modelo de IA**
-El archivo `constants.ts` permite modificar el modelo de Gemini utilizado:
-```typescript
-export const GEMINI_MODEL_TEXT = 'gemini-2.5-flash-preview-04-17';
+```
+Notas-AI/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── api/               # API Routes
+│   │   │   └── auth/          # NextAuth endpoints
+│   │   ├── globals.css        # Estilos globales
+│   │   ├── layout.tsx         # Layout principal
+│   │   └── page.tsx           # Página principal
+│   ├── components/            # Componentes React
+│   │   ├── auth/             # Componentes de autenticación
+│   │   ├── notes/            # Componentes de notas
+│   │   ├── providers/        # Providers de contexto
+│   │   └── ui/               # Componentes de UI
+│   ├── lib/                  # Librerías y utilidades
+│   │   ├── auth.ts          # Configuración NextAuth
+│   │   ├── prisma.ts        # Cliente Prisma
+│   │   └── services/        # Servicios de API
+│   ├── contexts/            # Contextos React
+│   ├── hooks/              # Custom hooks
+│   ├── types/              # Tipos TypeScript
+│   └── middleware.ts       # Middleware de Next.js
+├── prisma/
+│   └── schema.prisma       # Esquema de base de datos
+├── types/
+│   └── next-auth.d.ts     # Extensiones de tipos NextAuth
+├── next.config.js         # Configuración Next.js
+├── tailwind.config.js     # Configuración Tailwind
+└── tsconfig.json         # Configuración TypeScript
 ```
 
-### **Configuración de Idioma**
-El reconocimiento de voz está configurado para español colombiano:
-```typescript
-speechRecognitionInstance.current.lang = 'es-CO';
-```
+---
 
-### **Agregar Nuevas Especialidades**
-Puedes agregar nuevas especialidades editando el array `DEFAULT_SPECIALTIES` en `constants.ts`:
-```typescript
-{ id: 'nueva_especialidad', name: 'Nueva Especialidad' }
-```
+## 🔒 Seguridad y Privacidad
+
+- **🔐 Autenticación OAuth**: Login seguro con Google
+- **🛡️ Rate Limiting**: Protección contra abuso de API
+- **🔒 Headers de Seguridad**: CSP, XSS y CSRF protection
+- **💾 Datos Encriptados**: Toda la información se almacena de forma segura
+- **🌐 HTTPS**: Comunicación encriptada en producción
+- **🔑 Variables de Entorno**: Claves API protegidas
 
 ---
 
-## 🎯 Casos de Uso Principales
+## 🤝 Contribuir
 
-### **Para Médicos Generales**
-- Acelera la documentación de consultas de rutina
-- Mejora la consistencia en el formato de notas
-- Reduce el tiempo de escritura hasta en un 70%
+¡Las contribuciones son bienvenidas! Por favor:
 
-### **Para Especialistas**
-- Plantillas específicas para cada especialidad
-- Aplicación automática de escalas validadas
-- Sugerencias de IA basadas en evidencia
-
-### **Para Estudiantes de Medicina**
-- Aprende formatos profesionales de notas médicas
-- Practica con casos reales usando IA
-- Comprende mejor la estructura de diferentes especialidades
-
-### **Para Centros de Salud**
-- Estandariza la documentación clínica
-- Mejora la calidad de las historias clínicas
-- Reduce errores de documentación
-
----
-
-## 🔒 Privacidad y Seguridad
-
-### **Datos Locales**
-- **Almacenamiento Local**: Todos los datos se guardan en tu navegador
-- **Sin Servidor**: No enviamos información a servidores externos
-- **Control Total**: Tienes control completo sobre tus datos
-
-### **Uso de IA**
-- **Solo Texto**: Únicamente se envía texto a Gemini para procesamiento
-- **Sin Datos Identificables**: La IA no almacena información personal
-- **Términos de Google**: Sujeto a los términos de uso de Google AI
-
----
-
-## 🤝 Contribuir al Proyecto
-
-¡Las contribuciones son bienvenidas! Aquí te mostramos cómo puedes ayudar:
-
-### **Formas de Contribuir**
-1. **Reportar Bugs** - Abre un issue con detalles del problema
-2. **Sugerir Mejoras** - Propón nuevas características
-3. **Agregar Plantillas** - Contribuye con plantillas de nuevas especialidades
-4. **Mejorar Documentación** - Ayuda a mantener actualizada la documentación
-5. **Traducir** - Ayuda con traducciones a otros idiomas
-
-### **Proceso de Contribución**
-1. **Fork** el repositorio
-2. **Crea** una rama para tu feature (`git checkout -b feature/nueva-caracteristica`)
-3. **Commit** tus cambios (`git commit -m 'Agregar nueva característica'`)
-4. **Push** a la rama (`git push origin feature/nueva-caracteristica`)
-5. **Abre** un Pull Request
-
----
-
-## 🐛 Solución de Problemas
-
-### **Problemas Comunes**
-
-**❌ "API key not configured"**
-- Verifica que hayas creado el archivo `.env.local`
-- Asegúrate de que la variable se llame exactamente `API_KEY`
-- Reinicia el servidor de desarrollo
-
-**❌ "Reconocimiento de voz no funciona"**
-- Verifica que tu navegador soporte Web Speech API
-- Asegúrate de dar permisos de micrófono
-- Prueba en Chrome o Edge (mejor compatibilidad)
-
-**❌ "La aplicación se ve rara en móvil"**
-- La aplicación está optimizada para desktop
-- En móvil funciona, pero la experiencia es mejor en pantallas grandes
+1. Fork el proyecto
+2. Crea una rama feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
 ---
 
-## 👏 Créditos y Agradecimientos
+## 👨‍💻 Desarrollado por
 
-### **Tecnologías Utilizadas**
-- **React Team** - Por el increíble framework
-- **Google** - Por la API de Gemini AI
-- **TypeScript Team** - Por el excelente sistema de tipos
-- **Vite Team** - Por la herramienta de build ultrarrápida
-
-### **Inspiración**
-Este proyecto fue creado para mejorar la eficiencia en la documentación médica y ayudar a profesionales de la salud en Colombia y Latinoamérica.
-
----
-
-## 📞 Contacto y Soporte
-
-¿Tienes preguntas? ¿Necesitas ayuda? ¿Quieres colaborar?
-
-- **📧 Email**: nicolas@teilur.ai
-- **🐙 GitHub**: [Abre un issue](https://github.com/Nico2603/Notas-AI/issues)
-- **💬 Discusiones**: [GitHub Discussions](https://github.com/Nico2603/Notas-AI/discussions)
+**Tu Nombre** - [GitHub](https://github.com/tu-usuario) - [Email](mailto:tu-email@example.com)
 
 ---
 
 <div align="center">
-
-**⭐ Si este proyecto te ha sido útil, considera darle una estrella en GitHub ⭐**
-
-**Hecho con ❤️ para mejorar la atención médica en Colombia**
-
+<strong>⭐ Si este proyecto te ha sido útil, ¡dale una estrella! ⭐</strong>
 </div>

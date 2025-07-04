@@ -5,7 +5,7 @@ datasource db {
 
 generator client {
   provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
+  binaryTargets   = ["debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 // --- Modelos Requeridos por NextAuth Prisma Adapter --- 
@@ -29,6 +29,7 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+// Modelo Session LIMPIO para NextAuth adapter
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -37,21 +38,23 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Modelo User existente, verificar campos requeridos por adapter y añadir relación a ChatSession
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?   @unique // Hacer email opcional si el adapter lo maneja así
   emailVerified DateTime?
   image         String?
   accounts      Account[]
-  sessions      Session[]
+  sessions      Session[] // Relación a Session de NextAuth
   
   // Campos específicos de Notas-AI
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   profile       Profile?
-  notes         Note[]    // Relación a las notas médicas
-  
+  notes         Note[]    // Notas médicas del usuario
+  phoneNumber   String?   // Campo para número telefónico
+
   @@index([email])
 }
 
