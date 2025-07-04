@@ -27,18 +27,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
-    // Verificar si hay tokens en la URL (callback de OAuth)
+    // Verificar si hay callback de OAuth (PKCE flow con código o tokens implícitos)
     const hasAuthTokens = window.location.hash.includes('access_token');
+    const hasAuthCode = window.location.search.includes('code=');
+    const isOAuthCallback = hasAuthTokens || hasAuthCode;
     
-    // Si hay tokens en la URL, dar más tiempo para procesarlos
-    if (hasAuthTokens) {
-      console.log('🔄 Detectados tokens de autenticación en URL, procesando...');
+    // Si hay callback de OAuth, dar más tiempo para procesarlos
+    if (isOAuthCallback) {
+      console.log('🔄 Detectado callback de OAuth en URL, procesando...', {
+        hasTokens: hasAuthTokens,
+        hasCode: hasAuthCode,
+        url: window.location.href
+      });
       // Mantener loading=true por más tiempo para permitir el procesamiento
       setTimeout(() => {
         if (isLoading) {
           setIsLoading(false);
         }
-      }, 3000); // 3 segundos para procesar tokens
+      }, 5000); // 5 segundos para procesar callback
     }
 
     // Obtener la sesión inicial
@@ -46,9 +52,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('🔄 Obteniendo sesión inicial...');
         
-        // Si hay tokens en la URL, esperar un poco más para que Supabase los procese
-        if (hasAuthTokens) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // Si hay callback de OAuth, esperar más tiempo para que Supabase procese
+        if (isOAuthCallback) {
+          console.log('⏳ Esperando procesamiento de callback OAuth...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
         
         const { session, error } = await auth.getSession();
@@ -76,8 +83,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('❌ Error en getInitialSession:', err);
         setError('Error al inicializar la autenticación');
       } finally {
-        // Solo establecer loading=false si no hay tokens pendientes
-        if (!hasAuthTokens) {
+        // Solo establecer loading=false si no hay callback pendiente
+        if (!isOAuthCallback) {
           setIsLoading(false);
         }
       }
@@ -104,9 +111,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError(null);
         
         // Limpiar URL después de autenticación exitosa
-        if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
+        if (event === 'SIGNED_IN') {
           console.log('🧹 Limpiando URL después de autenticación exitosa');
-          window.history.replaceState({}, document.title, window.location.pathname);
+          // Limpiar tanto hash como query params
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
         }
       } else {
         setUser(null);
