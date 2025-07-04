@@ -5,16 +5,18 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   
+  // Configuración para exportación estática
+  output: 'export',
+  trailingSlash: true,
+  
   // Configuración para evitar errores de SSR
   experimental: {
     esmExternals: 'loose',
   },
   
-  // Configuración específica para Prisma (movido de experimental)
-  
-  
-  // Configuración para manejo de imágenes
+  // Configuración para manejo de imágenes (ajustado para export estático)
   images: {
+    unoptimized: true, // Necesario para static export
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -28,6 +30,8 @@ const nextConfig = {
     ],
   },
   
+  // Headers no son compatibles con static export
+  /*
   async headers() {
     return [
       {
@@ -54,6 +58,7 @@ const nextConfig = {
       },
     ]
   },
+  */
 
   webpack: (config, { isServer, dev }) => {
     const path = require('path');
@@ -73,11 +78,6 @@ const nextConfig = {
       'node_modules',
       ...(config.resolve.modules || [])
     ];
-    
-    // Configuración específica para Prisma
-    if (isServer) {
-      config.externals.push('@prisma/client');
-    }
     
     // Configuración adicional para producción
     if (!dev) {

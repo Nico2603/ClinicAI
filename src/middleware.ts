@@ -1,3 +1,4 @@
+/*
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -129,4 +130,15 @@ export const config = {
     // Aplicar a todas las rutas de API excepto las estáticas
     '/api/((?!_next/static|_next/image|favicon.ico).*)',
   ],
+}; 
+*/
+
+// Middleware desactivado para static export
+// Las rutas de API no funcionan con static export
+export function middleware() {
+  // No hacer nada en static export
+}
+
+export const config = {
+  matcher: [],
 }; 
