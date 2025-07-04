@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   notesService, 
   specialtiesService, 
@@ -9,7 +9,7 @@ import {
   type Specialty, 
   type Template, 
   type UserProfile 
-} from '@/src/lib/services/databaseService';
+} from '@/lib/services/databaseService';
 
 // Hook para manejar notas
 export const useNotes = () => {

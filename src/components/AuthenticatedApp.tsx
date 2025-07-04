@@ -23,7 +23,7 @@ import {
   addUserHistoricNoteEntry
 } from '../lib/services/storageService';
 import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/geminiService';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './ui/Sidebar';
 import SpecialtySelector from './notes/SpecialtySelector';
 import TemplateEditor from './notes/TemplateEditor';
