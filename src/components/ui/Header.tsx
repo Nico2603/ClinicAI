@@ -1,27 +1,25 @@
+'use client';
 
 import React from 'react';
-import { Theme } from '../../types';
-import { SunIcon, MoonIcon } from './Icons'; // Assuming Icons.tsx is created
+import { useTheme } from '../ThemeProvider';
+import { Sun, Moon } from 'lucide-react';
 
-interface HeaderProps {
-  theme: Theme;
-  toggleTheme: () => void;
-}
+const Header = () => {
+  const { theme, toggleTheme } = useTheme();
 
-const Header: React.FC<HeaderProps> = ({ theme, toggleTheme }) => {
   return (
-    <header className="bg-primary-DEFAULT dark:bg-gray-800 text-white shadow-md p-4 sticky top-0 z-50">
+    <header className="bg-primary text-primary-foreground shadow-md p-4 sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
         <h1 className="text-2xl font-bold">NOTASAI</h1>
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-full hover:bg-primary-light dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white"
-          aria-label={theme === Theme.Light ? 'Activar modo oscuro' : 'Activar modo claro'}
+          className="p-2 rounded-full hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary-foreground"
+          aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
         >
-          {theme === Theme.Light ? (
-            <MoonIcon className="h-6 w-6 text-white" />
+          {theme === 'light' ? (
+            <Moon className="h-6 w-6" />
           ) : (
-            <SunIcon className="h-6 w-6 text-yellow-300" />
+            <Sun className="h-6 w-6 text-yellow-300" />
           )}
         </button>
       </div>

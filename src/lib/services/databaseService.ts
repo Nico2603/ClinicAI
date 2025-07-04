@@ -1,4 +1,4 @@
-import { supabase } from '@/src/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // Tipos para las entidades de la base de datos
 export interface Note {

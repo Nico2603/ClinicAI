@@ -68,8 +68,8 @@ body {
   }
 
   * {
-     /* Aplicar borde usando la variable CSS */
-     @apply border-border;
+     /* Aplicar borde usando border-0 que sí existe en Tailwind */
+     @apply border-0;
   }
 
   :root {
