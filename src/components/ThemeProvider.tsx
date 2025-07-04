@@ -22,6 +22,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
+  // Evitar renderizado durante SSR
+  if (typeof window === 'undefined') {
+    const defaultValue: ThemeContextType = {
+      theme: 'light',
+      toggleTheme: () => {},
+      mounted: false,
+    };
+    
+    return (
+      <ThemeContext.Provider value={defaultValue}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
+
   useEffect(() => {
     // Solo ejecutar en el cliente
     if (typeof window === 'undefined') {

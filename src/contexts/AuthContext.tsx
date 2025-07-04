@@ -31,6 +31,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = user !== null && session !== null;
 
+  // Evitar renderizado durante SSR
+  if (typeof window === 'undefined') {
+    const defaultValue: AuthContextType = {
+      user: null,
+      session: null,
+      isLoading: true,
+      isAuthenticated: false,
+      signIn: async () => {},
+      signOut: async () => {},
+      error: null,
+      mounted: false,
+    };
+    
+    return (
+      <AuthContext.Provider value={defaultValue}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+
   useEffect(() => {
     // Verificar que estamos en el cliente
     if (typeof window === 'undefined') {

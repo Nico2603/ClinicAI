@@ -52,4 +52,8 @@ lerna-debug.log*
 Thumbs.db
 
 # Prisma
-prisma/migrations/.env 
+prisma/migrations/.env
+
+# Render configuration (contains sensitive data)
+render.yaml
+RENDER_SETUP.md 

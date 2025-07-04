@@ -5,6 +5,11 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   
+  // Configuración para evitar errores de SSR
+  experimental: {
+    esmExternals: 'loose',
+  },
+  
   // Configuración específica para Prisma (movido de experimental)
   
   
