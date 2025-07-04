@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Theme,
@@ -31,10 +33,6 @@ import NoteDisplay from './notes/NoteDisplay';
 import HistoryView from './HistoryView';
 import UserProfile from './auth/UserProfile';
 import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
-
-
-// SpeechRecognition API compatibility: Use window types which are now augmented by types.ts
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
@@ -94,6 +92,9 @@ const AuthenticatedApp: React.FC = () => {
     }
 
     // Initialize Speech Recognition
+    const SpeechRecognitionAPI = typeof window !== 'undefined' ? 
+      (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+    
     if (SpeechRecognitionAPI) {
       setIsSpeechApiAvailable(true);
       speechRecognitionInstance.current = new SpeechRecognitionAPI();
@@ -206,7 +207,7 @@ const AuthenticatedApp: React.FC = () => {
       // Add to history
       addNoteToHistory({
         type: 'template',
-        specialtyId: selectedSpecialtyId,
+        specialty_id: selectedSpecialtyId,
         specialtyName: specialtyName,
         originalInput: patientInfo,
         content: result.text,
@@ -305,7 +306,7 @@ const AuthenticatedApp: React.FC = () => {
     setScaleGrounding(undefined);
     
     if (note.type === 'template') {
-      if (note.specialtyId) setSelectedSpecialtyId(note.specialtyId);
+      if (note.specialty_id) setSelectedSpecialtyId(note.specialty_id);
       setPatientInfo(note.originalInput);
       setGeneratedTemplateNote(note.content);
       setAiSuggestionInput(note.originalInput);

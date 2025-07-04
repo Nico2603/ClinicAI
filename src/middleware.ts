@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
 // Rate limiting en memoria (en producción usar Redis)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -15,7 +14,7 @@ const RATE_LIMITS = {
   '/api/templates': { maxRequests: 20, windowMs: 60 * 1000 }, // 20 templates por minuto
 };
 
-function isRateLimited(userId: string, path: string): boolean {
+function isRateLimited(identifier: string, path: string): boolean {
   const now = Date.now();
   const routeConfig = RATE_LIMITS[path as keyof typeof RATE_LIMITS];
   
@@ -23,7 +22,7 @@ function isRateLimited(userId: string, path: string): boolean {
     return false; // No rate limiting para rutas no configuradas
   }
   
-  const key = `${userId}:${path}`;
+  const key = `${identifier}:${path}`;
   const userLimit = rateLimitMap.get(key);
   
   if (!userLimit || now > userLimit.resetTime) {
@@ -59,8 +58,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Rutas que no requieren autenticación (excluir de rate limiting por usuario)
-  const publicRoutes = ['/api/health', '/api/auth'];
+  // Rutas que no requieren rate limiting
+  const publicRoutes = ['/api/health'];
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname.startsWith(route)
   );
@@ -70,23 +69,10 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Obtener token JWT para identificar usuario
-    let userId: string | null = null;
-    
-    try {
-      const token = await getToken({ 
-        req: request, 
-        secret: process.env.NEXTAUTH_SECRET 
-      });
-      userId = token?.sub || null;
-    } catch (error) {
-      // Si no hay token válido, usar IP como fallback para rate limiting básico
-      userId = request.ip || 'anonymous';
-    }
-
-    if (!userId) {
-      userId = request.ip || 'anonymous';
-    }
+    // Usar IP como identificador para rate limiting
+    const identifier = request.ip || 
+                      request.headers.get('x-forwarded-for')?.split(',')[0] || 
+                      'anonymous';
 
     // Verificar rate limiting
     const path = request.nextUrl.pathname;
@@ -94,7 +80,7 @@ export async function middleware(request: NextRequest) {
       path.startsWith(route)
     );
 
-    if (baseRoute && isRateLimited(userId, baseRoute)) {
+    if (baseRoute && isRateLimited(identifier, baseRoute)) {
       const routeConfig = RATE_LIMITS[baseRoute as keyof typeof RATE_LIMITS];
       
       return NextResponse.json(
@@ -117,7 +103,7 @@ export async function middleware(request: NextRequest) {
 
     // Agregar headers informativos de rate limit
     if (baseRoute) {
-      const key = `${userId}:${baseRoute}`;
+      const key = `${identifier}:${baseRoute}`;
       const userLimit = rateLimitMap.get(key);
       const routeConfig = RATE_LIMITS[baseRoute as keyof typeof RATE_LIMITS];
       
