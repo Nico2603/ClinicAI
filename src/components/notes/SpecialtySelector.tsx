@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Specialty } from '../../types';
+import { SpecialtyBase } from '../../types';
 
 interface SpecialtySelectorProps {
-  specialties: Specialty[];
+  specialties: SpecialtyBase[];
   selectedSpecialtyId: string;
   onSpecialtyChange: (specialtyId: string) => void;
   className?: string;

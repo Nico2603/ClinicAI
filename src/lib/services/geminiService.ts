@@ -2,17 +2,17 @@ import { GoogleGenAI, GenerateContentResponse, Candidate } from "@google/genai";
 import { GEMINI_MODEL_TEXT } from '../constants';
 import { GroundingMetadata } from '../../types';
 
-// ✅ Cambiar process.env por import.meta.env para Vite
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// ✅ Para Next.js usamos process.env
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
 if (!API_KEY) {
-  console.error("❌ VITE_GEMINI_API_KEY no está configurada. Por favor verifica tu archivo .env");
+  console.error("❌ NEXT_PUBLIC_GEMINI_API_KEY no está configurada. Por favor verifica tu archivo .env");
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
 // The constructor expects string. If API_KEY is undefined here, it will throw an error.
-// Using API_KEY! explicitly acknowledges this reliance on the environment variable being set.
-const ai = new GoogleGenAI({ apiKey: API_KEY! }); 
+// Using API_KEY || '' to provide a fallback empty string
+const ai = new GoogleGenAI({ apiKey: API_KEY || '' }); 
 
 export const generateNoteFromTemplate = async (
   specialtyName: string,
