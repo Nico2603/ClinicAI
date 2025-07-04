@@ -2,14 +2,12 @@ import { GoogleGenAI, GenerateContentResponse, Candidate } from "@google/genai";
 import { GEMINI_MODEL_TEXT } from '../constants';
 import { GroundingMetadata } from '../../types';
 
-
-const API_KEY = process.env.API_KEY;
+// ✅ Cambiar process.env por import.meta.env para Vite
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!API_KEY) {
-  console.error("API_KEY for Gemini is not set. Please ensure process.env.API_KEY is available. The application might not work correctly.");
-  // Application will likely fail at the next line if API_KEY is indeed undefined,
-  // as GoogleGenAI constructor probably expects a string.
-  // This is acceptable given the hard requirement for API_KEY.
+  console.error("❌ VITE_GEMINI_API_KEY no está configurada. Por favor verifica tu archivo .env");
+  console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
 // The constructor expects string. If API_KEY is undefined here, it will throw an error.
