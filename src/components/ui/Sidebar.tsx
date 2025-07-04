@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Theme, ActiveView } from '../types'; // Import ActiveView
+import { Theme, ActiveView } from '../../types'; // Import ActiveView
 import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, SparklesIcon, ClockIcon } from './Icons';
 
 interface SidebarProps {

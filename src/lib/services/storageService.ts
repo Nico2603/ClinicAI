@@ -1,4 +1,4 @@
-import { Theme, Templates, HistoricNote } from '../types';
+import { Theme, Templates, HistoricNote } from '../../types';
 import { DEFAULT_TEMPLATES } from '../constants';
 
 const THEME_KEY = 'notasai_theme';

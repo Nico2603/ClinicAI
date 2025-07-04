@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { SaveIcon } from './Icons';
+import { SaveIcon } from '../ui/Icons';
 
 interface TemplateEditorProps {
   template: string;

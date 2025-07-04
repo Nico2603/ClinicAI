@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Theme } from '../types';
-import { getThemePreference, setThemePreference } from '../services/storageService';
+import { getThemePreference, setThemePreference } from '../lib/services/storageService';
 
 export function useDarkMode(): [Theme, () => void] {
   const [theme, setThemeState] = useState<Theme>(getThemePreference());

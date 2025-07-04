@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Specialty } from '../types';
+import { Specialty } from '../../types';
 
 interface SpecialtySelectorProps {
   specialties: Specialty[];

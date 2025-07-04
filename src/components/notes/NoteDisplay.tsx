@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { CopyIcon, EditIcon, CheckIcon } from './Icons';
-import { GroundingMetadata, GroundingChunk } from '../types';
+import { CopyIcon, EditIcon, CheckIcon } from '../ui/Icons';
+import { GroundingMetadata, GroundingChunk } from '../../types';
 
 interface NoteDisplayProps {
   note: string;

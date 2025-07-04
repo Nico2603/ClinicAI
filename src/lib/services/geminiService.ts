@@ -1,6 +1,6 @@
 import { GoogleGenAI, GenerateContentResponse, Candidate } from "@google/genai";
 import { GEMINI_MODEL_TEXT } from '../constants';
-import { GroundingMetadata } from '../types';
+import { GroundingMetadata } from '../../types';
 
 
 const API_KEY = process.env.API_KEY;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { HistoricNote } from '../types';
-import { DocumentTextIcon, LightBulbIcon, CalculatorIcon } from './Icons';
+import { DocumentTextIcon, LightBulbIcon, CalculatorIcon } from './ui/Icons';
 
 interface HistoryViewProps {
   historicNotes: HistoricNote[];
