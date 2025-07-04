@@ -39,12 +39,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         hasCode: hasAuthCode,
         url: window.location.href
       });
+      
+      // Si hay código de autorización pero falla el PKCE, intentar limpiar y redirigir
+      if (hasAuthCode && !hasAuthTokens) {
+        console.log('⚠️ Detectado código de autorización, intentando procesar...');
+        
+        // Dar tiempo extra para que Supabase procese el PKCE
+        setTimeout(async () => {
+          try {
+            const { session } = await auth.getSession();
+            if (!session) {
+              console.log('❌ PKCE falló, limpiando URL y redirigiendo...');
+              // Limpiar la URL y reiniciar el proceso
+              window.history.replaceState({}, document.title, window.location.pathname);
+              setIsLoading(false);
+              setError('Error de autenticación. Por favor, intenta nuevamente.');
+            }
+          } catch (err) {
+            console.error('❌ Error procesando PKCE:', err);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setIsLoading(false);
+            setError('Error de autenticación. Por favor, intenta nuevamente.');
+          }
+        }, 8000); // Esperar 8 segundos antes de dar up
+      }
+      
       // Mantener loading=true por más tiempo para permitir el procesamiento
       setTimeout(() => {
         if (isLoading) {
           setIsLoading(false);
         }
-      }, 5000); // 5 segundos para procesar callback
+      }, 6000); // 6 segundos para procesar callback
     }
 
     // Obtener la sesión inicial
@@ -55,14 +80,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Si hay callback de OAuth, esperar más tiempo para que Supabase procese
         if (isOAuthCallback) {
           console.log('⏳ Esperando procesamiento de callback OAuth...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
         
         const { session, error } = await auth.getSession();
         
         if (error) {
           console.error('❌ Error obteniendo sesión inicial:', error);
-          setError('Error al obtener la sesión');
+          if (isOAuthCallback) {
+            setError('Error al procesar la autenticación. Por favor, intenta nuevamente.');
+            // Limpiar la URL problemática
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            setError('Error al obtener la sesión');
+          }
         } else {
           console.log('✅ Sesión inicial obtenida:', session ? 'Activa' : 'No activa');
           setSession(session);
@@ -77,11 +108,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               updated_at: session.user.updated_at,
             });
             setError(null);
+          } else if (isOAuthCallback) {
+            console.log('⚠️ No se obtuvo sesión después del callback OAuth');
+            setError('La autenticación no se completó correctamente. Por favor, intenta nuevamente.');
+            window.history.replaceState({}, document.title, window.location.pathname);
           }
         }
       } catch (err) {
         console.error('❌ Error en getInitialSession:', err);
-        setError('Error al inicializar la autenticación');
+        if (isOAuthCallback) {
+          setError('Error al procesar la autenticación. Por favor, intenta nuevamente.');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          setError('Error al inicializar la autenticación');
+        }
       } finally {
         // Solo establecer loading=false si no hay callback pendiente
         if (!isOAuthCallback) {
