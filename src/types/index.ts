@@ -13,18 +13,18 @@ export interface SpecialtyBase {
 }
 
 export interface Specialty extends SpecialtyBase {
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Template {
   id: string;
   name: string;
   content: string;
-  specialtyId: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  specialty_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
   specialty?: Specialty;
 }
 
@@ -32,31 +32,31 @@ export interface Note {
   id: string;
   title: string;
   content: string;
-  userId: string;
-  specialtyId?: string;
-  templateId?: string;
-  patientId?: string;
-  patientName?: string;
+  user_id: string;
+  specialty_id?: string;
+  template_id?: string;
+  patient_id?: string;
+  patient_name?: string;
   diagnosis?: string;
   treatment?: string;
-  isPrivate: boolean;
+  is_private: boolean;
   tags: string[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   specialty?: Specialty;
   template?: Template;
 }
 
 export interface UserProfile {
   id: string;
-  userId: string;
+  user_id: string;
   username?: string;
-  avatarUrl?: string;
+  avatar_url?: string;
   specialty?: string;
-  licenseNumber?: string;
+  license_number?: string;
   institution?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Tipos para compatibilidad con código existente
@@ -64,7 +64,7 @@ export type Templates = Record<string, string>; // Key: specialtyId, Value: temp
 
 export interface GeneratedNote {
   id: string;
-  specialtyId: string;
+  specialty_id: string;
   content: string;
   timestamp: Date;
 }
@@ -92,7 +92,7 @@ export interface HistoricNote {
   timestamp: string;
   originalInput: string;
   content: string;
-  specialtyId?: string;
+  specialty_id?: string;
   specialtyName?: string;
   scaleId?: string;
   scaleName?: string;

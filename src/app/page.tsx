@@ -1,15 +1,14 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
 import { Button } from '@/components/ui/button';
-import { signIn } from 'next-auth/react';
 import { FaGoogle } from 'react-icons/fa';
 
 export default function HomePage() {
-  const { data: session, status } = useSession();
+  const { user, isLoading, signIn, error } = useAuth();
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -17,7 +16,7 @@ export default function HomePage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
         <div className="max-w-md w-full space-y-8 p-8 bg-card rounded-lg shadow-soft border">
@@ -32,13 +31,20 @@ export default function HomePage() {
           
           <div className="space-y-4">
             <Button
-              onClick={() => signIn('google')}
+              onClick={signIn}
               className="w-full btn-primary flex items-center justify-center gap-2"
               size="lg"
+              disabled={isLoading}
             >
               <FaGoogle className="h-5 w-5" />
-              Iniciar sesión con Google
+              {isLoading ? 'Cargando...' : 'Iniciar sesión con Google'}
             </Button>
+            
+            {error && (
+              <div className="text-red-600 text-sm text-center">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>

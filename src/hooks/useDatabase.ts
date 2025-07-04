@@ -38,7 +38,7 @@ export const useNotes = () => {
     fetchNotes();
   }, [fetchNotes]);
 
-  const createNote = useCallback(async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createNote = useCallback(async (noteData: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const newNote = await notesService.createNote(noteData);
       setNotes(prev => [newNote, ...prev]);
@@ -122,7 +122,7 @@ export const useSpecialties = () => {
     fetchSpecialties();
   }, [fetchSpecialties]);
 
-  const createSpecialty = useCallback(async (specialtyData: Omit<Specialty, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createSpecialty = useCallback(async (specialtyData: Omit<Specialty, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const newSpecialty = await specialtiesService.createSpecialty(specialtyData);
       setSpecialties(prev => [...prev, newSpecialty].sort((a, b) => a.name.localeCompare(b.name)));
@@ -178,7 +178,7 @@ export const useTemplates = () => {
     }
   }, []);
 
-  const createTemplate = useCallback(async (templateData: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const createTemplate = useCallback(async (templateData: Omit<Template, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const newTemplate = await templatesService.createTemplate(templateData);
       setTemplates(prev => [...prev, newTemplate].sort((a, b) => a.name.localeCompare(b.name)));
@@ -240,7 +240,7 @@ export const useUserProfile = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const updateProfile = useCallback(async (profileData: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const updateProfile = useCallback(async (profileData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const updatedProfile = await profileService.upsertUserProfile(profileData);
       setProfile(updatedProfile);
