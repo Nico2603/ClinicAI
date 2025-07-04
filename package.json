@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "postbuild": "cp _redirects dist/ && cp _headers dist/"
+    "postbuild": "cp _redirects dist/ && cp _headers dist/",
+    "postinstall": "prisma generate",
+    "prebuild": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -15,13 +22,24 @@
     "@google/genai": "^1.6.0",
     "@google-cloud/local-auth": "^3.0.1",
     "google-auth-library": "^9.14.1",
-    "jwt-decode": "^4.0.0"
+    "jwt-decode": "^4.0.0",
+    "@prisma/client": "^6.11.1",
+    "@supabase/supabase-js": "^2.49.4",
+    "next-auth": "^4.24.11",
+    "@auth/prisma-adapter": "^2.9.0",
+    "zod": "^3.24.3",
+    "@types/uuid": "^10.0.0",
+    "uuid": "^11.1.0",
+    "axios": "^1.9.0",
+    "jsonwebtoken": "^9.0.2",
+    "@types/jsonwebtoken": "^9.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "~5.7.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "prisma": "^6.11.1"
   }
 }

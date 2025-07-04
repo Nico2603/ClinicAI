@@ -1,18 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  picture: string;
-}
+import { auth, type AuthUser } from '@/src/lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
+  session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: () => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   error: string | null;
 }
 
@@ -22,130 +18,118 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Google OAuth configuration
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-declare global {
-  interface Window {
-    google?: any;
-    gapi?: any;
-  }
-}
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAuthenticated = user !== null;
+  const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
-    // Check for stored authentication data
-    const storedUser = localStorage.getItem('notas-ai-user');
-    if (storedUser) {
+    // Obtener la sesión inicial
+    const getInitialSession = async () => {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        const { session, error } = await auth.getSession();
+        if (error) {
+          console.error('Error obteniendo sesión inicial:', error);
+          setError('Error al obtener la sesión');
+        } else {
+          setSession(session);
+          if (session?.user) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+              image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at,
+            });
+          }
+        }
       } catch (err) {
-        console.error('Error parsing stored user:', err);
-        localStorage.removeItem('notas-ai-user');
-      }
-    }
-
-    // Load Google Identity Services
-    const loadGoogleScript = async () => {
-      if (!window.google) {
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = initializeGoogleAuth;
-        script.onerror = () => {
-          setError('Error al cargar Google Auth');
-          setIsLoading(false);
-        };
-        document.head.appendChild(script);
-      } else {
-        initializeGoogleAuth();
+        console.error('Error en getInitialSession:', err);
+        setError('Error al inicializar la autenticación');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    const initializeGoogleAuth = () => {
-      if (window.google && GOOGLE_CLIENT_ID) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
+    getInitialSession();
+
+    // Escuchar cambios en el estado de autenticación
+    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session);
+      
+      setSession(session);
+      
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+          image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          created_at: session.user.created_at,
+          updated_at: session.user.updated_at,
         });
-        setIsLoading(false);
-      } else {
-        setError('Google Client ID no configurado');
-        setIsLoading(false);
-      }
-    };
-
-    loadGoogleScript();
-  }, []);
-
-  const handleCredentialResponse = (response: any) => {
-    try {
-      if (response.credential) {
-        // Decode the JWT token to get user info
-        const base64Url = response.credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        );
-
-        const userData = JSON.parse(jsonPayload);
-        const user: User = {
-          id: userData.sub,
-          name: userData.name,
-          email: userData.email,
-          picture: userData.picture,
-        };
-
-        setUser(user);
-        localStorage.setItem('notas-ai-user', JSON.stringify(user));
         setError(null);
+      } else {
+        setUser(null);
       }
-    } catch (err) {
-      console.error('Error processing credential response:', err);
-      setError('Error al procesar la respuesta de autenticación');
-    }
-  };
+      
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const signIn = async (): Promise<void> => {
     try {
       setError(null);
-      if (window.google) {
-        window.google.accounts.id.prompt();
-      } else {
-        throw new Error('Google Auth no está disponible');
+      setIsLoading(true);
+      
+      const { error } = await auth.signInWithGoogle();
+      
+      if (error) {
+        console.error('Error durante el sign in:', error);
+        setError('Error al iniciar sesión con Google');
+        throw error;
       }
+      
+      // El estado se actualizará automáticamente a través del listener
     } catch (err) {
-      console.error('Error during sign in:', err);
+      console.error('Error en signIn:', err);
       setError('Error al iniciar sesión');
+      setIsLoading(false);
       throw err;
     }
   };
 
-  const signOut = () => {
-    // Note: We don't clear user-specific data (templates, history) on logout
-    // to preserve user data between sessions
-    setUser(null);
-    localStorage.removeItem('notas-ai-user');
-    if (window.google) {
-      window.google.accounts.id.disableAutoSelect();
+  const signOut = async (): Promise<void> => {
+    try {
+      setError(null);
+      const { error } = await auth.signOut();
+      
+      if (error) {
+        console.error('Error durante el sign out:', error);
+        setError('Error al cerrar sesión');
+        throw error;
+      }
+      
+      // El estado se actualizará automáticamente a través del listener
+    } catch (err) {
+      console.error('Error en signOut:', err);
+      setError('Error al cerrar sesión');
+      throw err;
     }
   };
 
   const value: AuthContextType = {
     user,
+    session,
     isLoading,
     isAuthenticated,
     signIn,

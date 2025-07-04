@@ -5,15 +5,62 @@ export enum Theme {
 
 export type ActiveView = 'templates' | 'generate' | 'history';
 
+// Tipos de base de datos - Coinciden con databaseService.ts
 export interface Specialty {
   id: string;
   name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
+export interface Template {
+  id: string;
+  name: string;
+  content: string;
+  specialtyId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  specialty?: Specialty;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  userId: string;
+  specialtyId?: string;
+  templateId?: string;
+  patientId?: string;
+  patientName?: string;
+  diagnosis?: string;
+  treatment?: string;
+  isPrivate: boolean;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  specialty?: Specialty;
+  template?: Template;
+}
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  username?: string;
+  avatarUrl?: string;
+  specialty?: string;
+  licenseNumber?: string;
+  institution?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Tipos para compatibilidad con código existente
 export type Templates = Record<string, string>; // Key: specialtyId, Value: template string
 
 export interface GeneratedNote {
-  id: string; // Could be timestamp or UUID
+  id: string;
   specialtyId: string;
   content: string;
   timestamp: Date;
@@ -21,37 +68,32 @@ export interface GeneratedNote {
 
 export interface GroundingChunkWeb {
   uri?: string;
-  title?: string; // Made optional to align with @google/genai library
+  title?: string;
 }
+
 export interface GroundingChunk {
   web?: GroundingChunkWeb;
-  // Other types of grounding chunks can be added here if needed
 }
 
 export interface GroundingMetadata {
   groundingChunks?: GroundingChunk[];
-  // Other grounding metadata fields can be added here
 }
 
 export interface Candidate {
   groundingMetadata?: GroundingMetadata;
-  // Other candidate fields
 }
 
 export interface HistoricNote {
-  id: string; // Unique ID, e.g., timestamp
+  id: string;
   type: 'template' | 'suggestion' | 'scale';
-  timestamp: string; // ISO date string
-  originalInput: string; // The user input that generated this note
-  content: string; // The generated note content
-  // Template-specific
+  timestamp: string;
+  originalInput: string;
+  content: string;
   specialtyId?: string;
   specialtyName?: string;
-  // Scale-specific
   scaleId?: string;
   scaleName?: string;
 }
-
 
 // Web Speech API types for TypeScript
 export interface SpeechRecognitionErrorEvent extends Event {
@@ -88,6 +130,7 @@ export interface SpeechGrammar {
   src: string;
   weight?: number;
 }
+
 export interface SpeechGrammarList {
   readonly length: number;
   item(index: number): SpeechGrammar;
@@ -100,6 +143,7 @@ export interface SpeechRecognitionStatic {
   new(): SpeechRecognition;
   prototype: SpeechRecognition;
 }
+
 export interface SpeechRecognition extends EventTarget {
   grammars: SpeechGrammarList;
   lang: string;
