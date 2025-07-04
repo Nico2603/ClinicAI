@@ -1,6 +1,6 @@
-import { Specialty, Templates } from './types';
+import { SpecialtyBase, Templates } from '@/types';
 
-export const DEFAULT_SPECIALTIES: Specialty[] = [
+export const DEFAULT_SPECIALTIES: SpecialtyBase[] = [
   { id: 'medicina_general', name: 'Medicina General' },
   { id: 'personalizada', name: 'Personalizada (Mi Plantilla)' },
   { id: 'ortopedia', name: 'Ortopedia y Traumatología' },

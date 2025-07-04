@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Theme,
   Templates,
-  Specialty,
+  SpecialtyBase,
   GroundingMetadata,
   SpeechRecognition, 
   SpeechRecognitionEvent, 
@@ -40,7 +40,7 @@ const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
   const [theme, toggleTheme] = useDarkMode();
   const [activeView, setActiveView] = useState<ActiveView>('generate');
-  const [specialties] = useState<Specialty[]>(DEFAULT_SPECIALTIES);
+  const [specialties] = useState<SpecialtyBase[]>(DEFAULT_SPECIALTIES);
   const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>(DEFAULT_SPECIALTIES[0].id);
   const [templates, setTemplates] = useState<Templates>({});
   const [historicNotes, setHistoricNotes] = useState<HistoricNote[]>([]);

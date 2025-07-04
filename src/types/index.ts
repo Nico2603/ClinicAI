@@ -6,10 +6,13 @@ export enum Theme {
 export type ActiveView = 'templates' | 'generate' | 'history';
 
 // Tipos de base de datos - Coinciden con databaseService.ts
-export interface Specialty {
+export interface SpecialtyBase {
   id: string;
   name: string;
   description?: string;
+}
+
+export interface Specialty extends SpecialtyBase {
   createdAt: string;
   updatedAt: string;
 }
