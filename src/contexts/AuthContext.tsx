@@ -43,6 +43,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
+        // Limpiar cualquier parámetro de autenticación en la URL principal
+        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+          // Si estamos en la página principal con tokens, limpiar la URL
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+
         const { session, error } = await auth.getSession();
         
         if (error) {
@@ -75,6 +82,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Escuchar cambios en el estado de autenticación
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
       setSession(session);
       
       if (session?.user) {
@@ -87,12 +96,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updated_at: session.user.updated_at,
         });
         setError(null);
-        
-        // Limpiar URL después de autenticación exitosa
-        if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
-        }
       } else {
         setUser(null);
         if (event === 'SIGNED_OUT') {

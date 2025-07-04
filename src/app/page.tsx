@@ -4,9 +4,35 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
 import { Button } from '@/components/ui/button';
 import { FaGoogle } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function HomePage() {
-  const { user, isLoading, signIn, error, mounted } = useAuth();
+  const { user, isLoading, signIn, error: authError, mounted } = useAuth();
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Verificar si hay errores en la URL
+    const error = searchParams.get('error');
+    if (error) {
+      switch (error) {
+        case 'auth_failed':
+          setUrlError('Error al establecer la sesión. Intenta de nuevo.');
+          break;
+        case 'no_tokens':
+          setUrlError('No se recibieron los tokens de autenticación. Intenta de nuevo.');
+          break;
+        case 'callback_failed':
+          setUrlError('Error en el proceso de autenticación. Intenta de nuevo.');
+          break;
+        default:
+          setUrlError('Error desconocido en la autenticación. Intenta de nuevo.');
+      }
+    }
+  }, [searchParams]);
+
+  const displayError = authError || urlError;
 
   if (!mounted || isLoading) {
     return (
@@ -40,9 +66,9 @@ export default function HomePage() {
               {isLoading ? 'Cargando...' : 'Iniciar sesión con Google'}
             </Button>
             
-            {error && (
-              <div className="text-red-600 text-sm text-center">
-                {error}
+            {displayError && (
+              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md border border-red-200">
+                {displayError}
               </div>
             )}
           </div>
