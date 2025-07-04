@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfileProps {
@@ -22,9 +23,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        <img
-          src={user.image}
-          alt={user.name}
+        <Image
+          src={user.image || '/default-avatar.svg'}
+          alt={user.name || 'Usuario'}
+          width={32}
+          height={32}
           className="w-8 h-8 rounded-full border-2 border-gray-300"
         />
         <div className="hidden sm:block text-left">
@@ -64,9 +67,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
-                <img
-                  src={user.image}
-                  alt={user.name}
+                <Image
+                  src={user.image || '/default-avatar.svg'}
+                  alt={user.name || 'Usuario'}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full border-2 border-gray-300"
                 />
                 <div>

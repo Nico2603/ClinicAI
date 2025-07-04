@@ -22,6 +22,7 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // Validar que estamos en el cliente antes de inicializar estados
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,14 +32,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
-    setMounted(true);
-    
-    // Solo ejecutar en el cliente después de montar
+    // Verificar que estamos en el cliente
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
     }
 
+    setMounted(true);
+    
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {

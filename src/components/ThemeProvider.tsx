@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 
 interface ThemeContextType {
   theme: 'light' | 'dark';
@@ -19,11 +19,52 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const value: ThemeContextType = {
-    theme: 'light',
-    toggleTheme: () => {},
-    mounted: true,
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    setMounted(true);
+    
+    // Cargar tema desde localStorage o usar tema por defecto
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      // Detectar preferencia del sistema
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      setTheme(systemTheme);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
   };
+
+  const value: ThemeContextType = {
+    theme,
+    toggleTheme,
+    mounted,
+  };
+
+  // Evitar hidratación mismatch renderizando solo después del mount
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider value={{ theme: 'light', toggleTheme: () => {}, mounted: false }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={value}>
