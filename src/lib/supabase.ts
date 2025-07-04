@@ -39,7 +39,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 });
 
@@ -60,10 +61,24 @@ export const auth = {
     try {
       console.log('🔄 Iniciando autenticación con Google...');
       
+      // Configurar redirectTo basado en el entorno
+      const getRedirectTo = () => {
+        // En desarrollo local, usar puerto específico
+        if (window.location.hostname === 'localhost') {
+          return `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+        }
+        // En producción, usar el origen completo
+        return window.location.origin;
+      };
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: getRedirectTo(),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       

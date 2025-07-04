@@ -27,10 +27,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
+    // Verificar si hay tokens en la URL (callback de OAuth)
+    const hasAuthTokens = window.location.hash.includes('access_token');
+    
+    // Si hay tokens en la URL, dar más tiempo para procesarlos
+    if (hasAuthTokens) {
+      console.log('🔄 Detectados tokens de autenticación en URL, procesando...');
+      // Mantener loading=true por más tiempo para permitir el procesamiento
+      setTimeout(() => {
+        if (isLoading) {
+          setIsLoading(false);
+        }
+      }, 3000); // 3 segundos para procesar tokens
+    }
+
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
         console.log('🔄 Obteniendo sesión inicial...');
+        
+        // Si hay tokens en la URL, esperar un poco más para que Supabase los procese
+        if (hasAuthTokens) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         const { session, error } = await auth.getSession();
         
         if (error) {
@@ -56,7 +76,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('❌ Error en getInitialSession:', err);
         setError('Error al inicializar la autenticación');
       } finally {
-        setIsLoading(false);
+        // Solo establecer loading=false si no hay tokens pendientes
+        if (!hasAuthTokens) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -89,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null);
       }
       
+      // Asegurar que loading se establece en false después del procesamiento
       setIsLoading(false);
     });
 
