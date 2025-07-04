@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
+  mounted: boolean;
 }
 
 interface AuthProviderProps {
@@ -25,10 +26,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const isAuthenticated = user !== null && session !== null;
 
   useEffect(() => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      setMounted(true);
+      return;
+    }
+
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
@@ -60,13 +69,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError('Error al inicializar la autenticación');
       } finally {
         setIsLoading(false);
+        setMounted(true);
       }
     };
 
     getInitialSession();
 
     // Escuchar cambios en el estado de autenticación
-    // Supabase maneja automáticamente los callbacks OAuth
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
       
@@ -84,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError(null);
         
         // Limpiar URL después de autenticación exitosa
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
           console.log('🧹 Limpiando URL después de autenticación exitosa');
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
@@ -106,6 +115,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signIn = async (): Promise<void> => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      throw new Error('Sign in solo disponible en el cliente');
+    }
+
     try {
       setError(null);
       setIsLoading(true);
@@ -131,6 +145,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async (): Promise<void> => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
+      throw new Error('Sign out solo disponible en el cliente');
+    }
+
     try {
       setError(null);
       setIsLoading(true);
@@ -162,6 +181,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signOut,
     error,
+    mounted,
   };
 
   return (
