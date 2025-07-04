@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// Types
 import {
   Theme,
   Templates,
@@ -12,20 +14,24 @@ import {
   HistoricNote,
   ActiveView
 } from '../types';
+
+// Constants
 import { DEFAULT_SPECIALTIES, DEFAULT_TEMPLATES, MEDICAL_SCALES } from '../lib/constants';
+
+// Hooks
 import { useDarkMode } from '../hooks/useDarkMode';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Services
 import { 
-  getStoredTemplates, 
-  saveTemplates as saveTemplatesToStorage,
-  getStoredHistoricNotes,
-  addHistoricNoteEntry,
   getUserStoredTemplates,
   saveUserTemplates,
   getUserStoredHistoricNotes,
   addUserHistoricNoteEntry
 } from '../lib/services/storageService';
 import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/geminiService';
-import { useAuth } from '@/contexts/AuthContext';
+
+// Components
 import Sidebar from './ui/Sidebar';
 import SpecialtySelector from './notes/SpecialtySelector';
 import TemplateEditor from './notes/TemplateEditor';

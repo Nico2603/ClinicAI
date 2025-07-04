@@ -268,17 +268,20 @@ Notas-AI/
 │   │   ├── providers/        # Providers de contexto
 │   │   └── ui/               # Componentes de UI
 │   ├── lib/                  # Librerías y utilidades
-│   │   ├── auth.ts          # Configuración NextAuth
-│   │   ├── prisma.ts        # Cliente Prisma
-│   │   └── services/        # Servicios de API
+│   │   ├── constants.ts      # Constantes de la aplicación
+│   │   ├── supabase.ts       # Cliente Supabase
+│   │   ├── utils.ts          # Funciones utilitarias
+│   │   └── services/         # Servicios de API
+│   │       ├── databaseService.ts
+│   │       ├── geminiService.ts
+│   │       └── storageService.ts
 │   ├── contexts/            # Contextos React
 │   ├── hooks/              # Custom hooks
 │   ├── types/              # Tipos TypeScript
 │   └── middleware.ts       # Middleware de Next.js
-├── prisma/
-│   └── schema.prisma       # Esquema de base de datos
-├── types/
-│   └── next-auth.d.ts     # Extensiones de tipos NextAuth
+├── public/                 # Archivos estáticos
+│   └── favicon.ico
+├── supabase-setup.sql     # Configuración inicial de Supabase
 ├── next.config.js         # Configuración Next.js
 ├── tailwind.config.js     # Configuración Tailwind
 └── tsconfig.json         # Configuración TypeScript
