@@ -26,59 +26,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = user !== null && session !== null;
 
-  // Función para limpiar tokens de la URL
-  const cleanUrlTokens = () => {
-    if (window.location.hash.includes('access_token')) {
-      // Remover los tokens de la URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  };
-
-  // Función para procesar tokens de la URL
-  const handleUrlTokens = async () => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-
-    if (accessToken && refreshToken) {
-      try {
-        console.log('🔄 Procesando tokens de la URL...');
-        
-        // Establecer la sesión directamente con los tokens de la URL
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
-        
-        if (error) {
-          console.error('❌ Error estableciendo sesión:', error);
-          setError('Error al procesar la autenticación');
-        } else {
-          console.log('✅ Sesión establecida correctamente:', data.session?.user?.email);
-          // Limpiar la URL inmediatamente después de procesar
-          cleanUrlTokens();
-        }
-      } catch (err) {
-        console.error('❌ Error en handleUrlTokens:', err);
-        setError('Error al procesar la autenticación');
-        cleanUrlTokens();
-      }
-    }
-  };
-
   useEffect(() => {
-    // Procesar tokens de la URL si existen
-    handleUrlTokens();
-
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
+        console.log('🔄 Obteniendo sesión inicial...');
         const { session, error } = await auth.getSession();
+        
         if (error) {
-          console.error('Error obteniendo sesión inicial:', error);
+          console.error('❌ Error obteniendo sesión inicial:', error);
           setError('Error al obtener la sesión');
         } else {
+          console.log('✅ Sesión inicial obtenida:', session ? 'Activa' : 'No activa');
           setSession(session);
+          
           if (session?.user) {
             setUser({
               id: session.user.id,
@@ -88,10 +49,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               created_at: session.user.created_at,
               updated_at: session.user.updated_at,
             });
+            setError(null);
           }
         }
       } catch (err) {
-        console.error('Error en getInitialSession:', err);
+        console.error('❌ Error en getInitialSession:', err);
         setError('Error al inicializar la autenticación');
       } finally {
         setIsLoading(false);
@@ -101,8 +63,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getInitialSession();
 
     // Escuchar cambios en el estado de autenticación
+    // Este listener maneja automáticamente el callback de OAuth
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
+      console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
       
       setSession(session);
       
@@ -117,9 +80,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         setError(null);
         
-        // Limpiar URL si hay tokens después de autenticación exitosa
-        if (event === 'SIGNED_IN') {
-          cleanUrlTokens();
+        // Limpiar URL después de autenticación exitosa
+        if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
+          console.log('🧹 Limpiando URL después de autenticación exitosa');
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       } else {
         setUser(null);
@@ -139,17 +103,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setIsLoading(true);
       
+      console.log('🔄 Iniciando proceso de autenticación...');
       const { error } = await auth.signInWithGoogle();
       
       if (error) {
-        console.error('Error durante el sign in:', error);
+        console.error('❌ Error durante el sign in:', error);
         setError('Error al iniciar sesión con Google');
+        setIsLoading(false);
         throw error;
       }
       
-      // El estado se actualizará automáticamente a través del listener
+      console.log('✅ Redirección a Google iniciada');
+      // El estado se actualizará automáticamente cuando regrese el usuario
     } catch (err) {
-      console.error('Error en signIn:', err);
+      console.error('❌ Error en signIn:', err);
       setError('Error al iniciar sesión');
       setIsLoading(false);
       throw err;
@@ -159,17 +126,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     try {
       setError(null);
+      console.log('🔄 Cerrando sesión...');
+      
       const { error } = await auth.signOut();
       
       if (error) {
-        console.error('Error durante el sign out:', error);
+        console.error('❌ Error durante el sign out:', error);
         setError('Error al cerrar sesión');
         throw error;
       }
       
+      console.log('✅ Sesión cerrada correctamente');
       // El estado se actualizará automáticamente a través del listener
     } catch (err) {
-      console.error('Error en signOut:', err);
+      console.error('❌ Error en signOut:', err);
       setError('Error al cerrar sesión');
       throw err;
     }

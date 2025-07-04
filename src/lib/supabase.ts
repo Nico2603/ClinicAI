@@ -1,22 +1,40 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Obtener variables de entorno
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Debugging: Log para verificar las variables de entorno
-console.log('🔍 Variables de entorno Supabase:');
-console.log('VITE_SUPABASE_URL:', supabaseUrl ? 'CONFIGURADA' : 'NO ENCONTRADA');
-console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'CONFIGURADA' : 'NO ENCONTRADA');
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Faltan variables de entorno de Supabase:');
-  console.error('VITE_SUPABASE_URL:', supabaseUrl);
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '[PRESENTE]' : '[FALTANTE]');
-  throw new Error('Faltan las variables de entorno VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY');
+// Validación más robusta de variables de entorno
+if (!supabaseUrl) {
+  console.error('❌ VITE_SUPABASE_URL no está definida');
+  throw new Error('Variable de entorno VITE_SUPABASE_URL es requerida');
 }
 
-console.log('✅ Inicializando cliente Supabase...');
+if (!supabaseAnonKey) {
+  console.error('❌ VITE_SUPABASE_ANON_KEY no está definida');
+  throw new Error('Variable de entorno VITE_SUPABASE_ANON_KEY es requerida');
+}
 
+// Validar formato de URL
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  console.error('❌ VITE_SUPABASE_URL no es una URL válida:', supabaseUrl);
+  throw new Error('VITE_SUPABASE_URL debe ser una URL válida');
+}
+
+// Validar que la anon key tenga el formato correcto de JWT
+if (!supabaseAnonKey.startsWith('eyJ')) {
+  console.error('❌ VITE_SUPABASE_ANON_KEY no parece ser un token JWT válido');
+  throw new Error('VITE_SUPABASE_ANON_KEY debe ser un token JWT válido');
+}
+
+console.log('✅ Variables de entorno Supabase validadas correctamente');
+console.log('📍 URL:', supabaseUrl);
+console.log('🔑 Anon Key:', supabaseAnonKey.substring(0, 20) + '...');
+
+// Crear cliente Supabase con configuración simplificada
+// ✅ Eliminamos headers duplicados que pueden causar error 401
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -35,30 +53,30 @@ export type AuthUser = {
   updated_at?: string;
 };
 
-// Funciones de autenticación
+// Funciones de autenticación simplificadas
 export const auth = {
   // Iniciar sesión con Google
   signInWithGoogle: async () => {
     try {
       console.log('🔄 Iniciando autenticación con Google...');
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // ✅ Cambiar a la URL de la aplicación principal sin callback específico
           redirectTo: window.location.origin
         }
       });
       
       if (error) {
         console.error('❌ Error en signInWithGoogle:', error);
-      } else {
-        console.log('✅ Redirección iniciada correctamente');
+        throw error;
       }
       
-      return { data, error };
+      console.log('✅ Redirección iniciada correctamente');
+      return { data, error: null };
     } catch (err) {
       console.error('❌ Excepción en signInWithGoogle:', err);
-      throw err;
+      return { data: null, error: err };
     }
   },
 
@@ -70,14 +88,14 @@ export const auth = {
       
       if (error) {
         console.error('❌ Error en signOut:', error);
-      } else {
-        console.log('✅ Sesión cerrada correctamente');
+        throw error;
       }
       
-      return { error };
+      console.log('✅ Sesión cerrada correctamente');
+      return { error: null };
     } catch (err) {
       console.error('❌ Excepción en signOut:', err);
-      throw err;
+      return { error: err };
     }
   },
 
@@ -88,12 +106,13 @@ export const auth = {
       
       if (error) {
         console.error('❌ Error obteniendo usuario actual:', error);
+        throw error;
       }
       
-      return { user, error };
+      return { user, error: null };
     } catch (err) {
       console.error('❌ Excepción en getCurrentUser:', err);
-      throw err;
+      return { user: null, error: err };
     }
   },
 
@@ -104,12 +123,13 @@ export const auth = {
       
       if (error) {
         console.error('❌ Error obteniendo sesión:', error);
+        throw error;
       }
       
-      return { session, error };
+      return { session, error: null };
     } catch (err) {
       console.error('❌ Excepción en getSession:', err);
-      throw err;
+      return { session: null, error: err };
     }
   },
 
