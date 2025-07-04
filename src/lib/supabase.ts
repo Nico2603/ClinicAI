@@ -32,7 +32,8 @@ export const auth = {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        // ✅ Cambiar a la URL de la aplicación principal sin callback específico
+        redirectTo: window.location.origin
       }
     });
     return { data, error };
