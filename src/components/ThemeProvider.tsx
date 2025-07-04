@@ -22,21 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
-  // Evitar renderizado durante SSR
-  if (typeof window === 'undefined') {
-    const defaultValue: ThemeContextType = {
-      theme: 'light',
-      toggleTheme: () => {},
-      mounted: false,
-    };
-    
-    return (
-      <ThemeContext.Provider value={defaultValue}>
-        {children}
-      </ThemeContext.Provider>
-    );
-  }
-
+  // Todos los hooks deben estar en el nivel superior
   useEffect(() => {
     // Solo ejecutar en el cliente
     if (typeof window === 'undefined') {
@@ -71,6 +57,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     toggleTheme,
     mounted,
   };
+
+  // Evitar renderizado durante SSR
+  if (typeof window === 'undefined') {
+    const defaultValue: ThemeContextType = {
+      theme: 'light',
+      toggleTheme: () => {},
+      mounted: false,
+    };
+    
+    return (
+      <ThemeContext.Provider value={defaultValue}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
   // Evitar hidratación mismatch renderizando solo después del mount
   if (!mounted) {

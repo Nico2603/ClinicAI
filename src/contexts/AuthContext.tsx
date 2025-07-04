@@ -22,7 +22,7 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Validar que estamos en el cliente antes de inicializar estados
+  // Todos los hooks deben estar en el nivel superior
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,26 +30,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
 
   const isAuthenticated = user !== null && session !== null;
-
-  // Evitar renderizado durante SSR
-  if (typeof window === 'undefined') {
-    const defaultValue: AuthContextType = {
-      user: null,
-      session: null,
-      isLoading: true,
-      isAuthenticated: false,
-      signIn: async () => {},
-      signOut: async () => {},
-      error: null,
-      mounted: false,
-    };
-    
-    return (
-      <AuthContext.Provider value={defaultValue}>
-        {children}
-      </AuthContext.Provider>
-    );
-  }
 
   useEffect(() => {
     // Verificar que estamos en el cliente
@@ -189,6 +169,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
     mounted,
   };
+
+  // Evitar renderizado durante SSR
+  if (typeof window === 'undefined') {
+    const defaultValue: AuthContextType = {
+      user: null,
+      session: null,
+      isLoading: true,
+      isAuthenticated: false,
+      signIn: async () => {},
+      signOut: async () => {},
+      error: null,
+      mounted: false,
+    };
+    
+    return (
+      <AuthContext.Provider value={defaultValue}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   return (
     <AuthContext.Provider value={value}>
