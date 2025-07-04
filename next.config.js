@@ -5,18 +5,13 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   
-  // Configuración para exportación estática
-  output: 'export',
-  trailingSlash: true,
-  
   // Configuración para evitar errores de SSR
   experimental: {
     esmExternals: 'loose',
   },
   
-  // Configuración para manejo de imágenes (ajustado para export estático)
+  // Configuración para manejo de imágenes
   images: {
-    unoptimized: true, // Necesario para static export
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -30,8 +25,7 @@ const nextConfig = {
     ],
   },
   
-  // Headers no son compatibles con static export
-  /*
+  // ✅ Ahora podemos usar headers ya que no es static export
   async headers() {
     return [
       {
@@ -58,7 +52,6 @@ const nextConfig = {
       },
     ]
   },
-  */
 
   webpack: (config, { isServer, dev }) => {
     const path = require('path');
