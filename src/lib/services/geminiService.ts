@@ -98,7 +98,7 @@ Instrucciones adicionales:
       }
     });
     const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text, groundingMetadata: candidate?.groundingMetadata };
+    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
   } catch (error) {
     console.error('Error generating AI suggestions:', error);
     throw new Error(`Error al generar sugerencias con IA: ${error instanceof Error ? error.message : String(error)}`);
@@ -155,7 +155,7 @@ Ejemplo de formato de respuesta deseado (para PHQ-9):
       contents: prompt,
     });
     const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text, groundingMetadata: candidate?.groundingMetadata };
+    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
   } catch (error) {
     console.error('Error generating medical scale:', error);
     throw new Error(`Error al generar la escala con IA: ${error instanceof Error ? error.message : String(error)}`);
