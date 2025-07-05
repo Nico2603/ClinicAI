@@ -43,14 +43,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
   };
 
   const sidebarClasses = `
-    ${isMobile ? 'fixed' : 'relative'} 
+    ${isMobile ? 'fixed' : 'fixed'} 
+    top-0 left-0 bottom-0
     ${isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-    ${isMobile ? 'w-64' : 'w-64'}
+    w-64
     bg-white dark:bg-neutral-900 
     text-neutral-800 dark:text-neutral-200 
-    flex flex-col h-full 
+    flex flex-col h-screen
     shadow-lg 
-    ${isMobile ? 'top-0 left-0 z-50' : ''}
+    z-50
     border-r border-neutral-200 dark:border-neutral-700
     transition-transform duration-300 ease-in-out
   `;
