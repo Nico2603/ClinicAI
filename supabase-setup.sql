@@ -11,9 +11,9 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- Crear tabla de perfiles
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid REFERENCES public.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
-  username text,
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text,
+  phone_number text,
   avatar_url text,
   specialty text,
   license_number text,
@@ -133,8 +133,8 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, image)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  INSERT INTO public.users (id, email, name, image, phone_number)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'phone_number');
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
