@@ -365,14 +365,14 @@ const AuthenticatedApp: React.FC = () => {
 
 
   return (
-    <div className="w-full h-full bg-neutral-100 dark:bg-neutral-900 font-sans">
+    <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <div className="md:ml-64 flex flex-col h-full">
+      <div className="md:ml-64 flex flex-col">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
           <h1 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
             {currentViewTitle}

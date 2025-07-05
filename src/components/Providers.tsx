@@ -3,6 +3,7 @@
 import React from 'react';
 import { ThemeProvider } from './ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 // Opcional: Importar ReactQueryDevtools para desarrollo
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
@@ -28,6 +29,7 @@ export default function Providers({ children }: ProvidersProps) {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         {children}
+        <Toaster richColors />
         {/* Opcional: Habilitar ReactQueryDevtools solo en desarrollo */}
         {/* <ReactQueryDevtools initialIsOpen={false} /> */}
       </QueryClientProvider>

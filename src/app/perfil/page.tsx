@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { userProfileService, UserProfile } from "@/lib/services/databaseService";
 import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
+import { toast } from "sonner";
 
 export default function PerfilPage() {
   const { user } = useAuth();
@@ -21,7 +22,12 @@ export default function PerfilPage() {
         try {
           const userProfile = await userProfileService.getProfile(user.id);
           if (userProfile) {
-            setProfile(userProfile);
+            setProfile({
+              ...userProfile,
+              name: userProfile.name ?? user.name ?? "",
+            });
+          } else {
+            setProfile({ name: user.name ?? "" });
           }
         } catch (error) {
           console.error("Error al cargar el perfil:", error);
@@ -51,6 +57,7 @@ export default function PerfilPage() {
     try {
       await userProfileService.updateProfile(user.id, profile);
       setSaveSuccess(true);
+      toast.success("Perfil actualizado con éxito");
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error("Error al guardar el perfil:", error);
@@ -73,7 +80,7 @@ export default function PerfilPage() {
               className="rounded-full border-2 border-primary shadow"
             />
             <div className="text-center">
-              <div className="text-lg font-semibold text-neutral-800 dark:text-neutral-100">{profile.name || user.name}</div>
+              <div className="text-lg font-semibold text-neutral-800 dark:text-neutral-100">{profile.name ?? user.name}</div>
               <div className="text-sm text-neutral-500 dark:text-neutral-400">{user.email}</div>
             </div>
           </div>
@@ -84,7 +91,7 @@ export default function PerfilPage() {
                 type="text"
                 name="name"
                 className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                value={profile.name || ""}
+                value={profile.name ?? user.name ?? ""}
                 onChange={handleChange}
                 required
               />
