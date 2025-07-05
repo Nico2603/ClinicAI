@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
   const sidebarClasses = `
     ${isMobile ? 'fixed' : 'relative'} 
     ${isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-    ${isMobile ? 'w-72' : 'w-64'}
+    ${isMobile ? 'w-64' : 'w-64'}
     bg-white dark:bg-neutral-900 
     text-neutral-800 dark:text-neutral-200 
     flex flex-col h-full 
@@ -81,10 +81,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
       {/* Sidebar */}
       <aside className={sidebarClasses}>
         {/* Header */}
-        <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
           <div className="flex items-center">
-            <SparklesIcon className="h-8 w-8 mr-2 text-primary" />
-            <h1 className="text-xl font-bold text-primary">
+            <SparklesIcon className="h-7 w-7 mr-2 text-primary" />
+            <h1 className="text-lg font-bold text-primary">
               NOTASAI
             </h1>
           </div>
@@ -102,13 +102,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
         </div>
 
         {/* Navigation */}
-        <nav className="flex-grow p-4 space-y-2">
+        <nav className="flex-grow p-3 space-y-1">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id as ActiveView)}
               className={`
-                w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg
                 text-sm font-medium
                 transition-all duration-200 ease-in-out group
                 focus:outline-none focus:ring-2 focus:ring-offset-2 
@@ -130,10 +130,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
         </nav>
 
         {/* Theme Toggle */}
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="p-3 border-t border-neutral-200 dark:border-neutral-700">
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary text-neutral-700 dark:text-neutral-300 transition-colors group"
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary text-neutral-700 dark:text-neutral-300 transition-colors group"
             aria-label={theme === Theme.Light ? 'Activar modo oscuro' : 'Activar modo claro'}
           >
             {theme === Theme.Light ? (

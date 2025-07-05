@@ -348,22 +348,22 @@ const AuthenticatedApp: React.FC = () => {
 
 
   return (
-    <div className="flex h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <div className="flex-1 flex flex-col md:ml-64 overflow-hidden">
-        <header className="bg-white dark:bg-neutral-800 shadow-sm p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center">
-          <h1 className="text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
+      <div className="md:ml-64 min-h-screen flex flex-col">
+        <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
+          <h1 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
             {currentViewTitle}
           </h1>
           <UserProfile />
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-neutral-100 dark:bg-neutral-900 p-4 md:p-6 space-y-6 md:space-y-8">
+        <main className="flex-1 bg-neutral-100 dark:bg-neutral-900 p-3 md:p-4 space-y-4 md:space-y-6">
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300 rounded-lg shadow" role="alert">
               <p className="font-bold text-sm">Error:</p>
@@ -372,7 +372,7 @@ const AuthenticatedApp: React.FC = () => {
           )}
 
           {activeView === 'templates' && (
-            <section aria-labelledby="template-editor-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
+            <section aria-labelledby="template-editor-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
               <h2 id="template-editor-heading" className="sr-only">Editor de Plantillas</h2>
               <SpecialtySelector
                 specialties={specialties}
@@ -390,9 +390,9 @@ const AuthenticatedApp: React.FC = () => {
           {activeView === 'generate' && (
             <>
               {/* Section 1: Template-based Note Generation */}
-              <section aria-labelledby="template-note-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 md:mb-6">
-                     <h2 id="template-note-heading" className="text-lg md:text-xl font-semibold text-primary mb-3 lg:mb-0">
+              <section aria-labelledby="template-note-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 md:mb-4">
+                     <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
                         Nota con Plantilla de <span className="font-bold">{selectedSpecialty.name}</span>
                      </h2>
                      <SpecialtySelector
@@ -427,7 +427,7 @@ const AuthenticatedApp: React.FC = () => {
                   id="patient-info"
                   value={patientInfo}
                   onChange={(e) => { setPatientInfo(e.target.value); setError(null);}}
-                  rows={6}
+                  rows={5}
                   className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 mb-1 transition-colors text-sm md:text-base"
                   placeholder="Ingrese aquí los datos del paciente, síntomas, observaciones para completar la plantilla... o use el botón de micrófono para dictar."
                 />
@@ -456,13 +456,13 @@ const AuthenticatedApp: React.FC = () => {
               </section>
 
               {/* Section 2: AI-Powered Assistance */}
-              <section aria-labelledby="ai-assistance-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
+              <section aria-labelledby="ai-assistance-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
                  <h2 id="ai-assistance-heading" className="sr-only">Asistente IA Avanzado</h2>
                 
                 {/* Part 1: General Suggestions */}
                 <div>
-                    <h3 id="ai-suggestions-heading" className="text-lg md:text-xl font-semibold text-secondary mb-3 md:mb-4 flex items-center">
-                    <LightBulbIcon className="h-5 w-5 md:h-6 md:w-6 mr-2" />
+                    <h3 id="ai-suggestions-heading" className="text-base md:text-lg font-semibold text-secondary mb-2 md:mb-3 flex items-center">
+                    <LightBulbIcon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                     Ideas y Sugerencias
                     </h3>
                     <label htmlFor="ai-suggestion-input" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
@@ -472,8 +472,8 @@ const AuthenticatedApp: React.FC = () => {
                     id="ai-suggestion-input"
                     value={aiSuggestionInput}
                     onChange={(e) => {setAiSuggestionInput(e.target.value); setError(null);}}
-                    rows={6}
-                    className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 mb-4 transition-colors text-sm md:text-base"
+                    rows={5}
+                    className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 mb-3 transition-colors text-sm md:text-base"
                     placeholder="Describa la situación clínica, preguntas o áreas donde necesita ideas, recomendaciones o un análisis más libre..."
                     />
                     <button
@@ -496,12 +496,12 @@ const AuthenticatedApp: React.FC = () => {
                 </div>
 
                 {/* Divider */}
-                <div className="my-6 md:my-8 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
+                <div className="my-4 md:my-6 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
 
                 {/* Part 2: Scale Generator */}
                 <div>
-                    <h3 id="scale-generator-heading" className="text-lg md:text-xl font-semibold text-secondary mb-3 md:mb-4 flex items-center">
-                    <CalculatorIcon className="h-5 w-5 md:h-6 md:w-6 mr-2" />
+                    <h3 id="scale-generator-heading" className="text-base md:text-lg font-semibold text-secondary mb-2 md:mb-3 flex items-center">
+                    <CalculatorIcon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                     Generador Automático de Escalas Clínicas
                     </h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
@@ -553,8 +553,9 @@ const AuthenticatedApp: React.FC = () => {
           )}
 
         </main>
-        <footer className="text-center p-3 text-xs text-neutral-500 dark:text-neutral-400 border-t dark:border-dark-border bg-white dark:bg-neutral-800">
-          <p>© {new Date().getFullYear()} NOTASAI. Potenciado por IA. Nuestra inteligencia artificial se conecta con bases de datos científicas y se esfuerza por ofrecer información y recomendaciones basadas en evidencia.</p>
+        
+        <footer className="text-center p-2 md:p-3 text-xs text-neutral-500 dark:text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 mt-auto">
+          <p className="mb-1">© {new Date().getFullYear()} NOTASAI. Potenciado por IA. Nuestra inteligencia artificial se conecta con bases de datos científicas y se esfuerza por ofrecer información y recomendaciones basadas en evidencia.</p>
           <p>La información proporcionada es para fines de asistencia y no sustituye el juicio clínico profesional.</p>
         </footer>
       </div>
