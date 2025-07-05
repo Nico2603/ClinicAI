@@ -4,7 +4,7 @@ import {
   notesService, 
   specialtiesService, 
   templatesService, 
-  profileService,
+  userProfileService,
   type Note, 
   type Specialty, 
   type Template, 
@@ -225,7 +225,7 @@ export const useUserProfile = () => {
     
     try {
       setIsLoading(true);
-      const userProfile = await profileService.getUserProfile(user.id);
+      const userProfile = await userProfileService.getProfile(user.id);
       setProfile(userProfile);
       setError(null);
     } catch (err) {
@@ -240,9 +240,11 @@ export const useUserProfile = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const updateProfile = useCallback(async (profileData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => {
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+    if (!user?.id) throw new Error("Usuario no autenticado");
+
     try {
-      const updatedProfile = await profileService.upsertUserProfile(profileData);
+      const updatedProfile = await userProfileService.updateProfile(user.id, updates);
       setProfile(updatedProfile);
       return updatedProfile;
     } catch (err) {
@@ -250,7 +252,7 @@ export const useUserProfile = () => {
       setError('Error al actualizar el perfil');
       throw err;
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     profile,
