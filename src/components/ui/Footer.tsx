@@ -5,19 +5,19 @@ import React from 'react';
 export const Footer: React.FC = () => {
   return (
     <footer className="w-full bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors duration-300">
-      <div className="container-app mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+      <div className="container-app mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm">
         {/* Marca */}
-        <div className="md:col-span-1 flex flex-col gap-2">
+        <div className="md:col-span-1 flex flex-col gap-2 text-center sm:text-left">
           <span className="text-2xl font-bold gradient-text">Notas<span className="text-primary">AI</span></span>
           <span className="text-xs text-neutral-600 dark:text-neutral-400">© {new Date().getFullYear()} Notas-AI.<br/>Todos los derechos reservados.</span>
         </div>
         {/* Legal */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 text-center sm:text-left">
           <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1">LEGAL</span>
           <a href="/legal" className="hover:underline text-neutral-700 dark:text-neutral-300">Términos y Condiciones</a>
         </div>
         {/* Contacto */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 text-center sm:text-left">
           <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1">CONTACTO</span>
           <span className="text-neutral-700 dark:text-neutral-300">2093 Philadelphia Pike #9001</span>
           <span className="text-neutral-700 dark:text-neutral-300">Claymont, DE, 19703, United States</span>

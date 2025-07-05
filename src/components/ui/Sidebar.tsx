@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
       {isMobile && (
         <button
           onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+          className="fixed top-4 right-4 z-50 p-2 rounded-lg bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
           aria-label="Abrir menú"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
