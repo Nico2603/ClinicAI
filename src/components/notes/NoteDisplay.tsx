@@ -12,11 +12,15 @@ interface NoteDisplayProps {
 
 const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "Resultado Generado", isLoading = false, groundingMetadata }) => {
   const [editableNote, setEditableNote] = useState(note);
+  const [originalNote, setOriginalNote] = useState(note);
+  const [isUppercase, setIsUppercase] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setEditableNote(note);
+    setOriginalNote(note);
+    setIsUppercase(false);
   }, [note]);
 
   const handleCopy = () => {
@@ -33,6 +37,16 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
       onNoteChange(editableNote);
     }
     setIsEditing(!isEditing);
+  };
+
+  const toggleUppercase = () => {
+    if (isUppercase) {
+      setEditableNote(originalNote);
+    } else {
+      setOriginalNote(editableNote);
+      setEditableNote(editableNote.toUpperCase());
+    }
+    setIsUppercase(!isUppercase);
   };
   
   const renderGroundingSources = () => {
@@ -110,6 +124,14 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
               {isEditing ? <CheckIcon className="h-4 w-4 md:h-5 md:w-5" /> : <EditIcon className="h-4 w-4 md:h-5 md:w-5" />}
             </button>
           )}
+          <button
+            onClick={toggleUppercase}
+            className="p-2 text-neutral-500 hover:text-primary dark:text-neutral-400 dark:hover:text-primary rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            title={isUppercase ? 'Vista Original' : 'Todo en MAYÚSCULAS'}
+            aria-label={isUppercase ? 'Volver a vista original' : 'Convertir nota a mayúsculas'}
+          >
+            <span className="font-bold text-xs">{isUppercase ? 'Ab' : 'AB'}</span>
+          </button>
           <button
             onClick={handleCopy}
             className={`p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary transition-colors ${
