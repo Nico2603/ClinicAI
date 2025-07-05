@@ -87,14 +87,24 @@ export default function LegalPage() {
           </p>
 
           <h2 className="text-2xl font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
-            Contacto
+            Tus Derechos y Contacto
           </h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-            Si tienes preguntas sobre esta política de privacidad o sobre cómo manejamos tus datos, 
-            no dudes en contactarnos:
+            Tienes derecho a acceder, corregir o eliminar tu información personal en cualquier momento. 
+            También puedes retirar tu consentimiento o hacer preguntas sobre cómo manejamos tus datos. 
+            Si deseas contactarnos, por favor escríbenos a:
           </p>
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md text-sm mb-4">
             <p className="text-gray-800 dark:text-gray-200">
+              <strong>Dirección:</strong><br />
+              2093 Philadelphia Pike #9001<br />
+              Claymont, DE, 19703<br />
+              Estados Unidos
+            </p>
+            <p className="mt-2 text-gray-800 dark:text-gray-200">
+              <strong>Teléfono:</strong> +1 (347) 654 4961
+            </p>
+            <p className="mt-2 text-gray-800 dark:text-gray-200">
               <strong>Email:</strong> privacy@notas-ai.com
             </p>
             <p className="mt-2 text-gray-800 dark:text-gray-200">
