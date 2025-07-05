@@ -40,15 +40,14 @@ export interface Template {
 }
 
 export interface UserProfile {
-  id: string;
-  user_id: string;
-  username?: string;
-  avatar_url?: string;
+  id: string; // Corresponde al user_id de auth.users
+  name?: string;
+  phone_number?: string;
   specialty?: string;
   license_number?: string;
   institution?: string;
-  created_at: string;
-  updated_at: string;
+  bio?: string;
+  avatar_url?: string;
 }
 
 // Servicios para Notas
@@ -207,29 +206,71 @@ export const templatesService = {
   }
 };
 
-// Servicios para Perfiles de Usuario
-export const profileService = {
-  // Obtener el perfil del usuario
-  getUserProfile: async (userId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
+// Servicios para Perfil de Usuario
+export const userProfileService = {
+  getProfile: async (userId: string): Promise<UserProfile | null> => {
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('name, phone_number, image')
+      .eq('id', userId)
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Error fetching user data:', userError);
+      throw userError;
+    }
+
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('specialty, license_number, institution, bio')
       .eq('user_id', userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 es "no rows returned"
-    return data;
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error fetching profile data:', profileError);
+      throw profileError;
+    }
+
+    return {
+      id: userId,
+      name: userData?.name,
+      phone_number: userData?.phone_number,
+      avatar_url: userData?.image,
+      specialty: profileData?.specialty,
+      license_number: profileData?.license_number,
+      institution: profileData?.institution,
+      bio: profileData?.bio,
+    };
   },
 
-  // Crear o actualizar el perfil del usuario
-  upsertUserProfile: async (profile: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>): Promise<UserProfile> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(profile, { onConflict: 'user_id' })
-      .select()
-      .single();
+  updateProfile: async (userId: string, updates: Partial<UserProfile>): Promise<UserProfile> => {
+    const { name, phone_number, avatar_url, ...profileUpdates } = updates;
+    
+    const userUpdateData: { name?: string; phone_number?: string, image?: string } = {};
+    if (name) userUpdateData.name = name;
+    if (phone_number) userUpdateData.phone_number = phone_number;
+    if (avatar_url) userUpdateData.image = avatar_url;
 
-    if (error) throw error;
-    return data;
-  }
+    if (Object.keys(userUpdateData).length > 0) {
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ ...userUpdateData, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (userError) throw userError;
+    }
+
+    if (Object.keys(profileUpdates).length > 0) {
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({ user_id: userId, ...profileUpdates, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+            .select()
+            .single();
+        if (profileError) throw profileError;
+    }
+
+    const updatedProfile = await userProfileService.getProfile(userId);
+    if (!updatedProfile) throw new Error('No se pudo recuperar el perfil actualizado.');
+
+    return updatedProfile;
+  },
 }; 

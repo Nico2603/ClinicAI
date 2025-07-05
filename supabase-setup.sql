@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   specialty text,
   license_number text,
   institution text,
+  bio text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
