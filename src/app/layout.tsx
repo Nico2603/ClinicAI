@@ -34,23 +34,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Notas-AI" />
         <meta name="theme-color" content="#3b82f6" />
       </head>
-      <body className={inter.className + " min-h-screen"}>
+      <body className={`${inter.className} min-h-screen flex flex-col`}>
         <ClientOnly fallback={
-          <div className="flex items-center justify-center min-h-screen">
+          <div className="flex items-center justify-center flex-1">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
           </div>
         }>
           <Providers>
             <AuthProvider>
-              <div className="flex flex-row min-h-screen w-full">
+              <main className="flex-1 flex flex-row w-full">
                 {/* Sidebar a la izquierda */}
                 {/* El Sidebar se inyecta desde el children en AuthenticatedApp, así que solo estructuramos el espacio */}
                 {children}
-              </div>
+              </main>
             </AuthProvider>
           </Providers>
         </ClientOnly>
-        <footer className="w-full bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 mt-0 text-neutral-700 dark:text-neutral-200 transition-colors duration-300">
+        <footer className="w-full bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors duration-300">
           <div className="container-app py-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
             {/* Marca */}
             <div className="md:col-span-1 flex flex-col gap-2">
