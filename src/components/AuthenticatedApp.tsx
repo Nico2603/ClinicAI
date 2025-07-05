@@ -355,7 +355,7 @@ const AuthenticatedApp: React.FC = () => {
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <div className="md:ml-64 min-h-screen flex flex-col">
+      <div className="ml-64 min-h-screen flex flex-col">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
           <h1 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
             {currentViewTitle}
