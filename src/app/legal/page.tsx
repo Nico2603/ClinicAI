@@ -6,7 +6,7 @@ import { Footer } from '@/components/ui/Footer';
 
 export default function LegalPage() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen flex-1 w-full">
       <Header title="Política de Privacidad y Términos de Uso" />
       <motion.main
         initial={{ opacity: 0, y: 20 }}

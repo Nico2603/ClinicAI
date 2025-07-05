@@ -60,7 +60,7 @@ export default function PerfilPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen flex-1 w-full">
       <Header title="Perfil de Usuario" />
       <main className="flex-grow max-w-2xl mx-auto p-6 md:p-10 bg-white dark:bg-neutral-900 rounded-lg shadow-lg mt-8 mb-12">
         <form onSubmit={handleSubmit} className="space-y-6">
