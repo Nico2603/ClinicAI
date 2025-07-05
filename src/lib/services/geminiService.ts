@@ -86,6 +86,7 @@ Instrucciones adicionales:
 - Enfócate en ofrecer valor adicional más allá de una simple reestructuración de la información.
 - Puedes sugerir preguntas adicionales que el médico podría hacer, o áreas que podrían requerir más investigación.
 - Si la pregunta parece referirse a eventos muy recientes o información que podría requerir datos actualizados, considera usar tus capacidades de búsqueda si están disponibles y citar las fuentes.
+- Evita usar formato Markdown, negrillas ** ** o viñetas *; responde en texto plano con oraciones completas.
 - Responde de forma útil y profesional.`;
 
   try {

@@ -97,3 +97,9 @@ export const ChevronLeftIcon: React.FC<IconProps> = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
   </svg>
 );
+
+export const StarIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.093 6.46a1 1 0 00.95.69h6.798c.969 0 1.37 1.24.588 1.81l-5.5 4a1 1 0 00-.364 1.118l2.093 6.46c.3.921-.755 1.688-1.538 1.118l-5.5-4a1 1 0 00-1.176 0l-5.5 4c-.783.57-1.838-.197-1.538-1.118l2.093-6.46a1 1 0 00-.364-1.118l-5.5-4c-.782-.57-.38-1.81.588-1.81h6.798a1 1 0 00.95-.69l2.093-6.46z" />
+  </svg>
+);

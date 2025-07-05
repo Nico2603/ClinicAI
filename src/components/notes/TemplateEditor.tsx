@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { SaveIcon } from '../ui/Icons';
+import { SaveIcon, StarIcon } from '../ui/Icons';
+import { addUserFavoriteTemplate, removeUserFavoriteTemplate, getUserFavoriteTemplates } from '../../lib/services/storageService';
 
 interface TemplateEditorProps {
   template: string;
   onSaveTemplate: (newTemplate: string) => void;
   specialtyName: string;
+  userId?: string;
 }
 
-const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplate, specialtyName }) => {
+const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplate, specialtyName, userId }) => {
   const [editedTemplate, setEditedTemplate] = useState(template);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     setEditedTemplate(template);
   }, [template]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const favs = getUserFavoriteTemplates(userId);
+    setIsFavorite(favs.some(f => f.content === template));
+  }, [userId, template]);
 
   const handleSave = () => {
     onSaveTemplate(editedTemplate);
@@ -21,11 +30,42 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplat
     setTimeout(() => setShowSuccess(false), 2500);
   };
 
+  const handleToggleFavorite = () => {
+    if (!userId) return;
+    if (isFavorite) {
+      // Remove favorite
+      const favs = getUserFavoriteTemplates(userId);
+      const favToRemove = favs.find(f => f.content === template);
+      if (favToRemove) {
+        removeUserFavoriteTemplate(userId, favToRemove.id);
+      }
+      setIsFavorite(false);
+    } else {
+      addUserFavoriteTemplate(userId, {
+        name: `${specialtyName} ${new Date().toLocaleDateString()}`,
+        content: template,
+        specialty_id: undefined,
+      });
+      setIsFavorite(true);
+    }
+  };
+
   return (
     <div className="mb-4 md:mb-6">
-      <h3 className="text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-3 md:mb-4">
-        Plantilla para <span className="text-primary">{specialtyName}</span>
-      </h3>
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <h3 className="text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-100">
+          Plantilla para <span className="text-primary">{specialtyName}</span>
+        </h3>
+        {userId && (
+          <button
+            onClick={handleToggleFavorite}
+            className={`p-2 rounded-lg ${isFavorite ? 'text-yellow-400' : 'text-neutral-500 dark:text-neutral-400 hover:text-yellow-500'} hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors`}
+            title={isFavorite ? 'Quitar de favoritos' : 'Guardar como favorita'}
+          >
+            <StarIcon className="h-5 w-5" />
+          </button>
+        )}
+      </div>
       <textarea
         value={editedTemplate}
         onChange={(e) => setEditedTemplate(e.target.value)}

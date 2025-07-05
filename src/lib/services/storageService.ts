@@ -5,6 +5,19 @@ const THEME_KEY = 'notasai_theme';
 const TEMPLATES_KEY = 'notasai_templates';
 const HISTORY_KEY = 'notasai_history';
 
+// Favoritos de plantillas
+const FAVORITE_TEMPLATES_KEY = 'notasai_fav_templates';
+const getUserFavoritesKey = (userId: string): string => `notasai_fav_templates_${userId}`;
+
+// Tipos
+interface FavoriteTemplate {
+  id: string; // uuid
+  name: string;
+  content: string;
+  specialty_id?: string;
+  created_at: string;
+}
+
 // User-specific storage keys
 const getUserTemplatesKey = (userId: string): string => `notasai_templates_${userId}`;
 const getUserHistoryKey = (userId: string): string => `notasai_history_${userId}`;
@@ -129,4 +142,43 @@ export const addUserHistoricNoteEntry = (userId: string, newNote: HistoricNote):
 export const clearUserData = (userId: string): void => {
   localStorage.removeItem(getUserTemplatesKey(userId));
   localStorage.removeItem(getUserHistoryKey(userId));
+};
+
+export const getUserFavoriteTemplates = (userId: string): FavoriteTemplate[] => {
+  const stored = localStorage.getItem(getUserFavoritesKey(userId));
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Failed to parse favorite templates:', error);
+      return [];
+    }
+  }
+  return [];
+};
+
+export const saveUserFavoriteTemplates = (userId: string, templates: FavoriteTemplate[]): void => {
+  try {
+    localStorage.setItem(getUserFavoritesKey(userId), JSON.stringify(templates));
+  } catch (error) {
+    console.error('Failed to save favorite templates:', error);
+  }
+};
+
+export const addUserFavoriteTemplate = (userId: string, template: Omit<FavoriteTemplate, 'id' | 'created_at'>): FavoriteTemplate[] => {
+  const favorites = getUserFavoriteTemplates(userId);
+  const newFav: FavoriteTemplate = {
+    id: Date.now().toString(),
+    created_at: new Date().toISOString(),
+    ...template,
+  };
+  const updated = [...favorites, newFav];
+  saveUserFavoriteTemplates(userId, updated);
+  return updated;
+};
+
+export const removeUserFavoriteTemplate = (userId: string, favId: string): FavoriteTemplate[] => {
+  const favorites = getUserFavoriteTemplates(userId).filter(f => f.id !== favId);
+  saveUserFavoriteTemplates(userId, favorites);
+  return favorites;
 };

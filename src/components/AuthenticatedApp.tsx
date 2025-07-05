@@ -30,6 +30,7 @@ import {
   addUserHistoricNoteEntry
 } from '../lib/services/storageService';
 import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/geminiService';
+import { notesService } from '../lib/services/databaseService';
 
 // Components
 import Sidebar from './ui/Sidebar';
@@ -40,6 +41,7 @@ import HistoryView from './HistoryView';
 import UserProfile from './auth/UserProfile';
 import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
 import { Footer } from './ui/Footer';
+import MyNotesView from './MyNotesView';
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
@@ -73,7 +75,6 @@ const AuthenticatedApp: React.FC = () => {
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [isSpeechApiAvailable, setIsSpeechApiAvailable] = useState<boolean>(false);
   const speechRecognitionInstance = useRef<SpeechRecognition | null>(null);
-
 
   useEffect(() => {
     if (!user) return;
@@ -220,6 +221,20 @@ const AuthenticatedApp: React.FC = () => {
         content: result.text,
       });
 
+      // Guardar en Supabase (best-effort, no bloquea la UI)
+      if (user) {
+        notesService.createNote({
+          title: `Nota ${new Date().toLocaleString()}`,
+          content: result.text,
+          user_id: user.id,
+          specialty_id: selectedSpecialtyId,
+          is_private: true,
+          tags: [],
+        }).catch((dbErr) => {
+          console.error('Error al guardar la nota en Supabase:', dbErr);
+        });
+      }
+
     } catch (err) {
       console.error(err);
       const errorMessage = err instanceof Error ? err.message : "Ocurrió un error desconocido al generar la nota.";
@@ -346,6 +361,7 @@ const AuthenticatedApp: React.FC = () => {
   let currentViewTitle = 'Generador de Notas Clínicas';
   if (activeView === 'templates') currentViewTitle = 'Editor de Plantillas';
   if (activeView === 'history') currentViewTitle = 'Historial de Notas';
+  if (activeView === 'notes') currentViewTitle = 'Mis Notas';
 
 
   return (
@@ -381,9 +397,10 @@ const AuthenticatedApp: React.FC = () => {
                 onSpecialtyChange={handleSpecialtyChange}
               />
               <TemplateEditor
-                template={templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId] || ''}
+                template={templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId]}
                 onSaveTemplate={handleSaveTemplate}
                 specialtyName={selectedSpecialty.name}
+                userId={user?.id}
               />
             </section>
           )}
@@ -543,6 +560,10 @@ const AuthenticatedApp: React.FC = () => {
                 </div>
               </section>
             </>
+          )}
+
+          {activeView === 'notes' && (
+            <MyNotesView />
           )}
 
           {activeView === 'history' && (
