@@ -44,13 +44,13 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
-        <div className="max-w-md w-full space-y-8 p-8 bg-card rounded-lg shadow-soft border">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted px-4 py-8">
+        <div className="max-w-md w-full space-y-6 md:space-y-8 p-6 md:p-8 bg-card rounded-lg shadow-soft border">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
               Bienvenido a <span className="gradient-text">Notas-AI</span>
             </h1>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-sm md:text-base text-muted-foreground mb-6 md:mb-8">
               Tu asistente de IA para notas clínicas
             </p>
           </div>
@@ -58,7 +58,7 @@ export default function HomePage() {
           <div className="space-y-4">
             <Button
               onClick={signIn}
-              className="w-full btn-primary flex items-center justify-center gap-2"
+              className="w-full btn-primary flex items-center justify-center gap-2 py-3 md:py-4"
               size="lg"
               disabled={isLoading}
             >

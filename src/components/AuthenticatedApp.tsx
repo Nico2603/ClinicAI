@@ -348,22 +348,22 @@ const AuthenticatedApp: React.FC = () => {
 
 
   return (
-    <div className="flex h-screen bg-neutral-100 dark:bg-dark-bg font-sans">
+    <div className="flex h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <div className="flex-1 flex flex-col ml-64 overflow-hidden"> {/* Adjust ml to match sidebar width */}
-        <header className="bg-white dark:bg-neutral-800 shadow-sm p-4 border-b dark:border-dark-border flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
+      <div className="flex-1 flex flex-col md:ml-64 overflow-hidden">
+        <header className="bg-white dark:bg-neutral-800 shadow-sm p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center">
+          <h1 className="text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
             {currentViewTitle}
           </h1>
           <UserProfile />
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-neutral-100 dark:bg-neutral-900 p-6 space-y-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-neutral-100 dark:bg-neutral-900 p-4 md:p-6 space-y-6 md:space-y-8">
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300 rounded-lg shadow" role="alert">
               <p className="font-bold text-sm">Error:</p>
@@ -372,7 +372,7 @@ const AuthenticatedApp: React.FC = () => {
           )}
 
           {activeView === 'templates' && (
-            <section aria-labelledby="template-editor-heading" className="bg-white dark:bg-dark-surface shadow-xl rounded-lg p-6">
+            <section aria-labelledby="template-editor-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
               <h2 id="template-editor-heading" className="sr-only">Editor de Plantillas</h2>
               <SpecialtySelector
                 specialties={specialties}
@@ -390,20 +390,20 @@ const AuthenticatedApp: React.FC = () => {
           {activeView === 'generate' && (
             <>
               {/* Section 1: Template-based Note Generation */}
-              <section aria-labelledby="template-note-heading" className="bg-white dark:bg-dark-surface shadow-xl rounded-lg p-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                     <h2 id="template-note-heading" className="text-xl font-semibold text-primary dark:text-dark-primary mb-3 md:mb-0">
+              <section aria-labelledby="template-note-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 md:mb-6">
+                     <h2 id="template-note-heading" className="text-lg md:text-xl font-semibold text-primary mb-3 lg:mb-0">
                         Nota con Plantilla de <span className="font-bold">{selectedSpecialty.name}</span>
                      </h2>
                      <SpecialtySelector
                         specialties={specialties}
                         selectedSpecialtyId={selectedSpecialtyId}
                         onSpecialtyChange={handleSpecialtyChange}
-                        className="mb-0 md:w-1/2 lg:w-1/3"
+                        className="mb-0 lg:w-1/2 xl:w-1/3"
                      />
                 </div>
                 
-                <div className="mb-1 flex justify-between items-center">
+                <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                   <label htmlFor="patient-info" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                     Información del Paciente (para plantilla)
                   </label>
@@ -411,7 +411,7 @@ const AuthenticatedApp: React.FC = () => {
                     <button
                         onClick={handleToggleRecording}
                         disabled={!isSpeechApiAvailable || !speechRecognitionInstance.current} 
-                        className={`p-2 rounded-full transition-colors ${
+                        className={`p-2 rounded-full transition-colors shrink-0 ${
                           isRecording 
                             ? 'bg-red-500 hover:bg-red-600 text-white' 
                             : 'bg-secondary hover:bg-secondary-dark text-white'
@@ -428,7 +428,7 @@ const AuthenticatedApp: React.FC = () => {
                   value={patientInfo}
                   onChange={(e) => { setPatientInfo(e.target.value); setError(null);}}
                   rows={6}
-                  className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 mb-1 transition-colors"
+                  className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 mb-1 transition-colors text-sm md:text-base"
                   placeholder="Ingrese aquí los datos del paciente, síntomas, observaciones para completar la plantilla... o use el botón de micrófono para dictar."
                 />
                 {!isSpeechApiAvailable && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 mb-2">El dictado por voz no es compatible con este navegador.</p>}
@@ -438,7 +438,7 @@ const AuthenticatedApp: React.FC = () => {
                 <button
                   onClick={handleGenerateTemplateNote}
                   disabled={isGeneratingTemplateNote || isRecording}
-                  className="w-full mt-3 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
+                  className="w-full mt-3 inline-flex items-center justify-center px-4 md:px-6 py-3 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
                 >
                   {isGeneratingTemplateNote ? (
                     <> <LoadingSpinner className="text-white mr-2" /> Generando Nota...</>
@@ -456,16 +456,16 @@ const AuthenticatedApp: React.FC = () => {
               </section>
 
               {/* Section 2: AI-Powered Assistance */}
-              <section aria-labelledby="ai-assistance-heading" className="bg-white dark:bg-dark-surface shadow-xl rounded-lg p-6">
+              <section aria-labelledby="ai-assistance-heading" className="bg-white dark:bg-neutral-800 shadow-xl rounded-lg p-4 md:p-6">
                  <h2 id="ai-assistance-heading" className="sr-only">Asistente IA Avanzado</h2>
                 
                 {/* Part 1: General Suggestions */}
                 <div>
-                    <h3 id="ai-suggestions-heading" className="text-xl font-semibold text-secondary dark:text-dark-secondary mb-3 flex items-center">
-                    <LightBulbIcon className="h-6 w-6 mr-2" />
+                    <h3 id="ai-suggestions-heading" className="text-lg md:text-xl font-semibold text-secondary mb-3 md:mb-4 flex items-center">
+                    <LightBulbIcon className="h-5 w-5 md:h-6 md:w-6 mr-2" />
                     Ideas y Sugerencias
                     </h3>
-                    <label htmlFor="ai-suggestion-input" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                    <label htmlFor="ai-suggestion-input" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     Información Clínica o Consulta para IA
                     </label>
                     <textarea
@@ -473,13 +473,13 @@ const AuthenticatedApp: React.FC = () => {
                     value={aiSuggestionInput}
                     onChange={(e) => {setAiSuggestionInput(e.target.value); setError(null);}}
                     rows={6}
-                    className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 mb-4 transition-colors"
+                    className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 mb-4 transition-colors text-sm md:text-base"
                     placeholder="Describa la situación clínica, preguntas o áreas donde necesita ideas, recomendaciones o un análisis más libre..."
                     />
                     <button
                     onClick={handleGenerateAISuggestions}
                     disabled={isGeneratingAISuggestion}
-                    className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
+                    className="w-full inline-flex items-center justify-center px-4 md:px-6 py-3 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
                     >
                     {isGeneratingAISuggestion ? (
                         <> <LoadingSpinner className="text-white mr-2" /> Generando Sugerencias...</>
@@ -496,25 +496,25 @@ const AuthenticatedApp: React.FC = () => {
                 </div>
 
                 {/* Divider */}
-                <div className="my-8 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
+                <div className="my-6 md:my-8 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
 
                 {/* Part 2: Scale Generator */}
                 <div>
-                    <h3 id="scale-generator-heading" className="text-xl font-semibold text-secondary dark:text-dark-secondary mb-3 flex items-center">
-                    <CalculatorIcon className="h-6 w-6 mr-2" />
+                    <h3 id="scale-generator-heading" className="text-lg md:text-xl font-semibold text-secondary mb-3 md:mb-4 flex items-center">
+                    <CalculatorIcon className="h-5 w-5 md:h-6 md:w-6 mr-2" />
                     Generador Automático de Escalas Clínicas
                     </h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
                     Seleccione una escala. La IA utilizará la "Información Clínica" introducida arriba para completarla.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
-                        <div className="w-full sm:flex-1">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-center mb-4">
+                        <div className="flex-1">
                             <label htmlFor="scale-select" className="sr-only">Seleccionar Escala</label>
                             <select 
                                 id="scale-select" 
                                 value={selectedScale}
                                 onChange={e => setSelectedScale(e.target.value)}
-                                className="w-full pl-3 pr-10 py-2.5 text-base border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md shadow-sm transition-colors"
+                                className="w-full pl-3 pr-10 py-2.5 text-sm md:text-base border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-primary focus:border-primary rounded-md shadow-sm transition-colors"
                             >
                                 {MEDICAL_SCALES.map(scale => (
                                     <option key={scale.id} value={scale.id}>{scale.name}</option>
@@ -524,7 +524,7 @@ const AuthenticatedApp: React.FC = () => {
                         <button 
                             onClick={handleGenerateScale}
                             disabled={isGeneratingScale || selectedScale === 'none'}
-                            className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
+                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 md:px-6 py-2.5 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
                         >
                             {isGeneratingScale ? (
                                 <><LoadingSpinner className="text-white mr-2" /> Generando...</>

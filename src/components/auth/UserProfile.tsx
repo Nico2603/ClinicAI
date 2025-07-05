@@ -28,13 +28,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           alt={user.name || 'Usuario'}
           width={32}
           height={32}
-          className="w-8 h-8 rounded-full border-2 border-gray-300"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-gray-300 shrink-0"
         />
-        <div className="hidden sm:block text-left">
-          <div className="text-sm font-medium text-gray-900 dark:text-white">
+        <div className="hidden md:block text-left">
+          <div className="text-sm font-medium text-gray-900 dark:text-white max-w-32 truncate">
             {user.name}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs text-gray-500 dark:text-gray-400 max-w-32 truncate">
             {user.email}
           </div>
         </div>
@@ -64,7 +64,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           />
           
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+          <div className="absolute right-0 mt-2 w-64 md:w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-20">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <Image
@@ -72,13 +72,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                   alt={user.name || 'Usuario'}
                   width={48}
                   height={48}
-                  className="w-12 h-12 rounded-full border-2 border-gray-300"
+                  className="w-12 h-12 rounded-full border-2 border-gray-300 shrink-0"
                 />
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-gray-900 dark:text-white truncate">
                     {user.name}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </div>
                 </div>
@@ -91,7 +91,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                 className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors flex items-center space-x-2"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-4 h-4 shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
