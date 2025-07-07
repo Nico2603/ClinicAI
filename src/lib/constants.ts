@@ -338,5 +338,7 @@ export const MEDICAL_SCALES = [
 ];
 
 
-export const GEMINI_MODEL_TEXT = 'gemini-2.5-flash-preview-04-17';
-// export const GEMINI_MODEL_IMAGE = 'imagen-3.0-generate-002'; // If image generation were needed
+// OpenAI GPT Models
+export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
+export const OPENAI_MODEL_ADVANCED = 'gpt-4o'; // For complex medical cases if needed
+// export const OPENAI_MODEL_IMAGE = 'dall-e-3'; // If image generation were needed

@@ -1,25 +1,27 @@
-import { GoogleGenAI, GenerateContentResponse, Candidate } from "@google/genai";
-import { GEMINI_MODEL_TEXT } from '../constants';
+import OpenAI from 'openai';
+import { OPENAI_MODEL_TEXT } from '../constants';
 import { GroundingMetadata } from '../../types';
 
 // ✅ Para Next.js usamos process.env
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
 if (!API_KEY) {
-  console.error("❌ NEXT_PUBLIC_GEMINI_API_KEY no está configurada. Por favor verifica tu archivo .env");
+  console.error("❌ NEXT_PUBLIC_OPENAI_API_KEY no está configurada. Por favor verifica tu archivo .env");
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// The constructor expects string. If API_KEY is undefined here, it will throw an error.
-// Using API_KEY || '' to provide a fallback empty string
-const ai = new GoogleGenAI({ apiKey: API_KEY || '' }); 
+// Inicializar OpenAI client
+const openai = new OpenAI({
+  apiKey: API_KEY || '',
+  dangerouslyAllowBrowser: true // Permitir uso en el navegador (Next.js)
+});
 
 export const generateNoteFromTemplate = async (
   specialtyName: string,
   templateContent: string,
   patientInfo: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for Gemini.");
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
   
   const prompt = `Contexto: Eres un asistente experto en la redacción de notas médicas altamente precisas y profesionales para la especialidad de ${specialtyName}.
 Tu tarea principal es completar la siguiente plantilla de nota médica utilizando la información del paciente proporcionada.
@@ -60,12 +62,28 @@ Tu respuesta para esa sección DEBE SER:
 (Manteniendo las mayúsculas del encabezado y el formato de viñeta).`;
 
   try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: GEMINI_MODEL_TEXT,
-      contents: prompt,
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.3, // Baja temperatura para respuestas más consistentes y precisas
+      max_tokens: 2000,
+      top_p: 0.9
     });
-    const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
+
+    const generatedText = response.choices[0]?.message?.content || '';
+    return { 
+      text: generatedText, 
+      groundingMetadata: undefined // OpenAI no proporciona grounding metadata como Gemini
+    };
   } catch (error) {
     console.error('Error generating note from template:', error);
     throw new Error(`Error al generar nota con IA: ${error instanceof Error ? error.message : String(error)}`);
@@ -75,7 +93,7 @@ Tu respuesta para esa sección DEBE SER:
 export const generateAISuggestions = async (
   clinicalInput: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for Gemini.");
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
 
   const prompt = `Contexto: Eres un asistente médico experto capaz de analizar información de pacientes y ofrecer ideas y recomendaciones. La IA está conectada con información actualizada y se esfuerza por basar las sugerencias en conocimiento científico.
 Tarea: Basado en la siguiente información clínica proporcionada por el usuario, genera un análisis que incluya posibles consideraciones, recomendaciones, sugerencias de próximos pasos o puntos clave a destacar. No te limites a una estructura de nota fija. No se deben ofrecer recomendaciones sin una base de evidencia o conocimiento establecido.
@@ -85,21 +103,33 @@ Instrucciones adicionales:
 - Sé claro y directo.
 - Enfócate en ofrecer valor adicional más allá de una simple reestructuración de la información.
 - Puedes sugerir preguntas adicionales que el médico podría hacer, o áreas que podrían requerir más investigación.
-- Si la pregunta parece referirse a eventos muy recientes o información que podría requerir datos actualizados, considera usar tus capacidades de búsqueda si están disponibles y citar las fuentes.
+- Si la pregunta parece referirse a eventos muy recientes o información que podría requerir datos actualizados, menciona que se debe verificar con fuentes médicas actualizadas.
 - Evita usar formato Markdown, negrillas ** ** o viñetas *; responde en texto plano con oraciones completas.
 - Responde de forma útil y profesional.`;
 
   try {
-     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: GEMINI_MODEL_TEXT,
-      contents: prompt,
-      config: {
-        // Example of enabling search if input suggests need for recent info.
-        // tools: [{googleSearch: {}}], // Only enable if contextually appropriate & handle groundingMetadata
-      }
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto que proporciona análisis clínico y sugerencias basadas en evidencia científica actualizada."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.5, // Temperatura moderada para balance entre creatividad y precisión
+      max_tokens: 1500,
+      top_p: 0.9
     });
-    const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
+
+    const generatedText = response.choices[0]?.message?.content || '';
+    return { 
+      text: generatedText, 
+      groundingMetadata: undefined // OpenAI no proporciona grounding metadata
+    };
   } catch (error) {
     console.error('Error generating AI suggestions:', error);
     throw new Error(`Error al generar sugerencias con IA: ${error instanceof Error ? error.message : String(error)}`);
@@ -110,7 +140,7 @@ export const generateMedicalScale = async (
   clinicalInput: string,
   scaleName: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for Gemini.");
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
 
   const prompt = `Contexto: Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas.
 Tarea: Basado en la siguiente "Información Clínica", evalúa y completa la escala "${scaleName}". Debes presentar el resultado en un formato claro y profesional, listo para ser copiado y pegado en una historia clínica.
@@ -151,14 +181,30 @@ Ejemplo de formato de respuesta deseado (para PHQ-9):
 ---`;
 
   try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: GEMINI_MODEL_TEXT,
-      contents: prompt,
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto especializado en la aplicación y evaluación de escalas clínicas estandarizadas. Proporcionas evaluaciones precisas y profesionales."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.2, // Temperatura muy baja para máxima precisión en escalas
+      max_tokens: 1500,
+      top_p: 0.8
     });
-    const candidate = response.candidates?.[0] as Candidate | undefined;
-    return { text: response.text || '', groundingMetadata: candidate?.groundingMetadata };
+
+    const generatedText = response.choices[0]?.message?.content || '';
+    return { 
+      text: generatedText, 
+      groundingMetadata: undefined // OpenAI no proporciona grounding metadata
+    };
   } catch (error) {
     console.error('Error generating medical scale:', error);
     throw new Error(`Error al generar la escala con IA: ${error instanceof Error ? error.message : String(error)}`);
   }
-};
+}; 

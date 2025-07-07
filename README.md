@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![NextAuth](https://img.shields.io/badge/NextAuth-4.24.11-7C3AED?style=for-the-badge&logo=next-auth)](https://next-auth.js.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.7.0-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
+[![OpenAI GPT](https://img.shields.io/badge/OpenAI-GPT--4o--mini-00A67E?style=for-the-badge&logo=openai)](https://openai.com/)
 
 </div>
 
@@ -24,7 +24,7 @@
 
 ### 🚀 **Generación Inteligente de Notas**
 - **Plantillas por Especialidad**: Más de 30 especialidades médicas predefinidas
-- **IA Avanzada**: Powered by Google Gemini 2.5 Flash Preview
+- **IA Avanzada**: Powered by OpenAI GPT-4o-mini
 - **Formato Profesional**: Genera notas que siguen estándares clínicos colombianos
 
 ### 🎤 **Reconocimiento de Voz Integrado**
@@ -126,8 +126,8 @@
 - **Google OAuth** - Autenticación segura con Google
 
 ### **Inteligencia Artificial**
-- **Google Gemini 2.5 Flash Preview** - Modelo de IA de última generación
-- **@google/genai 1.6.0** - SDK oficial de Google Generative AI
+- **OpenAI GPT-4o-mini** - Modelo de IA optimizado para tareas médicas
+- **openai 4.67.1** - SDK oficial de OpenAI
 
 ### **APIs y Servicios**
 - **Web Speech API** - Reconocimiento de voz nativo del navegador
@@ -141,7 +141,7 @@
 ### **Prerrequisitos**
 - Node.js 18+ instalado
 - PostgreSQL configurado
-- Una clave API de Google Gemini (gratuita)
+- Una clave API de OpenAI
 - Credenciales de Google OAuth
 - Navegador moderno con soporte para Web Speech API
 
@@ -170,8 +170,8 @@ NEXTAUTH_SECRET="tu-secret-super-seguro-aqui"
 GOOGLE_CLIENT_ID="tu-google-client-id"
 GOOGLE_CLIENT_SECRET="tu-google-client-secret"
 
-# Google Gemini API
-GOOGLE_API_KEY="tu-clave-api-de-gemini"
+# OpenAI API
+NEXT_PUBLIC_OPENAI_API_KEY="tu-clave-api-de-openai"
 ```
 
 ### **4. Configurar Base de Datos**
@@ -273,7 +273,7 @@ Notas-AI/
 │   │   ├── utils.ts          # Funciones utilitarias
 │   │   └── services/         # Servicios de API
 │   │       ├── databaseService.ts
-│   │       ├── geminiService.ts
+│   │       ├── openaiService.ts
 │   │       └── storageService.ts
 │   ├── contexts/            # Contextos React
 │   ├── hooks/              # Custom hooks

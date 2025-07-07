@@ -29,7 +29,7 @@ import {
   getUserStoredHistoricNotes,
   addUserHistoricNoteEntry
 } from '../lib/services/storageService';
-import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/geminiService';
+import { generateNoteFromTemplate, generateAISuggestions, generateMedicalScale } from '../lib/services/openaiService';
 import { notesService } from '../lib/services/databaseService';
 
 // Components
