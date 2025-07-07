@@ -28,6 +28,17 @@ export interface Template {
   specialty?: Specialty;
 }
 
+// Plantillas personalizadas del usuario
+export interface UserTemplate {
+  id: string;
+  name: string;
+  content: string;
+  user_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Note {
   id: string;
   title: string;

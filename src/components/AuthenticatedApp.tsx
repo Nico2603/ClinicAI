@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Types
 import {
-  Templates,
-  SpecialtyBase,
+  UserTemplate,
   GroundingMetadata,
   SpeechRecognition, 
   SpeechRecognitionEvent, 
@@ -15,16 +14,15 @@ import {
 } from '../types';
 
 // Constants
-import { DEFAULT_SPECIALTIES, DEFAULT_TEMPLATES, MEDICAL_SCALES } from '../lib/constants';
+import { MEDICAL_SCALES } from '../lib/constants';
 
 // Hooks
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserTemplates } from '../hooks/useDatabase';
 
 // Services
 import { 
-  getUserStoredTemplates,
-  saveUserTemplates,
   getUserStoredHistoricNotes,
   addUserHistoricNoteEntry
 } from '../lib/services/storageService';
@@ -33,7 +31,7 @@ import { notesService } from '../lib/services/databaseService';
 
 // Components
 import Sidebar from './ui/Sidebar';
-import SpecialtySelector from './notes/SpecialtySelector';
+import CustomTemplateManager from './notes/CustomTemplateManager';
 import TemplateEditor from './notes/TemplateEditor';
 import NoteDisplay from './notes/NoteDisplay';
 import HistoryView from './HistoryView';
@@ -45,10 +43,9 @@ import MyNotesView from './MyNotesView';
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
   const [theme, toggleTheme] = useDarkMode();
-  const [activeView, setActiveView] = useState<ActiveView>('generate');
-  const [specialties] = useState<SpecialtyBase[]>(DEFAULT_SPECIALTIES);
-  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>(DEFAULT_SPECIALTIES[0]?.id || '');
-  const [templates, setTemplates] = useState<Templates>({});
+  const [activeView, setActiveView] = useState<ActiveView>('templates');
+  const { userTemplates, createUserTemplate, updateUserTemplate, deleteUserTemplate, renameUserTemplate } = useUserTemplates();
+  const [selectedTemplate, setSelectedTemplate] = useState<UserTemplate | null>(null);
   const [historicNotes, setHistoricNotes] = useState<HistoricNote[]>([]);
 
   const [patientInfo, setPatientInfo] = useState<string>('');
@@ -81,21 +78,12 @@ const AuthenticatedApp: React.FC = () => {
     // Load user-specific historic notes
     setHistoricNotes(getUserStoredHistoricNotes(user.id));
 
-    // Load user-specific templates
-    const currentStoredTemplates = getUserStoredTemplates(user.id);
-    let updated = false;
-    const newTemplates = {...currentStoredTemplates};
-    DEFAULT_SPECIALTIES.forEach(spec => {
-        if (!newTemplates[spec.id]) {
-            newTemplates[spec.id] = DEFAULT_TEMPLATES[spec.id] || "PLANTILLA VACÍA PARA " + spec.name.toUpperCase();
-            updated = true;
-        }
-    });
-    if(updated) {
-        setTemplates(newTemplates);
-        saveUserTemplates(user.id, newTemplates);
-    } else {
-        setTemplates(currentStoredTemplates);
+    // Set first template as selected when templates are loaded
+    if (userTemplates.length > 0 && !selectedTemplate) {
+      const firstTemplate = userTemplates[0];
+      if (firstTemplate) {
+        setSelectedTemplate(firstTemplate);
+      }
     }
 
     // Initialize Speech Recognition
@@ -155,7 +143,7 @@ const AuthenticatedApp: React.FC = () => {
         speechRecognitionInstance.current.stop();
       }
     };
-  }, [user]);
+  }, [user, userTemplates, selectedTemplate]);
 
   const handleToggleRecording = () => {
     if (!speechRecognitionInstance.current) return;
@@ -173,17 +161,20 @@ const AuthenticatedApp: React.FC = () => {
     }
   };
 
-  const handleSpecialtyChange = (specialtyId: string) => {
-    setSelectedSpecialtyId(specialtyId);
-    setError(null); 
+  const handleSelectTemplate = (template: UserTemplate) => {
+    setSelectedTemplate(template);
+    setError(null);
   };
 
-  const handleSaveTemplate = useCallback((newTemplate: string) => {
-    if (!user) return;
-    const updatedTemplates = { ...templates, [selectedSpecialtyId]: newTemplate };
-    setTemplates(updatedTemplates);
-    saveUserTemplates(user.id, updatedTemplates);
-  }, [templates, selectedSpecialtyId, user]);
+  const handleSaveTemplate = useCallback(async (newContent: string) => {
+    if (!user || !selectedTemplate) return;
+    try {
+      await updateUserTemplate(selectedTemplate.id, { content: newContent });
+    } catch (error) {
+      console.error('Error al guardar plantilla:', error);
+      setError('Error al guardar la plantilla');
+    }
+  }, [selectedTemplate, user, updateUserTemplate]);
 
   const addNoteToHistory = (noteData: Omit<HistoricNote, 'id' | 'timestamp'>) => {
     if (!user) return;
@@ -201,15 +192,19 @@ const AuthenticatedApp: React.FC = () => {
       setError("Por favor, ingrese la información del paciente para la plantilla.");
       return;
     }
+
+    if (!selectedTemplate) {
+      setError('Por favor, seleccione una plantilla válida.');
+      return;
+    }
+
     setError(null);
     setIsGeneratingTemplateNote(true);
     setGeneratedTemplateNote('');
     setTemplateNoteGrounding(undefined);
 
     try {
-      const currentTemplate = templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId] || 'Plantilla no disponible';
-      const specialtyName = specialties.find(s => s.id === selectedSpecialtyId)?.name || selectedSpecialtyId;
-      const result = await generateNoteFromTemplate(specialtyName, currentTemplate, patientInfo);
+      const result = await generateNoteFromTemplate(selectedTemplate.name, selectedTemplate.content, patientInfo);
       setGeneratedTemplateNote(result.text);
       setTemplateNoteGrounding(result.groundingMetadata);
       // Sync patientInfo to AI suggestion input
@@ -217,8 +212,8 @@ const AuthenticatedApp: React.FC = () => {
       // Add to history
       addNoteToHistory({
         type: 'template',
-        specialty_id: selectedSpecialtyId,
-        specialtyName: specialtyName,
+        specialty_id: selectedTemplate.id,
+        specialtyName: selectedTemplate.name,
         originalInput: patientInfo,
         content: result.text,
       });
@@ -229,7 +224,7 @@ const AuthenticatedApp: React.FC = () => {
           title: `Nota ${new Date().toLocaleString()}`,
           content: result.text,
           user_id: user.id,
-          specialty_id: selectedSpecialtyId,
+          template_id: selectedTemplate.id,
           is_private: true,
           tags: [],
         }).catch((dbErr) => {
@@ -330,7 +325,11 @@ const AuthenticatedApp: React.FC = () => {
     setScaleGrounding(undefined);
     
     if (note.type === 'template') {
-      if (note.specialty_id) setSelectedSpecialtyId(note.specialty_id);
+      // Try to find the template by ID
+      const template = userTemplates.find(t => t.id === note.specialty_id);
+      if (template) {
+        setSelectedTemplate(template);
+      }
       setPatientInfo(note.originalInput);
       setGeneratedTemplateNote(note.content);
       setAiSuggestionInput(note.originalInput);
@@ -344,7 +343,7 @@ const AuthenticatedApp: React.FC = () => {
       if (note.scaleId && MEDICAL_SCALES.some(s => s.id === note.scaleId)) {
         setSelectedScale(note.scaleId);
       } else {
-        setSelectedScale(MEDICAL_SCALES[0]?.id || ''); // default to none
+        setSelectedScale(MEDICAL_SCALES[0]?.id || '');
       }
       setPatientInfo('');
     }
@@ -353,18 +352,15 @@ const AuthenticatedApp: React.FC = () => {
   const handleClearHistory = () => {
     if (!user) return;
     if(window.confirm("¿Está seguro de que desea borrar todo el historial de notas? Esta acción no se puede deshacer.")) {
-        localStorage.removeItem(`notasai_history_${user.id}`); // Clear user-specific history
+        localStorage.removeItem(`notasai_history_${user.id}`);
         setHistoricNotes([]);
     }
   };
   
-  const selectedSpecialty = specialties.find(s => s.id === selectedSpecialtyId) || DEFAULT_SPECIALTIES[0];
-  
   let currentViewTitle = 'Generador de Notas Clínicas';
-  if (activeView === 'templates') currentViewTitle = 'Editor de Plantillas';
+  if (activeView === 'templates') currentViewTitle = 'Gestor de Plantillas Personalizadas';
   if (activeView === 'history') currentViewTitle = 'Historial de Notas';
   if (activeView === 'notes') currentViewTitle = 'Mis Notas';
-
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
@@ -391,36 +387,49 @@ const AuthenticatedApp: React.FC = () => {
           )}
 
           {activeView === 'templates' && (
-            <section aria-labelledby="template-editor-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
-              <h2 id="template-editor-heading" className="sr-only">Editor de Plantillas</h2>
-              <SpecialtySelector
-                specialties={specialties}
-                selectedSpecialtyId={selectedSpecialtyId}
-                onSpecialtyChange={handleSpecialtyChange}
-              />
-              <TemplateEditor
-                template={templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId] || 'Plantilla no disponible'}
-                onSaveTemplate={handleSaveTemplate}
-                specialtyName={selectedSpecialty?.name || 'Especialidad'}
-                userId={user?.id}
-              />
+            <section aria-labelledby="template-manager-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
+              <h2 id="template-manager-heading" className="sr-only">Gestor de Plantillas Personalizadas</h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Template Manager */}
+                <div>
+                  <CustomTemplateManager
+                    onSelectTemplate={handleSelectTemplate}
+                    selectedTemplateId={selectedTemplate?.id}
+                  />
+                </div>
+                
+                {/* Template Editor */}
+                {selectedTemplate && (
+                  <div>
+                    <TemplateEditor
+                      template={selectedTemplate.content}
+                      onSaveTemplate={handleSaveTemplate}
+                      specialtyName={selectedTemplate.name}
+                      userId={user?.id}
+                    />
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
-          {activeView === 'generate' && (
+          {activeView === 'generate' && selectedTemplate && (
             <>
               {/* Section 1: Template-based Note Generation */}
               <section aria-labelledby="template-note-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 md:mb-4">
-                     <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
-                                                 Nota con Plantilla de <span className="font-bold">{selectedSpecialty?.name || 'Especialidad'}</span>
-                     </h2>
-                     <SpecialtySelector
-                        specialties={specialties}
-                        selectedSpecialtyId={selectedSpecialtyId}
-                        onSpecialtyChange={handleSpecialtyChange}
-                        className="mb-0 lg:w-1/2 xl:w-1/3"
-                     />
+                  <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
+                    Nota con Plantilla: <span className="font-bold">{selectedTemplate.name}</span>
+                  </h2>
+                  <div className="lg:w-1/2 xl:w-1/3">
+                    <button
+                      onClick={() => setActiveView('templates')}
+                      className="text-sm text-primary hover:text-primary-dark underline"
+                    >
+                      Cambiar plantilla
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -469,7 +478,7 @@ const AuthenticatedApp: React.FC = () => {
                 <NoteDisplay
                   note={generatedTemplateNote}
                   onNoteChange={handleUpdateGeneratedTemplateNote}
-                  title={`Nota Clínica de ${selectedSpecialty?.name || 'Especialidad'} (Plantilla)`}
+                  title={`Nota Clínica: ${selectedTemplate.name}`}
                   isLoading={isGeneratingTemplateNote}
                   groundingMetadata={templateNoteGrounding}
                 />
@@ -562,6 +571,25 @@ const AuthenticatedApp: React.FC = () => {
                 </div>
               </section>
             </>
+          )}
+
+          {activeView === 'generate' && !selectedTemplate && (
+            <section className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
+              <div className="text-center py-8">
+                <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-4">
+                  No hay plantillas seleccionadas
+                </h2>
+                <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+                  Para generar notas, primero necesitas crear y seleccionar una plantilla personalizada.
+                </p>
+                <button
+                  onClick={() => setActiveView('templates')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                >
+                  Ir a Plantillas
+                </button>
+              </div>
+            </section>
           )}
 
           {activeView === 'notes' && (

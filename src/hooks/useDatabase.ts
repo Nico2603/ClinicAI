@@ -5,10 +5,12 @@ import {
   specialtiesService, 
   templatesService, 
   userProfileService,
+  userTemplatesService,
   type Note, 
   type Specialty, 
   type Template, 
-  type UserProfile 
+  type UserProfile,
+  type UserTemplate 
 } from '@/lib/services/databaseService';
 
 // Hook para manejar notas
@@ -260,5 +262,91 @@ export const useUserProfile = () => {
     error,
     updateProfile,
     refetch: fetchProfile
+  };
+};
+
+// Hook para manejar plantillas personalizadas del usuario
+export const useUserTemplates = () => {
+  const { user } = useAuth();
+  const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUserTemplates = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      setIsLoading(true);
+      const data = await userTemplatesService.getUserTemplates(user.id);
+      setUserTemplates(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error al cargar plantillas del usuario:', err);
+      setError('Error al cargar las plantillas');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchUserTemplates();
+  }, [fetchUserTemplates]);
+
+  const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const newTemplate = await userTemplatesService.createUserTemplate(templateData);
+      setUserTemplates(prev => [newTemplate, ...prev]);
+      return newTemplate;
+    } catch (err) {
+      console.error('Error al crear plantilla:', err);
+      setError('Error al crear la plantilla');
+      throw err;
+    }
+  }, []);
+
+  const updateUserTemplate = useCallback(async (id: string, updates: Partial<Omit<UserTemplate, 'id' | 'created_at'>>) => {
+    try {
+      const updatedTemplate = await userTemplatesService.updateUserTemplate(id, updates);
+      setUserTemplates(prev => prev.map(template => template.id === id ? updatedTemplate : template));
+      return updatedTemplate;
+    } catch (err) {
+      console.error('Error al actualizar plantilla:', err);
+      setError('Error al actualizar la plantilla');
+      throw err;
+    }
+  }, []);
+
+  const deleteUserTemplate = useCallback(async (id: string) => {
+    try {
+      await userTemplatesService.deleteUserTemplate(id);
+      setUserTemplates(prev => prev.filter(template => template.id !== id));
+    } catch (err) {
+      console.error('Error al eliminar plantilla:', err);
+      setError('Error al eliminar la plantilla');
+      throw err;
+    }
+  }, []);
+
+  const renameUserTemplate = useCallback(async (id: string, newName: string) => {
+    try {
+      const renamedTemplate = await userTemplatesService.renameUserTemplate(id, newName);
+      setUserTemplates(prev => prev.map(template => template.id === id ? renamedTemplate : template));
+      return renamedTemplate;
+    } catch (err) {
+      console.error('Error al renombrar plantilla:', err);
+      setError('Error al renombrar la plantilla');
+      throw err;
+    }
+  }, []);
+
+  return {
+    userTemplates,
+    isLoading,
+    error,
+    createUserTemplate,
+    updateUserTemplate,
+    deleteUserTemplate,
+    renameUserTemplate,
+    refetch: fetchUserTemplates
   };
 }; 

@@ -43,6 +43,17 @@ CREATE TABLE IF NOT EXISTS public.templates (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Crear tabla de plantillas personalizadas del usuario
+CREATE TABLE IF NOT EXISTS public.user_templates (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  content text NOT NULL,
+  user_id uuid REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  is_active boolean DEFAULT true NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Crear tabla de notas
 CREATE TABLE IF NOT EXISTS public.notes (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -51,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.notes (
   user_id uuid REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   specialty_id uuid REFERENCES public.specialties(id) ON DELETE SET NULL,
   template_id uuid REFERENCES public.templates(id) ON DELETE SET NULL,
+  user_template_id uuid REFERENCES public.user_templates(id) ON DELETE SET NULL,
   patient_id text,
   patient_name text,
   diagnosis text,
@@ -65,9 +77,13 @@ CREATE TABLE IF NOT EXISTS public.notes (
 CREATE INDEX IF NOT EXISTS specialties_name_idx ON public.specialties(name);
 CREATE INDEX IF NOT EXISTS templates_specialty_id_idx ON public.templates(specialty_id);
 CREATE INDEX IF NOT EXISTS templates_name_idx ON public.templates(name);
+CREATE INDEX IF NOT EXISTS user_templates_user_id_idx ON public.user_templates(user_id);
+CREATE INDEX IF NOT EXISTS user_templates_name_idx ON public.user_templates(name);
+CREATE INDEX IF NOT EXISTS user_templates_created_at_idx ON public.user_templates(created_at);
 CREATE INDEX IF NOT EXISTS notes_user_id_idx ON public.notes(user_id);
 CREATE INDEX IF NOT EXISTS notes_specialty_id_idx ON public.notes(specialty_id);
 CREATE INDEX IF NOT EXISTS notes_template_id_idx ON public.notes(template_id);
+CREATE INDEX IF NOT EXISTS notes_user_template_id_idx ON public.notes(user_template_id);
 CREATE INDEX IF NOT EXISTS notes_created_at_idx ON public.notes(created_at);
 CREATE INDEX IF NOT EXISTS notes_patient_id_idx ON public.notes(patient_id);
 
@@ -76,6 +92,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.specialties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 
 -- Eliminar políticas existentes si existen
@@ -86,6 +103,10 @@ DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Anyone can view specialties" ON public.specialties;
 DROP POLICY IF EXISTS "Anyone can view active templates" ON public.templates;
+DROP POLICY IF EXISTS "Users can view own user_templates" ON public.user_templates;
+DROP POLICY IF EXISTS "Users can insert own user_templates" ON public.user_templates;
+DROP POLICY IF EXISTS "Users can update own user_templates" ON public.user_templates;
+DROP POLICY IF EXISTS "Users can delete own user_templates" ON public.user_templates;
 DROP POLICY IF EXISTS "Users can view own notes" ON public.notes;
 DROP POLICY IF EXISTS "Users can insert own notes" ON public.notes;
 DROP POLICY IF EXISTS "Users can update own notes" ON public.notes;
@@ -112,6 +133,18 @@ CREATE POLICY "Anyone can view specialties" ON public.specialties
 
 CREATE POLICY "Anyone can view active templates" ON public.templates
   FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Users can view own user_templates" ON public.user_templates
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own user_templates" ON public.user_templates
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own user_templates" ON public.user_templates
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own user_templates" ON public.user_templates
+  FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own notes" ON public.notes
   FOR SELECT USING (auth.uid() = user_id);
