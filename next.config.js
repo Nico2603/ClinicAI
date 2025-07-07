@@ -8,6 +8,16 @@ const nextConfig = {
   // Configuración para evitar errores de SSR
   experimental: {
     esmExternals: 'loose',
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
+  
+  // Optimizaciones de performance
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
   },
   
   // Configuración para manejo de imágenes
@@ -85,4 +95,12 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig 
+// Configuración para bundle analyzer
+if (process.env.ANALYZE === 'true') {
+  const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: true,
+  });
+  module.exports = withBundleAnalyzer(nextConfig);
+} else {
+  module.exports = nextConfig;
+} 

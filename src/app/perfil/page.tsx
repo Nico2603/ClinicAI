@@ -37,7 +37,7 @@ export default function PerfilPage() {
       };
       fetchProfile();
     }
-  }, [user?.id]);
+  }, [user?.id, user?.name]);
 
   if (!user || isLoading) {
     return <div className="p-8 text-center">Cargando perfil...</div>;
