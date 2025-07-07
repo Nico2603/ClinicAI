@@ -18,6 +18,14 @@ export default function AuthCallbackPage() {
         const providerToken = hashParams.get('provider_token');
 
         if (accessToken && refreshToken) {
+          // Log de debugging con información de tokens
+          console.log('Procesando callback de autenticación:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            expiresAt: expiresAt ? new Date(parseInt(expiresAt) * 1000).toISOString() : null,
+            hasProviderToken: !!providerToken,
+          });
+
           // Establecer la sesión manualmente
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,

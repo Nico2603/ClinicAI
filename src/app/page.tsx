@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
 import { Button } from '@/components/ui/button';
-import { FaGoogle, FaStethoscope, FaRocket, FaShieldAlt, FaBrain, FaUsers, FaClock } from 'react-icons/fa';
+import { FaGoogle, FaStethoscope, FaShieldAlt, FaBrain, FaUsers, FaClock } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 

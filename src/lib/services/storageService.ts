@@ -6,7 +6,7 @@ const TEMPLATES_KEY = 'notasai_templates';
 const HISTORY_KEY = 'notasai_history';
 
 // Favoritos de plantillas
-const FAVORITE_TEMPLATES_KEY = 'notasai_fav_templates';
+
 const getUserFavoritesKey = (userId: string): string => `notasai_fav_templates_${userId}`;
 
 // Tipos

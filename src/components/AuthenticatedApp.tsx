@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Types
 import {
-  Theme,
   Templates,
   SpecialtyBase,
   GroundingMetadata,
@@ -48,7 +47,7 @@ const AuthenticatedApp: React.FC = () => {
   const [theme, toggleTheme] = useDarkMode();
   const [activeView, setActiveView] = useState<ActiveView>('generate');
   const [specialties] = useState<SpecialtyBase[]>(DEFAULT_SPECIALTIES);
-  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>(DEFAULT_SPECIALTIES[0].id);
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>(DEFAULT_SPECIALTIES[0]?.id || '');
   const [templates, setTemplates] = useState<Templates>({});
   const [historicNotes, setHistoricNotes] = useState<HistoricNote[]>([]);
 
@@ -62,7 +61,7 @@ const AuthenticatedApp: React.FC = () => {
   const [aiSuggestionGrounding, setAiSuggestionGrounding] = useState<GroundingMetadata | undefined>(undefined);
   const [isGeneratingAISuggestion, setIsGeneratingAISuggestion] = useState<boolean>(false);
 
-  const [selectedScale, setSelectedScale] = useState<string>(MEDICAL_SCALES[0].id);
+  const [selectedScale, setSelectedScale] = useState<string>(MEDICAL_SCALES[0]?.id || '');
   const [generatedScale, setGeneratedScale] = useState<string>('');
   const [scaleGrounding, setScaleGrounding] = useState<GroundingMetadata | undefined>(undefined);
   const [isGeneratingScale, setIsGeneratingScale] = useState<boolean>(false);
@@ -120,10 +119,13 @@ const AuthenticatedApp: React.FC = () => {
         let finalTranscript = '';
         let currentInterim = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            currentInterim += event.results[i][0].transcript;
+          const result = event.results[i];
+          if (result && result[0]) {
+            if (result.isFinal) {
+              finalTranscript += result[0].transcript;
+            } else {
+              currentInterim += result[0].transcript;
+            }
           }
         }
         setInterimTranscript(currentInterim);
@@ -205,7 +207,7 @@ const AuthenticatedApp: React.FC = () => {
     setTemplateNoteGrounding(undefined);
 
     try {
-      const currentTemplate = templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId];
+      const currentTemplate = templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId] || 'Plantilla no disponible';
       const specialtyName = specialties.find(s => s.id === selectedSpecialtyId)?.name || selectedSpecialtyId;
       const result = await generateNoteFromTemplate(specialtyName, currentTemplate, patientInfo);
       setGeneratedTemplateNote(result.text);
@@ -342,7 +344,7 @@ const AuthenticatedApp: React.FC = () => {
       if (note.scaleId && MEDICAL_SCALES.some(s => s.id === note.scaleId)) {
         setSelectedScale(note.scaleId);
       } else {
-        setSelectedScale(MEDICAL_SCALES[0].id); // default to none
+        setSelectedScale(MEDICAL_SCALES[0]?.id || ''); // default to none
       }
       setPatientInfo('');
     }
@@ -397,9 +399,9 @@ const AuthenticatedApp: React.FC = () => {
                 onSpecialtyChange={handleSpecialtyChange}
               />
               <TemplateEditor
-                template={templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId]}
+                template={templates[selectedSpecialtyId] || DEFAULT_TEMPLATES[selectedSpecialtyId] || 'Plantilla no disponible'}
                 onSaveTemplate={handleSaveTemplate}
-                specialtyName={selectedSpecialty.name}
+                specialtyName={selectedSpecialty?.name || 'Especialidad'}
                 userId={user?.id}
               />
             </section>
@@ -411,7 +413,7 @@ const AuthenticatedApp: React.FC = () => {
               <section aria-labelledby="template-note-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 md:mb-4">
                      <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
-                        Nota con Plantilla de <span className="font-bold">{selectedSpecialty.name}</span>
+                                                 Nota con Plantilla de <span className="font-bold">{selectedSpecialty?.name || 'Especialidad'}</span>
                      </h2>
                      <SpecialtySelector
                         specialties={specialties}
@@ -467,7 +469,7 @@ const AuthenticatedApp: React.FC = () => {
                 <NoteDisplay
                   note={generatedTemplateNote}
                   onNoteChange={handleUpdateGeneratedTemplateNote}
-                  title={`Nota Clínica de ${selectedSpecialty.name} (Plantilla)`}
+                  title={`Nota Clínica de ${selectedSpecialty?.name || 'Especialidad'} (Plantilla)`}
                   isLoading={isGeneratingTemplateNote}
                   groundingMetadata={templateNoteGrounding}
                 />
@@ -553,7 +555,7 @@ const AuthenticatedApp: React.FC = () => {
                     </div>
                     <NoteDisplay
                         note={generatedScale}
-                        title={`Resultado de Escala: ${MEDICAL_SCALES.find(s => s.id === selectedScale)?.name.split('(')[0].trim() || ''}`}
+                        title={`Resultado de Escala: ${MEDICAL_SCALES.find(s => s.id === selectedScale)?.name?.split('(')[0]?.trim() || 'Escala'}`}
                         isLoading={isGeneratingScale}
                         groundingMetadata={scaleGrounding}
                     />
