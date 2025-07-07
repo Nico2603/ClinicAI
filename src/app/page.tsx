@@ -48,11 +48,11 @@ export default function HomePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-8">
-        <div className="max-w-6xl w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="container max-w-7xl mx-auto w-full">
+          <div className="grid lg:grid-cols-2 gap-16 items-center justify-items-center">
             
             {/* Columna izquierda - Información de la aplicación */}
-            <div className="text-center lg:text-left space-y-8">
+            <div className="text-center lg:text-left space-y-8 w-full max-w-2xl">
               {/* Logo y título principal */}
               <div>
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl mb-6 mx-auto lg:mx-0">
@@ -141,7 +141,7 @@ export default function HomePage() {
             </div>
 
             {/* Columna derecha - Formulario de login */}
-            <div className="max-w-md mx-auto w-full">
+            <div className="w-full max-w-lg mx-auto">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
