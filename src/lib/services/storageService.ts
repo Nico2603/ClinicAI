@@ -1,5 +1,4 @@
 import { Theme, Templates, HistoricNote } from '../../types';
-import { DEFAULT_TEMPLATES } from '../constants';
 
 const THEME_KEY = 'notasai_theme';
 const TEMPLATES_KEY = 'notasai_templates';
@@ -22,6 +21,9 @@ interface FavoriteTemplate {
 const getUserTemplatesKey = (userId: string): string => `notasai_templates_${userId}`;
 const getUserHistoryKey = (userId: string): string => `notasai_history_${userId}`;
 
+// Empty templates object since predefined templates were removed
+const EMPTY_TEMPLATES: Templates = {};
+
 export const getThemePreference = (): Theme => {
   const storedTheme = localStorage.getItem(THEME_KEY) as Theme | null;
   return storedTheme || Theme.Light; // Default to light theme
@@ -38,11 +40,11 @@ export const getStoredTemplates = (): Templates => {
       return JSON.parse(storedTemplates);
     } catch (error) {
       console.error("Failed to parse stored templates:", error);
-      // Fallback to default if parsing fails
-      return { ...DEFAULT_TEMPLATES };
+      // Fallback to empty object if parsing fails
+      return { ...EMPTY_TEMPLATES };
     }
   }
-  return { ...DEFAULT_TEMPLATES }; // Return a copy to avoid mutation
+  return { ...EMPTY_TEMPLATES }; // Return a copy to avoid mutation
 };
 
 export const saveTemplates = (templates: Templates): void => {
@@ -93,10 +95,10 @@ export const getUserStoredTemplates = (userId: string): Templates => {
       return JSON.parse(storedTemplates);
     } catch (error) {
       console.error("Failed to parse stored user templates:", error);
-      return { ...DEFAULT_TEMPLATES };
+      return { ...EMPTY_TEMPLATES };
     }
   }
-  return { ...DEFAULT_TEMPLATES };
+  return { ...EMPTY_TEMPLATES };
 };
 
 export const saveUserTemplates = (userId: string, templates: Templates): void => {

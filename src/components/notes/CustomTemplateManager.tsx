@@ -109,7 +109,7 @@ CONCLUSIÓN:
     const templateNumbers = userTemplates
       .map(t => {
         const match = t.name.match(/^Plantilla (\d+)$/);
-        return match ? parseInt(match[1]) : 0;
+        return match && match[1] ? parseInt(match[1]) : 0;
       })
       .filter(n => n > 0);
 
