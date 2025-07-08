@@ -1,6 +1,17 @@
 import OpenAI from 'openai';
 import { OPENAI_MODEL_TEXT } from '../constants';
-import { GroundingMetadata, ScaleSearchResult, GeneratedScaleResult, ScaleGenerationRequest, ClinicalScale } from '../../types';
+import { 
+  GroundingMetadata, 
+  ScaleSearchResult, 
+  GeneratedScaleResult, 
+  ScaleGenerationRequest, 
+  ClinicalScale,
+  ClinicalAnalysisResult,
+  EvidenceConsultationRequest,
+  EvidenceSearchResult,
+  ClinicalFinding,
+  ClinicalRecommendation
+} from '../../types';
 
 // ✅ Para Next.js usamos process.env
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -594,4 +605,402 @@ export const formatScaleForNote = async (
   }
   
   return formattedScale;
+};
+
+// ===== CONSULTA CLÍNICA PARA IA BASADA EN EVIDENCIA =====
+
+export const analyzeClinicalContent = async (
+  request: EvidenceConsultationRequest
+): Promise<ClinicalAnalysisResult> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un asistente médico experto especializado en análisis clínico basado en evidencia científica. Tu tarea es analizar el contenido clínico proporcionado y generar recomendaciones basadas en la mejor evidencia disponible de fuentes científicas reconocidas.
+
+CONTENIDO CLÍNICO PARA ANÁLISIS:
+---
+${request.clinicalContent}
+---
+
+TIPO DE CONSULTA: ${request.consultationType}
+
+${request.focusAreas ? `ÁREAS DE ENFOQUE SOLICITADAS: ${request.focusAreas.join(', ')}` : ''}
+
+${request.patientContext ? `CONTEXTO DEL PACIENTE:
+- Edad: ${request.patientContext.age || 'No especificada'}
+- Sexo: ${request.patientContext.sex || 'No especificado'}
+- Comorbilidades: ${request.patientContext.comorbidities?.join(', ') || 'Ninguna reportada'}
+- Alergias: ${request.patientContext.allergies?.join(', ') || 'Ninguna reportada'}
+- Medicamentos actuales: ${request.patientContext.currentMedications?.join(', ') || 'Ninguno reportado'}` : ''}
+
+INSTRUCCIONES PARA EL ANÁLISIS:
+
+1. **EXTRACCIÓN DE HALLAZGOS CLÍNICOS:**
+   - Identifica síntomas, signos, diagnósticos, tratamientos, resultados de laboratorio, signos vitales
+   - Clasifica cada hallazgo por categoría y severidad
+   - Asigna un nivel de confianza basado en la claridad de la información
+
+2. **GENERACIÓN DE RECOMENDACIONES BASADAS EN EVIDENCIA:**
+   - Para cada hallazgo, proporciona recomendaciones específicas basadas en guías clínicas actuales
+   - Cita fuentes científicas reconocidas (PubMed, UpToDate, guías de sociedades médicas)
+   - Clasifica las recomendaciones por fuerza y calidad de evidencia
+   - Considera aplicabilidad específica al caso
+
+3. **ANÁLISIS DE RIESGO Y BANDERAS ROJAS:**
+   - Identifica factores de riesgo relevantes
+   - Señala cualquier signo de alarma que requiera atención inmediata
+   - Proporciona diagnósticos diferenciales relevantes
+
+4. **PLAN DIAGNÓSTICO SUGERIDO:**
+   - Recomienda estudios adicionales basados en los hallazgos
+   - Prioriza según urgencia y utilidad diagnóstica
+
+FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+{
+  "findings": [
+    {
+      "id": "finding-1",
+      "category": "symptom|sign|diagnosis|treatment|lab_result|vital_sign|medication|procedure",
+      "description": "Descripción clara del hallazgo",
+      "severity": "mild|moderate|severe|critical",
+      "confidence": 0.85,
+      "extractedText": "Texto original del que se extrajo"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec-1",
+      "category": "diagnostic|therapeutic|monitoring|prevention|prognosis|differential_diagnosis",
+      "title": "Título breve de la recomendación",
+      "description": "Descripción detallada de la recomendación",
+      "strength": "strong|conditional|expert_opinion",
+      "evidenceQuality": "high|moderate|low|very_low",
+      "applicability": 0.90,
+      "urgency": "immediate|urgent|routine|elective",
+      "contraindications": ["contraindicación1"],
+      "considerations": ["consideración1"],
+      "followUp": "Seguimiento recomendado",
+      "sources": [
+        {
+          "type": "pubmed|uptodate|clinicalkey|cochrane|guidelines",
+          "title": "Título de la fuente",
+          "authors": ["Autor1", "Autor2"],
+          "journal": "Nombre de la revista",
+          "year": 2023,
+          "evidenceLevel": "A|B|C|D",
+          "studyType": "rct|meta_analysis|cohort|case_control|case_series|expert_opinion"
+        }
+      ],
+      "relatedFindings": ["finding-1"]
+    }
+  ],
+  "riskFactors": ["factor de riesgo 1", "factor de riesgo 2"],
+  "redFlags": ["bandera roja 1", "bandera roja 2"],
+  "differentialDiagnoses": ["diagnóstico diferencial 1"],
+  "suggestedWorkup": ["estudio sugerido 1", "estudio sugerido 2"],
+  "confidence": 0.85,
+  "analysisTimestamp": "${new Date().toISOString()}",
+  "disclaimerText": "Esta información es para apoyo educativo y no sustituye el juicio clínico profesional. Siempre consulte las guías institucionales actuales y considere el contexto clínico completo."
+}
+
+CRITERIOS DE CALIDAD:
+- Solo incluir recomendaciones con base científica sólida
+- Priorizar evidencia de alta calidad (meta-análisis, RCTs, guías clínicas)
+- Ser específico y práctico en las recomendaciones
+- Considerar el contexto del paciente y aplicabilidad local
+- Incluir disclaimers apropiados sobre limitaciones
+
+Asegúrate de que la respuesta sea un JSON válido y completo.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto en análisis clínico basado en evidencia científica. Proporcionas recomendaciones precisas basadas en la mejor evidencia disponible, siempre en formato JSON válido."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 3000,
+      top_p: 0.8
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      
+      // Validar estructura mínima
+      if (!parsed.findings || !parsed.recommendations) {
+        throw new Error('Respuesta de IA inválida: falta estructura de análisis');
+      }
+
+      return parsed as ClinicalAnalysisResult;
+    } catch (jsonError) {
+      console.error('Error parsing clinical analysis response:', jsonError);
+      throw new Error('La IA no pudo generar un análisis válido. Intenta con información clínica más específica.');
+    }
+  } catch (error) {
+    console.error('Error analyzing clinical content:', error);
+    throw new Error(`Error al analizar contenido clínico: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+export const searchEvidenceBasedRecommendations = async (
+  query: string,
+  clinicalContext?: string
+): Promise<EvidenceSearchResult> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un experto en medicina basada en evidencia con acceso a las principales bases de datos médicas. Tu tarea es buscar y proporcionar recomendaciones específicas basadas en la mejor evidencia científica disponible.
+
+CONSULTA ESPECÍFICA: "${query}"
+
+${clinicalContext ? `CONTEXTO CLÍNICO ADICIONAL:
+---
+${clinicalContext}
+---` : ''}
+
+INSTRUCCIONES:
+1. Busca evidencia específica para la consulta planteada
+2. Prioriza fuentes de alta calidad (PubMed, Cochrane, guías clínicas)
+3. Proporciona recomendaciones prácticas y aplicables
+4. Incluye niveles de evidencia y fuerza de recomendación
+5. Considera contraindicaciones y consideraciones especiales
+
+FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+{
+  "query": "${query}",
+  "sources": [
+    {
+      "type": "pubmed|uptodate|cochrane|guidelines",
+      "title": "Título específico de la fuente",
+      "authors": ["Apellido A", "Apellido B"],
+      "journal": "Nombre de la revista",
+      "year": 2023,
+      "pmid": "12345678",
+      "evidenceLevel": "A|B|C|D",
+      "studyType": "meta_analysis|rct|cohort|guidelines"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "search-rec-1",
+      "category": "diagnostic|therapeutic|monitoring|prevention",
+      "title": "Recomendación específica",
+      "description": "Descripción detallada basada en evidencia",
+      "strength": "strong|conditional|expert_opinion",
+      "evidenceQuality": "high|moderate|low|very_low",
+      "applicability": 0.85,
+      "urgency": "immediate|urgent|routine|elective",
+      "sources": [/* referencias a las fuentes arriba */],
+      "relatedFindings": []
+    }
+  ],
+  "searchTimestamp": "${new Date().toISOString()}",
+  "totalResults": 5,
+  "searchStrategy": "Descripción de la estrategia de búsqueda utilizada"
+}
+
+Enfócate en proporcionar información práctica y actualizada que sea directamente aplicable al contexto clínico.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en medicina basada en evidencia que proporciona búsquedas precisas en literatura médica. Respondes siempre en formato JSON válido con información científicamente respaldada."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 2500,
+      top_p: 0.8
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      return parsed as EvidenceSearchResult;
+    } catch (jsonError) {
+      console.error('Error parsing evidence search response:', jsonError);
+      throw new Error('La IA no pudo generar resultados de búsqueda válidos.');
+    }
+  } catch (error) {
+    console.error('Error searching evidence-based recommendations:', error);
+    throw new Error(`Error al buscar recomendaciones basadas en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+export const generateEvidenceBasedConsultation = async (
+  clinicalContent: string,
+  specificQuestions?: string[]
+): Promise<{ analysis: ClinicalAnalysisResult; evidenceSearch?: EvidenceSearchResult }> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  // Configurar la solicitud de consulta
+  const consultationRequest: EvidenceConsultationRequest = {
+    clinicalContent,
+    consultationType: 'comprehensive',
+    focusAreas: specificQuestions
+  };
+
+  try {
+    // Realizar análisis clínico completo
+    const analysis = await analyzeClinicalContent(consultationRequest);
+
+    // Si hay preguntas específicas, realizar búsqueda adicional
+    let evidenceSearch: EvidenceSearchResult | undefined;
+    if (specificQuestions && specificQuestions.length > 0) {
+      const combinedQuery = specificQuestions.join(' AND ');
+      evidenceSearch = await searchEvidenceBasedRecommendations(combinedQuery, clinicalContent);
+    }
+
+    return {
+      analysis,
+      evidenceSearch
+    };
+  } catch (error) {
+    console.error('Error generating evidence-based consultation:', error);
+    throw new Error(`Error al generar consulta basada en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+export const formatEvidenceBasedReport = async (
+  analysisResult: ClinicalAnalysisResult,
+  evidenceSearch?: EvidenceSearchResult,
+  includeReferences: boolean = true
+): Promise<string> => {
+  let report = `**CONSULTA CLÍNICA BASADA EN EVIDENCIA**\n\n`;
+  
+  // Timestamp
+  report += `Fecha del análisis: ${new Date(analysisResult.analysisTimestamp).toLocaleString('es-ES')}\n`;
+  report += `Confianza del análisis: ${Math.round(analysisResult.confidence * 100)}%\n\n`;
+
+  // Hallazgos clínicos principales
+  if (analysisResult.findings.length > 0) {
+    report += `**HALLAZGOS CLÍNICOS IDENTIFICADOS:**\n`;
+    analysisResult.findings.forEach((finding, index) => {
+      report += `${index + 1}. **${finding.category.toUpperCase()}**: ${finding.description}\n`;
+      if (finding.severity) {
+        report += `   - Severidad: ${finding.severity}\n`;
+      }
+      report += `   - Confianza: ${Math.round(finding.confidence * 100)}%\n\n`;
+    });
+  }
+
+  // Banderas rojas
+  if (analysisResult.redFlags.length > 0) {
+    report += `**🚩 BANDERAS ROJAS - ATENCIÓN INMEDIATA:**\n`;
+    analysisResult.redFlags.forEach(flag => {
+      report += `• ${flag}\n`;
+    });
+    report += `\n`;
+  }
+
+  // Recomendaciones principales
+  if (analysisResult.recommendations.length > 0) {
+    report += `**RECOMENDACIONES BASADAS EN EVIDENCIA:**\n\n`;
+    
+    // Agrupar por urgencia
+    const immediateRecs = analysisResult.recommendations.filter(r => r.urgency === 'immediate');
+    const urgentRecs = analysisResult.recommendations.filter(r => r.urgency === 'urgent');
+    const routineRecs = analysisResult.recommendations.filter(r => r.urgency === 'routine');
+
+    if (immediateRecs.length > 0) {
+      report += `**INMEDIATAS:**\n`;
+      immediateRecs.forEach((rec, index) => {
+        report += `${index + 1}. **${rec.title}**\n`;
+        report += `   ${rec.description}\n`;
+        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n`;
+        if (rec.contraindications && rec.contraindications.length > 0) {
+          report += `   - Contraindicaciones: ${rec.contraindications.join(', ')}\n`;
+        }
+        report += `\n`;
+      });
+    }
+
+    if (urgentRecs.length > 0) {
+      report += `**URGENTES:**\n`;
+      urgentRecs.forEach((rec, index) => {
+        report += `${index + 1}. **${rec.title}**\n`;
+        report += `   ${rec.description}\n`;
+        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n\n`;
+      });
+    }
+
+    if (routineRecs.length > 0) {
+      report += `**RUTINARIAS:**\n`;
+      routineRecs.forEach((rec, index) => {
+        report += `${index + 1}. **${rec.title}**\n`;
+        report += `   ${rec.description}\n`;
+        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n\n`;
+      });
+    }
+  }
+
+  // Diagnósticos diferenciales
+  if (analysisResult.differentialDiagnoses.length > 0) {
+    report += `**DIAGNÓSTICOS DIFERENCIALES A CONSIDERAR:**\n`;
+    analysisResult.differentialDiagnoses.forEach(dx => {
+      report += `• ${dx}\n`;
+    });
+    report += `\n`;
+  }
+
+  // Plan diagnóstico sugerido
+  if (analysisResult.suggestedWorkup.length > 0) {
+    report += `**PLAN DIAGNÓSTICO SUGERIDO:**\n`;
+    analysisResult.suggestedWorkup.forEach(study => {
+      report += `• ${study}\n`;
+    });
+    report += `\n`;
+  }
+
+  // Referencias principales (si se incluyen)
+  if (includeReferences && analysisResult.recommendations.length > 0) {
+    const allSources = analysisResult.recommendations
+      .flatMap(rec => rec.sources)
+      .filter((source, index, self) => 
+        index === self.findIndex(s => s.title === source.title)
+      );
+
+    if (allSources.length > 0) {
+      report += `**REFERENCIAS PRINCIPALES:**\n`;
+      allSources.forEach((source, index) => {
+        report += `${index + 1}. ${source.title}`;
+        if (source.authors && source.authors.length > 0) {
+          report += ` - ${source.authors.join(', ')}`;
+        }
+        if (source.journal && source.year) {
+          report += ` (${source.journal}, ${source.year})`;
+        }
+        report += ` [Nivel evidencia: ${source.evidenceLevel}]\n`;
+      });
+      report += `\n`;
+    }
+  }
+
+  // Evidencia adicional si existe
+  if (evidenceSearch && evidenceSearch.recommendations.length > 0) {
+    report += `**EVIDENCIA ADICIONAL ENCONTRADA:**\n`;
+    evidenceSearch.recommendations.forEach((rec, index) => {
+      report += `${index + 1}. ${rec.title}: ${rec.description}\n`;
+    });
+    report += `\n`;
+  }
+
+  // Disclaimer
+  report += `**IMPORTANTE:**\n${analysisResult.disclaimerText}\n`;
+
+  return report;
 }; 

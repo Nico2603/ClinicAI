@@ -35,6 +35,7 @@ import TemplateEditor from './notes/TemplateEditor';
 import NoteDisplay from './notes/NoteDisplay';
 import NoteUpdater from './notes/NoteUpdater';
 import ClinicalScaleGenerator from './notes/ClinicalScaleGenerator';
+import EvidenceBasedConsultation from './notes/EvidenceBasedConsultation';
 import HistoryView from './HistoryView';
 import UserProfile from './auth/UserProfile';
 import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
@@ -498,6 +499,25 @@ const AuthenticatedApp: React.FC = () => {
                             });
                         }}
                         existingNoteContent={generatedTemplateNote || aiSuggestionInput}
+                    />
+                </div>
+
+                {/* Divider */}
+                <div className="my-4 md:my-6 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
+
+                {/* Part 3: Evidence-Based Clinical Consultation */}
+                <div>
+                    <EvidenceBasedConsultation 
+                        onConsultationGenerated={(consultationText) => {
+                            // Agregar la consulta generada al historial
+                            addNoteToHistory({
+                                type: 'suggestion',
+                                originalInput: aiSuggestionInput,
+                                content: consultationText
+                            });
+                        }}
+                        autoAnalyzeContent={generatedTemplateNote || aiSuggestionInput}
+                        enableAutoAnalysis={Boolean(generatedTemplateNote || aiSuggestionInput)}
                     />
                 </div>
               </section>

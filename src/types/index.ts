@@ -236,6 +236,79 @@ export interface ScaleGenerationRequest {
   existingNoteContent?: string;
 }
 
+// Tipos para consulta clínica basada en evidencia
+export interface ClinicalFinding {
+  id: string;
+  category: 'symptom' | 'sign' | 'diagnosis' | 'treatment' | 'lab_result' | 'vital_sign' | 'medication' | 'procedure';
+  description: string;
+  severity?: 'mild' | 'moderate' | 'severe' | 'critical';
+  confidence: number;
+  extractedText: string;
+}
+
+export interface EvidenceSource {
+  type: 'pubmed' | 'uptodate' | 'clinicalkey' | 'cochrane' | 'guidelines' | 'textbook';
+  title: string;
+  authors?: string[];
+  journal?: string;
+  year?: number;
+  pmid?: string;
+  doi?: string;
+  url?: string;
+  evidenceLevel: 'A' | 'B' | 'C' | 'D'; // Niveles de evidencia
+  studyType?: 'rct' | 'meta_analysis' | 'cohort' | 'case_control' | 'case_series' | 'expert_opinion';
+}
+
+export interface ClinicalRecommendation {
+  id: string;
+  category: 'diagnostic' | 'therapeutic' | 'monitoring' | 'prevention' | 'prognosis' | 'differential_diagnosis';
+  title: string;
+  description: string;
+  strength: 'strong' | 'conditional' | 'expert_opinion';
+  evidenceQuality: 'high' | 'moderate' | 'low' | 'very_low';
+  applicability: number; // 0-1, qué tan aplicable es al caso específico
+  urgency: 'immediate' | 'urgent' | 'routine' | 'elective';
+  contraindications?: string[];
+  considerations?: string[];
+  followUp?: string;
+  sources: EvidenceSource[];
+  relatedFindings: string[]; // IDs de los hallazgos clínicos relacionados
+}
+
+export interface ClinicalAnalysisResult {
+  findings: ClinicalFinding[];
+  recommendations: ClinicalRecommendation[];
+  riskFactors: string[];
+  redFlags: string[];
+  differentialDiagnoses: string[];
+  suggestedWorkup: string[];
+  confidence: number;
+  analysisTimestamp: string;
+  disclaimerText: string;
+}
+
+export interface EvidenceConsultationRequest {
+  clinicalContent: string;
+  focusAreas?: string[]; // Áreas específicas de interés (ej: "diagnosis", "treatment")
+  patientContext?: {
+    age?: number;
+    sex?: 'M' | 'F' | 'other';
+    comorbidities?: string[];
+    allergies?: string[];
+    currentMedications?: string[];
+  };
+  consultationType: 'comprehensive' | 'focused' | 'differential' | 'treatment' | 'monitoring';
+}
+
+export interface EvidenceSearchResult {
+  query: string;
+  sources: EvidenceSource[];
+  recommendations: ClinicalRecommendation[];
+  searchTimestamp: string;
+  totalResults: number;
+  searchStrategy: string;
+}
+
 // Extend window object for TypeScript globally
 declare global {
   interface Window {
