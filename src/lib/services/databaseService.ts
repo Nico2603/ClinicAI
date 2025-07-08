@@ -234,10 +234,14 @@ export const userTemplatesService = {
   // Crear una nueva plantilla personalizada
   createUserTemplate: async (userTemplate: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<UserTemplate> => {
     // Asegurarse de que el usuario exista en la tabla `users` para evitar errores de clave foránea
-    // En algunos flujos de autenticación el registro puede no existir todavía.
-    await supabase
-      .from('users')
-      .upsert({ id: userTemplate.user_id }, { onConflict: 'id' });
+    // Usar la función RPC que tiene los permisos necesarios
+    const { error: ensureError } = await supabase
+      .rpc('ensure_current_user_exists');
+    
+    if (ensureError) {
+      console.error('Error al asegurar que el usuario existe:', ensureError);
+      throw ensureError;
+    }
 
     const { data, error } = await supabase
       .from('user_templates')

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { auth, type AuthUser } from '@/lib/supabase';
+import { auth, supabase, type AuthUser } from '@/lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -30,6 +30,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
 
   const isAuthenticated = user !== null && session !== null;
+
+  // Función para asegurar que el usuario existe en la base de datos
+  const ensureUserExists = async () => {
+    try {
+      const { error } = await supabase.rpc('ensure_current_user_exists');
+      if (error) {
+        console.error('Error al asegurar que el usuario existe:', error);
+      }
+    } catch (err) {
+      console.error('Error al verificar usuario:', err);
+    }
+  };
 
   useEffect(() => {
     // Verificar que estamos en el cliente
@@ -68,6 +80,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               updated_at: session.user.updated_at,
             });
             setError(null);
+            // Asegurar que el usuario existe en la base de datos
+            await ensureUserExists();
           }
         }
       } catch (err) {
@@ -96,6 +110,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updated_at: session.user.updated_at,
         });
         setError(null);
+        // Asegurar que el usuario existe en la base de datos
+        await ensureUserExists();
       } else {
         setUser(null);
         if (event === 'SIGNED_OUT') {
