@@ -34,6 +34,7 @@ import Sidebar from './ui/Sidebar';
 import CustomTemplateManager from './notes/CustomTemplateManager';
 import TemplateEditor from './notes/TemplateEditor';
 import NoteDisplay from './notes/NoteDisplay';
+import NoteUpdater from './notes/NoteUpdater';
 import HistoryView from './HistoryView';
 import UserProfile from './auth/UserProfile';
 import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
@@ -361,6 +362,7 @@ const AuthenticatedApp: React.FC = () => {
   if (activeView === 'templates') currentViewTitle = 'Gestor de Plantillas Personalizadas';
   if (activeView === 'history') currentViewTitle = 'Historial de Notas';
   if (activeView === 'notes') currentViewTitle = 'Mis Notas';
+  if (activeView === 'note-updater') currentViewTitle = 'Actualizador de Notas Clínicas';
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
@@ -594,6 +596,13 @@ const AuthenticatedApp: React.FC = () => {
 
           {activeView === 'notes' && (
             <MyNotesView />
+          )}
+
+          {activeView === 'note-updater' && (
+            <section aria-labelledby="note-updater-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
+              <h2 id="note-updater-heading" className="sr-only">Actualizador de Notas Clínicas</h2>
+              <NoteUpdater />
+            </section>
           )}
 
           {activeView === 'history' && (

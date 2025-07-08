@@ -259,3 +259,80 @@ ${clinicalNote}
     throw new Error(`Error al generar plantilla con IA: ${error instanceof Error ? error.message : String(error)}`);
   }
 }; 
+
+export const updateClinicalNote = async (
+  originalNote: string,
+  newInformation: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información. Tu tarea es integrar de forma inteligente la nueva información en la nota clínica original manteniendo coherencia, estilo médico profesional y estructura adecuada.
+
+**NOTA CLÍNICA ORIGINAL:**
+---
+${originalNote}
+---
+
+**NUEVA INFORMACIÓN A INTEGRAR:**
+---
+${newInformation}
+---
+
+**INSTRUCCIONES CRÍTICAS:**
+
+1. **Análisis e Integración Inteligente:**
+   - Analiza dónde debe ir la nueva información dentro de la estructura de la nota original
+   - Identifica la sección más apropiada (evolución, tratamiento, diagnóstico, plan, etc.)
+   - Integra la información de forma natural sin alterar el resto del contenido
+
+2. **Preservación del Contenido Original:**
+   - Conserva EXACTAMENTE todo el contenido original que no requiere modificación
+   - Mantén la estructura, formato, encabezados y estilo de la nota original
+   - No elimines información previa a menos que sea contradictoria con la nueva información
+
+3. **Coherencia y Estilo Médico:**
+   - Mantén el estilo de redacción médica profesional de la nota original
+   - Asegura coherencia temporal y clínica en la información
+   - Usa terminología médica apropiada y consistente
+
+4. **Manejo de Contradicciones:**
+   - Si la nueva información contradice algo en la nota original, actualiza solo lo necesario
+   - Mantén un registro cronológico lógico si es aplicable
+   - Preserva la coherencia clínica general
+
+5. **Formato de Respuesta:**
+   - Responde ÚNICAMENTE con la nota clínica completa y actualizada
+   - No incluyas comentarios, explicaciones o texto adicional
+   - La respuesta debe ser directamente la nota médica lista para usar
+
+**EJEMPLO DE INTEGRACIÓN:**
+Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es sobre el estado actual del paciente, integra esa información en esa sección manteniendo el formato y estilo existente.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma inteligente y precisa. Integras nueva información preservando el contenido original y manteniendo coherencia médica profesional."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.2, // Temperatura muy baja para máxima precisión y conservación
+      max_tokens: 2500,
+      top_p: 0.9
+    });
+
+    const generatedText = response.choices[0]?.message?.content || '';
+    return { 
+      text: generatedText, 
+      groundingMetadata: undefined
+    };
+  } catch (error) {
+    console.error('Error updating clinical note:', error);
+    throw new Error(`Error al actualizar nota clínica con IA: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}; 

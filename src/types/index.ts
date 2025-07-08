@@ -3,7 +3,7 @@ export enum Theme {
   Dark = 'dark',
 }
 
-export type ActiveView = 'templates' | 'generate' | 'history' | 'notes';
+export type ActiveView = 'templates' | 'generate' | 'history' | 'notes' | 'note-updater';
 
 // Tipos de base de datos - Coinciden con databaseService.ts
 export interface SpecialtyBase {
