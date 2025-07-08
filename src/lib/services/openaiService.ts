@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { OPENAI_MODEL_TEXT } from '../constants';
-import { GroundingMetadata } from '../../types';
+import { GroundingMetadata, ScaleSearchResult, GeneratedScaleResult, ScaleGenerationRequest, ClinicalScale } from '../../types';
 
 // ✅ Para Next.js usamos process.env
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
@@ -335,4 +335,263 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
     console.error('Error updating clinical note:', error);
     throw new Error(`Error al actualizar nota clínica con IA: ${error instanceof Error ? error.message : String(error)}`);
   }
+}; 
+
+// ===== GENERADOR INTELIGENTE DE ESCALAS CLÍNICAS =====
+
+export const searchClinicalScales = async (
+  searchQuery: string
+): Promise<ScaleSearchResult[]> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un experto en escalas clínicas y herramientas de evaluación médica. Tu tarea es buscar escalas clínicas reales y estandarizadas basándote en la consulta del usuario.
+
+CONSULTA DE BÚSQUEDA: "${searchQuery}"
+
+INSTRUCCIONES:
+1. Identifica las escalas clínicas más relevantes y reconocidas científicamente que coincidan con la consulta
+2. Prioriza escalas ampliamente validadas y utilizadas en la práctica clínica
+3. Incluye escalas de diferentes categorías cuando sea apropiado
+4. Responde en formato JSON VÁLIDO con un array de objetos
+
+FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+{
+  "scales": [
+    {
+      "name": "Nombre exacto de la escala",
+      "description": "Descripción clara y concisa de qué evalúa la escala",
+      "category": "Categoría médica (ej: Psiquiatría, Neurología, Cuidados intensivos)",
+      "confidence": 0.95,
+      "isStandardized": true
+    }
+  ]
+}
+
+EJEMPLOS DE CATEGORÍAS:
+- Psiquiatría y Salud Mental
+- Neurología
+- Cuidados Intensivos
+- Cardiología
+- Dolor
+- Calidad de Vida
+- Funcionalidad
+- Geriatría
+- Pediatría
+
+CRITERIOS DE INCLUSIÓN:
+- Solo escalas clínicas reconocidas y validadas
+- Con evidencia científica sólida
+- Utilizadas en práctica clínica actual
+- Confidence entre 0.7 y 1.0
+
+Máximo 8 resultados, ordenados por relevancia.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en escalas clínicas que proporciona información precisa sobre herramientas de evaluación médica estandarizadas. Respondes siempre en formato JSON válido."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 1500,
+      top_p: 0.8
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      return parsed.scales || [];
+    } catch (jsonError) {
+      console.error('Error parsing JSON response:', jsonError);
+      // Fallback: intentar extraer información básica
+      return [{
+        name: searchQuery,
+        description: `Escala clínica relacionada con: ${searchQuery}`,
+        category: "General",
+        confidence: 0.7,
+        isStandardized: true
+      }];
+    }
+  } catch (error) {
+    console.error('Error searching clinical scales:', error);
+    throw new Error(`Error al buscar escalas clínicas: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+export const generateIntelligentClinicalScale = async (
+  request: ScaleGenerationRequest
+): Promise<GeneratedScaleResult> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un experto en escalas clínicas y evaluación médica. Tu tarea es generar una escala clínica completa, precisa y funcional basándote en la información proporcionada.
+
+ESCALA SOLICITADA: "${request.scaleName}"
+DATOS CLÍNICOS DISPONIBLES:
+---
+${request.clinicalData}
+---
+
+${request.existingNoteContent ? `CONTENIDO DE NOTA EXISTENTE:
+---
+${request.existingNoteContent}
+---` : ''}
+
+INSTRUCCIONES PARA LA GENERACIÓN:
+
+1. **ESTRUCTURA DE LA ESCALA:**
+   - Genera una representación completa y precisa de la escala "${request.scaleName}"
+   - Incluye todos los ítems/criterios estándar de la escala
+   - Mantén la estructura y puntaje oficial de la escala
+
+2. **ANÁLISIS DE DATOS:**
+   - Analiza los datos clínicos proporcionados
+   - Identifica qué ítems de la escala pueden ser completados con la información disponible
+   - Señala qué información falta para completar la escala
+
+3. **AUTOCOMPLETADO INTELIGENTE:**
+   - Completa automáticamente los ítems que tengan suficiente información
+   - Usa juicio clínico conservador para inferencias razonables
+   - Marca claramente los ítems autocompletados
+
+4. **CÁLCULO Y INTERPRETACIÓN:**
+   - Calcula el puntaje total si es posible
+   - Proporciona la interpretación clínica estándar
+   - Incluye recomendaciones basadas en el resultado
+
+FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+{
+  "scale": {
+    "id": "id-único",
+    "name": "Nombre exacto de la escala",
+    "description": "Descripción de qué evalúa",
+    "category": "Categoría médica",
+    "items": [
+      {
+        "id": "item-1",
+        "text": "Texto del ítem/criterio",
+        "type": "select|number|checkbox",
+        "options": ["opción1", "opción2"] // si apply,
+        "range": {"min": 0, "max": 4} // si aplica,
+        "value": "valor asignado o null",
+        "required": true
+      }
+    ],
+    "scoring": [
+      {
+        "range": {"min": 0, "max": 4},
+        "level": "Leve",
+        "description": "Interpretación del rango",
+        "recommendations": ["recomendación1"]
+      }
+    ]
+  },
+  "autocompletedItems": ["IDs de ítems autocompletados"],
+  "missingFields": ["campos que faltan por diligenciar"],
+  "totalScore": 15, // si se puede calcular
+  "interpretation": "Interpretación clínica del resultado",
+  "confidence": 0.85
+}
+
+ESCALAS COMUNES DE REFERENCIA:
+- Glasgow Coma Scale (GCS): 3-15 puntos
+- PHQ-9: 0-27 puntos para depresión
+- GAD-7: 0-21 puntos para ansiedad
+- APACHE II: 0-71 puntos para mortalidad en UCI
+- NIHSS: 0-42 puntos para ACV
+- Escala de Norton: 5-20 puntos para úlceras por presión
+
+Asegúrate de que la respuesta sea un JSON válido y completo.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en escalas clínicas que genera evaluaciones precisas y estructuradas. Respondes siempre en formato JSON válido con información médica precisa."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 2500,
+      top_p: 0.8
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      
+      // Validar estructura mínima
+      if (!parsed.scale || !parsed.scale.name) {
+        throw new Error('Respuesta de IA inválida: falta estructura de escala');
+      }
+
+      return {
+        scale: parsed.scale,
+        autocompletedItems: parsed.autocompletedItems || [],
+        missingFields: parsed.missingFields || [],
+        totalScore: parsed.totalScore,
+        interpretation: parsed.interpretation,
+        confidence: parsed.confidence || 0.8
+      };
+    } catch (jsonError) {
+      console.error('Error parsing scale generation response:', jsonError);
+      throw new Error('La IA no pudo generar una escala válida. Intenta con más información clínica.');
+    }
+  } catch (error) {
+    console.error('Error generating intelligent clinical scale:', error);
+    throw new Error(`Error al generar escala clínica: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+export const formatScaleForNote = async (
+  scaleResult: GeneratedScaleResult,
+  includeInterpretation: boolean = true
+): Promise<string> => {
+  const { scale, totalScore, interpretation } = scaleResult;
+  
+  let formattedScale = `**EVALUACIÓN CON ${scale.name.toUpperCase()}**\n\n`;
+  
+  // Agregar descripción si existe
+  if (scale.description) {
+    formattedScale += `${scale.description}\n\n`;
+  }
+  
+  // Agregar ítems con valores
+  scale.items.forEach((item, index) => {
+    const itemValue = item.value !== null && item.value !== undefined ? item.value : '[PENDIENTE]';
+    formattedScale += `${index + 1}. ${item.text}: ${itemValue}\n`;
+  });
+  
+  // Agregar puntaje total si existe
+  if (totalScore !== undefined) {
+    formattedScale += `\n**PUNTAJE TOTAL:** ${totalScore}\n`;
+  }
+  
+  // Agregar interpretación si se solicita
+  if (includeInterpretation && interpretation) {
+    formattedScale += `\n**INTERPRETACIÓN CLÍNICA:**\n${interpretation}\n`;
+  }
+  
+  // Agregar campos faltantes si existen
+  if (scaleResult.missingFields.length > 0) {
+    formattedScale += `\n**CAMPOS PENDIENTES POR EVALUAR:**\n`;
+    scaleResult.missingFields.forEach(field => {
+      formattedScale += `- ${field}\n`;
+    });
+  }
+  
+  return formattedScale;
 }; 

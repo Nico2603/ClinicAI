@@ -13,8 +13,7 @@ import {
   ActiveView
 } from '../types';
 
-// Constants
-import { MEDICAL_SCALES } from '../lib/constants';
+// No longer needed - MEDICAL_SCALES removed for intelligent scale generation
 
 // Hooks
 import { useDarkMode } from '../hooks/useDarkMode';
@@ -35,6 +34,7 @@ import CustomTemplateManager from './notes/CustomTemplateManager';
 import TemplateEditor from './notes/TemplateEditor';
 import NoteDisplay from './notes/NoteDisplay';
 import NoteUpdater from './notes/NoteUpdater';
+import ClinicalScaleGenerator from './notes/ClinicalScaleGenerator';
 import HistoryView from './HistoryView';
 import UserProfile from './auth/UserProfile';
 import { SparklesIcon, LoadingSpinner, LightBulbIcon, MicrophoneIcon, CalculatorIcon } from './ui/Icons';
@@ -59,10 +59,7 @@ const AuthenticatedApp: React.FC = () => {
   const [aiSuggestionGrounding, setAiSuggestionGrounding] = useState<GroundingMetadata | undefined>(undefined);
   const [isGeneratingAISuggestion, setIsGeneratingAISuggestion] = useState<boolean>(false);
 
-  const [selectedScale, setSelectedScale] = useState<string>(MEDICAL_SCALES[0]?.id || '');
-  const [generatedScale, setGeneratedScale] = useState<string>('');
-  const [scaleGrounding, setScaleGrounding] = useState<GroundingMetadata | undefined>(undefined);
-  const [isGeneratingScale, setIsGeneratingScale] = useState<boolean>(false);
+  // Legacy scale variables removed - now using intelligent scale generator
   
   const [error, setError] = useState<string | null>(null);
 
@@ -277,42 +274,7 @@ const AuthenticatedApp: React.FC = () => {
     }
   };
 
-  const handleGenerateScale = async () => {
-    if (!aiSuggestionInput.trim()) {
-        setError("Por favor, ingrese la información clínica para generar la escala.");
-        return;
-    }
-    if (selectedScale === 'none') {
-        setError("Por favor, seleccione una escala de la lista.");
-        return;
-    }
-    setError(null);
-    setIsGeneratingScale(true);
-    setGeneratedScale('');
-    setScaleGrounding(undefined);
-
-    try {
-        const scaleName = MEDICAL_SCALES.find(s => s.id === selectedScale)?.name || selectedScale;
-        const result = await generateMedicalScale(aiSuggestionInput, scaleName);
-        setGeneratedScale(result.text);
-        setScaleGrounding(result.groundingMetadata);
-        // Add to history
-        addNoteToHistory({
-            type: 'scale',
-            originalInput: aiSuggestionInput,
-            content: result.text,
-            scaleId: selectedScale,
-            scaleName: scaleName,
-        });
-    } catch (err) {
-        console.error(err);
-        const errorMessage = err instanceof Error ? err.message : "Ocurrió un error desconocido al generar la escala.";
-        setError(errorMessage);
-        setGeneratedScale(`Error: ${errorMessage}`);
-    } finally {
-        setIsGeneratingScale(false);
-    }
-  };
+  // Legacy handleGenerateScale function removed - now using intelligent scale generator
 
   const handleLoadFromHistory = (note: HistoricNote) => {
     setActiveView('generate');
@@ -320,10 +282,8 @@ const AuthenticatedApp: React.FC = () => {
     // Clear all outputs first
     setGeneratedTemplateNote('');
     setGeneratedAISuggestion('');
-    setGeneratedScale('');
     setTemplateNoteGrounding(undefined);
     setAiSuggestionGrounding(undefined);
-    setScaleGrounding(undefined);
     
     if (note.type === 'template') {
       // Try to find the template by ID
@@ -339,13 +299,9 @@ const AuthenticatedApp: React.FC = () => {
       setGeneratedAISuggestion(note.content);
       setPatientInfo(''); 
     } else if (note.type === 'scale') {
+      // For scale notes, just load the content as a reference
+      // User can copy or use it as input for the new intelligent scale generator
       setAiSuggestionInput(note.originalInput);
-      setGeneratedScale(note.content);
-      if (note.scaleId && MEDICAL_SCALES.some(s => s.id === note.scaleId)) {
-        setSelectedScale(note.scaleId);
-      } else {
-        setSelectedScale(MEDICAL_SCALES[0]?.id || '');
-      }
       setPatientInfo('');
     }
   };
@@ -529,46 +485,19 @@ const AuthenticatedApp: React.FC = () => {
                 {/* Divider */}
                 <div className="my-4 md:my-6 border-t border-dashed border-neutral-300 dark:border-neutral-600"></div>
 
-                {/* Part 2: Scale Generator */}
+                {/* Part 2: Intelligent Clinical Scale Generator */}
                 <div>
-                    <h3 id="scale-generator-heading" className="text-base md:text-lg font-semibold text-secondary mb-2 md:mb-3 flex items-center">
-                    <CalculatorIcon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                    Generador Automático de Escalas Clínicas
-                    </h3>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                    Seleccione una escala. La IA utilizará la "Información Clínica" introducida arriba para completarla.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 items-stretch sm:items-center mb-4">
-                        <div className="flex-1">
-                            <label htmlFor="scale-select" className="sr-only">Seleccionar Escala</label>
-                            <select 
-                                id="scale-select" 
-                                value={selectedScale}
-                                onChange={e => setSelectedScale(e.target.value)}
-                                className="w-full pl-3 pr-10 py-2.5 text-sm md:text-base border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-primary focus:border-primary rounded-md shadow-sm transition-colors"
-                            >
-                                {MEDICAL_SCALES.map(scale => (
-                                    <option key={scale.id} value={scale.id}>{scale.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <button 
-                            onClick={handleGenerateScale}
-                            disabled={isGeneratingScale || selectedScale === 'none'}
-                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 md:px-6 py-2.5 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
-                        >
-                            {isGeneratingScale ? (
-                                <><LoadingSpinner className="text-white mr-2" /> Generando...</>
-                            ) : (
-                                "Generar Escala"
-                            )}
-                        </button>
-                    </div>
-                    <NoteDisplay
-                        note={generatedScale}
-                        title={`Resultado de Escala: ${MEDICAL_SCALES.find(s => s.id === selectedScale)?.name?.split('(')[0]?.trim() || 'Escala'}`}
-                        isLoading={isGeneratingScale}
-                        groundingMetadata={scaleGrounding}
+                    <ClinicalScaleGenerator 
+                        onScaleGenerated={(scaleText) => {
+                            // Agregar la escala generada al historial
+                            addNoteToHistory({
+                                type: 'scale',
+                                originalInput: aiSuggestionInput,
+                                content: scaleText,
+                                scaleName: 'Escala Inteligente'
+                            });
+                        }}
+                        existingNoteContent={generatedTemplateNote || aiSuggestionInput}
                     />
                 </div>
               </section>

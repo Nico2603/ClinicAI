@@ -183,6 +183,59 @@ export interface SpeechRecognition extends EventTarget {
   onend: ((this: SpeechRecognition, ev: Event) => any) | null;
 }
 
+// Tipos para escalas clínicas
+export interface ClinicalScale {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  items: ScaleItem[];
+  scoring: ScoreInterpretation[];
+  reference?: string;
+  lastUpdated?: string;
+}
+
+export interface ScaleItem {
+  id: string;
+  text: string;
+  type: 'number' | 'select' | 'checkbox' | 'text';
+  options?: string[];
+  range?: { min: number; max: number };
+  value?: any;
+  weight?: number;
+  required?: boolean;
+}
+
+export interface ScoreInterpretation {
+  range: { min: number; max: number };
+  level: string;
+  description: string;
+  recommendations?: string[];
+}
+
+export interface ScaleSearchResult {
+  name: string;
+  description: string;
+  category: string;
+  confidence: number;
+  isStandardized: boolean;
+}
+
+export interface GeneratedScaleResult {
+  scale: ClinicalScale;
+  autocompletedItems: string[];
+  missingFields: string[];
+  totalScore?: number;
+  interpretation?: string;
+  confidence: number;
+}
+
+export interface ScaleGenerationRequest {
+  scaleName: string;
+  clinicalData: string;
+  existingNoteContent?: string;
+}
+
 // Extend window object for TypeScript globally
 declare global {
   interface Window {
