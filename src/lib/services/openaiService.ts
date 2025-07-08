@@ -208,3 +208,54 @@ Ejemplo de formato de respuesta deseado (para PHQ-9):
     throw new Error(`Error al generar la escala con IA: ${error instanceof Error ? error.message : String(error)}`);
   }
 }; 
+
+// Agrego función para generar plantilla desde una nota clínica con IA
+
+export const generateTemplateFromClinicalNote = async (
+  clinicalNote: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un asistente experto en redacción de notas clínicas. Tu tarea es transformar la nota clínica que recibirás a continuación en una PLANTILLA.
+
+Instrucciones detalladas:
+1. Sustituye toda información clínica específica del paciente (nombres, fechas, edades, resultados numéricos, dosis, valores de laboratorio, signos vitales, etc.) por marcadores en MAYÚSCULAS entre corchetes, por ejemplo: [NOMBRE PACIENTE], [EDAD], [PRESIÓN ARTERIAL]. No inventes marcadores que no correspondan al contenido.
+2. Conserva exactamente la estructura, encabezados, sangrías, puntuación, mayúsculas/minúsculas y estilo tipográfico del texto original.
+3. No alteres información genérica que sea válida para la patología (ej. "examen físico normal" o formularios predefinidos).
+4. Corrige discretamente errores ortográficos o de coherencia que encuentres.
+5. Si detectas que falta información clave dentro del contexto, coloca el marcador [FALTA DATO] en el lugar correspondiente.
+6. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar. No añadas comentarios, títulos ni explicaciones adicionales.
+
+Nota clínica a convertir:
+---
+${clinicalNote}
+---`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto en generar plantillas a partir de notas clínicas. Sigues estrictamente las instrucciones para reemplazar datos específicos por marcadores y mantienes el formato original."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.25, // Alta conservaduría para minimizar cambios innecesarios
+      max_tokens: 1800,
+      top_p: 0.9
+    });
+
+    const generatedText = response.choices[0]?.message?.content || '';
+    return {
+      text: generatedText,
+      groundingMetadata: undefined
+    };
+  } catch (error) {
+    console.error('Error generating template from clinical note:', error);
+    throw new Error(`Error al generar plantilla con IA: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}; 
