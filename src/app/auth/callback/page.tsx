@@ -10,46 +10,51 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Obtener el hash de la URL que contiene los parámetros de autenticación
+        // 1️⃣ Intentar obtener tokens del fragmento (#)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
-        const expiresAt = hashParams.get('expires_at');
-        const providerToken = hashParams.get('provider_token');
 
         if (accessToken && refreshToken) {
-          // Log de debugging con información de tokens
-          console.log('Procesando callback de autenticación:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            expiresAt: expiresAt ? new Date(parseInt(expiresAt) * 1000).toISOString() : null,
-            hasProviderToken: !!providerToken,
-          });
-
-          // Establecer la sesión manualmente
+          // Sesión mediante flujo implícito
+          console.log('Procesando callback (flujo implícito)...');
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
 
-          if (error) {
-            console.error('Error estableciendo sesión:', error);
-            router.push('/?error=auth_failed');
-            return;
-          }
+          if (error) throw error;
 
-          if (data.session) {
-            console.log('Sesión establecida correctamente');
-            // Redirigir a la página principal
-            router.push('/');
-          }
-        } else {
-          console.error('No se encontraron tokens en la URL');
-          router.push('/?error=no_tokens');
+          // Limpiar el hash de la URL para evitar exponer tokens
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          console.log('Sesión establecida correctamente');
+          router.replace('/');
+          return;
         }
+
+        // 2️⃣ Si no hay tokens en el fragmento, intentar flujo PKCE (?code)
+        const queryParams = new URLSearchParams(window.location.search);
+        const code = queryParams.get('code');
+        if (code) {
+          console.log('Procesando callback (flujo PKCE)...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+
+          // Limpiar los parámetros de la URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          console.log('Sesión establecida correctamente (PKCE)');
+          router.replace('/');
+          return;
+        }
+
+        // 3️⃣ Sin tokens ni código => error
+        console.error('No se encontraron credenciales en la URL');
+        router.replace('/?error=no_tokens');
       } catch (error) {
         console.error('Error en el callback de autenticación:', error);
-        router.push('/?error=callback_failed');
+        router.replace('/?error=callback_failed');
       }
     };
 

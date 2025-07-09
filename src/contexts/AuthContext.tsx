@@ -55,14 +55,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Obtener la sesión inicial
     const getInitialSession = async () => {
       try {
-        // Limpiar cualquier parámetro de autenticación en la URL principal
+        const { session, error } = await auth.getSession();
+
+        // Una vez obtenida la sesión, limpiar el hash si contiene tokens
         if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-          // Si estamos en la página principal con tokens, limpiar la URL
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
         }
-
-        const { session, error } = await auth.getSession();
         
         if (error) {
           console.error('Error obteniendo sesión inicial:', error);
