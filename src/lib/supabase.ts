@@ -45,6 +45,11 @@ export const auth = {
       throw error;
     }
     
+    // Redirigir explícitamente si Supabase devuelve una URL
+    if (data?.url) {
+      window.location.assign(data.url);
+    }
+    
     return { data, error: null };
   },
 
