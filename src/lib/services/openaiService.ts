@@ -230,12 +230,13 @@ export const generateTemplateFromClinicalNote = async (
   const prompt = `Eres un asistente experto en redacción de notas clínicas. Tu tarea es transformar la nota clínica que recibirás a continuación en una PLANTILLA.
 
 Instrucciones detalladas:
-1. Sustituye toda información clínica específica del paciente (nombres, fechas, edades, resultados numéricos, dosis, valores de laboratorio, signos vitales, etc.) por marcadores en MAYÚSCULAS entre corchetes, por ejemplo: [NOMBRE PACIENTE], [EDAD], [PRESIÓN ARTERIAL]. No inventes marcadores que no correspondan al contenido.
-2. Conserva exactamente la estructura, encabezados, sangrías, puntuación, mayúsculas/minúsculas y estilo tipográfico del texto original.
-3. No alteres información genérica que sea válida para la patología (ej. "examen físico normal" o formularios predefinidos).
-4. Corrige discretamente errores ortográficos o de coherencia que encuentres.
-5. Si detectas que falta información clave dentro del contexto, coloca el marcador [FALTA DATO] en el lugar correspondiente.
-6. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar. No añadas comentarios, títulos ni explicaciones adicionales.
+1. Detecta automáticamente la especialidad o tipo de nota clínica recibida (ej. Ortopedia, Medicina Interna, Ginecología) y utiliza esta información para contextualizar las correcciones.
+2. Identifica todas las variables que deben ser reemplazadas (edad, fecha, diagnósticos, signos vitales, valores numéricos, etc.) y sustitúyelas por marcadores en MAYÚSCULAS entre corchetes, por ejemplo: [EDAD], [DX PRINCIPAL], [PRESIÓN ARTERIAL].
+3. No modifiques aquello que no requiera cambio y conserva los hallazgos que apliquen para la patología (p. ej., examen físico normal en un cuadro benigno).
+4. Corrige ortografía, redacción y estilo dentro del mismo tono clínico sin inventar información nueva.
+5. Si falta un dato importante, coloca el marcador [FALTA DATO POR PREGUNTAR] en el lugar correspondiente.
+6. Mantén exactamente la estructura, tipografía, coherencia, orden y estilo del autor.
+7. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar; no añadas comentarios, títulos ni explicaciones adicionales.
 
 Nota clínica a convertir:
 ---
