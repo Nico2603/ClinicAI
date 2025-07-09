@@ -17,19 +17,19 @@ CREATE TABLE IF NOT EXISTS public.users (
   updated_at timestamptz NOT NULL DEFAULT timezone('utc', now())
 );
 
--- profiles table
-CREATE TABLE IF NOT EXISTS public.profiles (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name text,
-  phone_number text,
-  avatar_url text,
-  specialty text,
-  license_number text,
-  institution text,
-  bio text,
-  created_at timestamptz NOT NULL DEFAULT timezone('utc', now()),
-  updated_at timestamptz NOT NULL DEFAULT timezone('utc', now())
-);
+-- profiles table (eliminada)
+-- CREATE TABLE IF NOT EXISTS public.profiles (
+--   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+--   name text,
+--   phone_number text,
+--   avatar_url text,
+--   specialty text,
+--   license_number text,
+--   institution text,
+--   bio text,
+--   created_at timestamptz NOT NULL DEFAULT timezone('utc', now()),
+--   updated_at timestamptz NOT NULL DEFAULT timezone('utc', now())
+-- );
 
 -- specialties
 CREATE TABLE IF NOT EXISTS public.specialties (
@@ -101,7 +101,7 @@ CREATE INDEX IF NOT EXISTS notes_patient_id_idx ON public.notes(patient_id);
 -- ROW LEVEL SECURITY
 -- ========================================
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.specialties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_templates ENABLE ROW LEVEL SECURITY;
@@ -114,9 +114,9 @@ DROP POLICY IF EXISTS "Users can view own profile"      ON public.users;
 DROP POLICY IF EXISTS "Users can update own profile"    ON public.users;
 DROP POLICY IF EXISTS "Users can insert own profile"    ON public.users;
 
-DROP POLICY IF EXISTS "Users can view own profile"      ON public.profiles;
-DROP POLICY IF EXISTS "Users can update own profile"    ON public.profiles;
-DROP POLICY IF EXISTS "Users can insert own profile"    ON public.profiles;
+-- DROP POLICY IF EXISTS "Users can view own profile"      ON public.profiles;
+-- DROP POLICY IF EXISTS "Users can update own profile"    ON public.profiles;
+-- DROP POLICY IF EXISTS "Users can insert own profile"    ON public.profiles;
 
 DROP POLICY IF EXISTS "Anyone can view specialties"     ON public.specialties;
 DROP POLICY IF EXISTS "Anyone can view active templates" ON public.templates;
@@ -143,12 +143,12 @@ CREATE POLICY "Users can insert own profile" ON public.users
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- profiles
-CREATE POLICY "Users can view own profile" ON public.profiles
-  FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own profile" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- CREATE POLICY "Users can view own profile" ON public.profiles
+--   FOR SELECT USING (auth.uid() = user_id);
+-- CREATE POLICY "Users can update own profile" ON public.profiles
+--   FOR UPDATE USING (auth.uid() = user_id);
+-- CREATE POLICY "Users can insert own profile" ON public.profiles
+--   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- specialties
 CREATE POLICY "Anyone can view specialties" ON public.specialties

@@ -4,12 +4,10 @@ import {
   notesService, 
   specialtiesService, 
   templatesService, 
-  userProfileService,
   userTemplatesService,
   type Note, 
   type Specialty, 
   type Template, 
-  type UserProfile,
   type UserTemplate 
 } from '@/lib/services/databaseService';
 
@@ -215,55 +213,7 @@ export const useTemplates = () => {
   };
 };
 
-// Hook para manejar perfil de usuario
-export const useUserProfile = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchProfile = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      setIsLoading(true);
-      const userProfile = await userProfileService.getProfile(user.id);
-      setProfile(userProfile);
-      setError(null);
-    } catch (err) {
-      console.error('Error al cargar perfil:', err);
-      setError('Error al cargar el perfil');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
-    if (!user?.id) throw new Error("Usuario no autenticado");
-
-    try {
-      const updatedProfile = await userProfileService.updateProfile(user.id, updates);
-      setProfile(updatedProfile);
-      return updatedProfile;
-    } catch (err) {
-      console.error('Error al actualizar perfil:', err);
-      setError('Error al actualizar el perfil');
-      throw err;
-    }
-  }, [user?.id]);
-
-  return {
-    profile,
-    isLoading,
-    error,
-    updateProfile,
-    refetch: fetchProfile
-  };
-};
+// Eliminado hook de perfil de usuario
 
 // Hook para manejar plantillas personalizadas del usuario
 export const useUserTemplates = () => {

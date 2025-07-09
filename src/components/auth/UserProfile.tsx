@@ -17,11 +17,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
     setShowDropdown(false);
   };
 
-  const handleGoToProfile = () => {
-    window.location.href = '/perfil';
-    setShowDropdown(false);
-  };
-
   return (
     <div className={`relative ${className} md:mr-32 mr-8`}>
       <button
@@ -89,15 +84,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
               </div>
             </div>
             <div className="p-2 flex flex-col gap-1">
-              <button
-                onClick={handleGoToProfile}
-                className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>Perfil</span>
-              </button>
               <button
                 onClick={handleSignOut}
                 className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors flex items-center space-x-2"
