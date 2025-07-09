@@ -232,11 +232,13 @@ export const generateTemplateFromClinicalNote = async (
 Instrucciones detalladas:
 1. Detecta automáticamente la especialidad o tipo de nota clínica recibida (ej. Ortopedia, Medicina Interna, Ginecología) y utiliza esta información para contextualizar las correcciones.
 2. Identifica todas las variables que deben ser reemplazadas (edad, fecha, diagnósticos, signos vitales, valores numéricos, etc.) y sustitúyelas por marcadores en MAYÚSCULAS entre corchetes, por ejemplo: [EDAD], [DX PRINCIPAL], [PRESIÓN ARTERIAL].
-3. No modifiques aquello que no requiera cambio y conserva los hallazgos que apliquen para la patología (p. ej., examen físico normal en un cuadro benigno).
-4. Corrige ortografía, redacción y estilo dentro del mismo tono clínico sin inventar información nueva.
-5. Si falta un dato importante, coloca el marcador [FALTA DATO POR PREGUNTAR] en el lugar correspondiente.
-6. Mantén exactamente la estructura, tipografía, coherencia, orden y estilo del autor.
-7. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar; no añadas comentarios, títulos ni explicaciones adicionales.
+3. Reemplaza TODOS los datos clínicos específicos por marcadores entre corchetes sin alterar la redacción ni la estructura original.
+4. No modifiques aquello que no requiera cambio y conserva los hallazgos que apliquen para la patología (p. ej., examen físico normal en un cuadro benigno).
+5. Corrige ortografía y redacción dentro del mismo tono clínico sin inventar información nueva para no alterar la coherencia.
+6. Si falta un dato importante, coloca el marcador [FALTA DATO POR PREGUNTAR] en el lugar correspondiente.
+7. Conserva mayúsculas, minúsculas, sangrías, tabulaciones, estilo clínico exacto y formato institucional del texto.
+8. Si la información proviene de una grabación de voz, conviértela a texto clínico coherente e intégrala en la sección correspondiente.
+9. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar; no añadas comentarios, títulos ni explicaciones adicionales.
 
 Nota clínica a convertir:
 ---
@@ -293,29 +295,30 @@ ${newInformation}
 **INSTRUCCIONES CRÍTICAS:**
 
 1. **Análisis e Integración Inteligente:**
-   - Analiza dónde debe ir la nueva información dentro de la estructura de la nota original
-   - Identifica la sección más apropiada (evolución, tratamiento, diagnóstico, plan, etc.)
-   - Integra la información de forma natural sin alterar el resto del contenido
+   - Analiza dónde debe ir la nueva información dentro de la estructura de la nota original.
+   - Identifica la sección más apropiada (evolución, tratamiento, diagnóstico, plan, etc.).
+   - Integra la información de forma natural sin alterar el resto del contenido.
+   - Si la nueva información proviene de una grabación de voz, primero conviértela a texto clínico coherente antes de integrarla.
 
 2. **Preservación del Contenido Original:**
-   - Conserva EXACTAMENTE todo el contenido original que no requiere modificación
-   - Mantén la estructura, formato, encabezados y estilo de la nota original
-   - No elimines información previa a menos que sea contradictoria con la nueva información
+   - Conserva EXACTAMENTE todo el contenido original que no requiere modificación.
+   - Mantén la estructura, formato, encabezados y estilo de la nota original.
+   - Solo reemplaza lo estrictamente pertinente según la nueva información; no modifiques otras secciones.
 
 3. **Coherencia y Estilo Médico:**
-   - Mantén el estilo de redacción médica profesional de la nota original
-   - Asegura coherencia temporal y clínica en la información
-   - Usa terminología médica apropiada y consistente
+   - Mantén el estilo de redacción médica profesional de la nota original.
+   - Asegura coherencia temporal y clínica en la información.
+   - Usa terminología médica apropiada y consistente.
 
 4. **Manejo de Contradicciones:**
-   - Si la nueva información contradice algo en la nota original, actualiza solo lo necesario
-   - Mantén un registro cronológico lógico si es aplicable
-   - Preserva la coherencia clínica general
+   - Si la nueva información contradice algo en la nota original, actualiza solo lo necesario.
+   - Mantén un registro cronológico lógico si es aplicable.
+   - Preserva la coherencia clínica general.
 
 5. **Formato de Respuesta:**
-   - Responde ÚNICAMENTE con la nota clínica completa y actualizada
-   - No incluyas comentarios, explicaciones o texto adicional
-   - La respuesta debe ser directamente la nota médica lista para usar
+   - Responde ÚNICAMENTE con la nota clínica completa y actualizada.
+   - No incluyas comentarios, explicaciones o texto adicional.
+   - La respuesta debe ser directamente la nota médica lista para usar.
 
 **EJEMPLO DE INTEGRACIÓN:**
 Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es sobre el estado actual del paciente, integra esa información en esa sección manteniendo el formato y estilo existente.`;
