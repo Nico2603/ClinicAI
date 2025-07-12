@@ -106,17 +106,30 @@ export const generateAISuggestions = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   if (!API_KEY) throw new Error("API key not configured for OpenAI.");
 
-  const prompt = `Contexto: Eres un asistente médico experto capaz de analizar información de pacientes y ofrecer ideas y recomendaciones. La IA está conectada con información actualizada y se esfuerza por basar las sugerencias en conocimiento científico.
-Tarea: Basado en la siguiente información clínica proporcionada por el usuario, genera un análisis que incluya posibles consideraciones, recomendaciones, sugerencias de próximos pasos o puntos clave a destacar. No te limites a una estructura de nota fija. No se deben ofrecer recomendaciones sin una base de evidencia o conocimiento establecido.
-Información proporcionada: "${clinicalInput}"
+  const prompt = `Eres un médico experto especializado en medicina basada en evidencia. Tu tarea es analizar la información clínica proporcionada y ofrecer sugerencias profesionales respaldadas por evidencia científica.
 
-Instrucciones adicionales:
-- Sé claro y directo.
-- Enfócate en ofrecer valor adicional más allá de una simple reestructuración de la información.
-- Puedes sugerir preguntas adicionales que el médico podría hacer, o áreas que podrían requerir más investigación.
-- Si la pregunta parece referirse a eventos muy recientes o información que podría requerir datos actualizados, menciona que se debe verificar con fuentes médicas actualizadas.
-- Evita usar formato Markdown, negrillas ** ** o viñetas *; responde en texto plano con oraciones completas.
-- Responde de forma útil y profesional.`;
+INFORMACIÓN CLÍNICA:
+"${clinicalInput}"
+
+INSTRUCCIONES:
+1. Analiza la información clínica proporcionada
+2. Proporciona sugerencias prácticas basadas en evidencia científica actual
+3. Incluye citas de estudios relevantes, guías clínicas o consensos médicos
+4. Menciona niveles de evidencia cuando sea apropiado
+5. Sugiere consideraciones diagnósticas, terapéuticas o de seguimiento
+6. Incluye recomendaciones de estudios adicionales si es necesario
+
+FORMATO DE RESPUESTA:
+- Usa texto claro y profesional
+- Incluye citas científicas reales y relevantes
+- Menciona fuentes como: PubMed, Cochrane, UpToDate, guías de sociedades médicas
+- Estructura las sugerencias de manera organizada
+- Incluye disclaimer sobre la necesidad de evaluación clínica personalizada
+
+EJEMPLO DE CITA: "Según las guías de la American Heart Association (2023), se recomienda..."
+EJEMPLO DE EVIDENCIA: "Un metaanálisis reciente en el New England Journal of Medicine demostró que..."
+
+Proporciona sugerencias profesionales, prácticas y basadas en evidencia que sean útiles para la toma de decisiones clínicas.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -124,26 +137,29 @@ Instrucciones adicionales:
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto que proporciona análisis clínico y sugerencias basadas en evidencia científica actualizada."
+          content: "Eres un médico experto en medicina basada en evidencia. Proporcionas sugerencias clínicas profesionales respaldadas por literatura científica actual. Siempre citas fuentes confiables y mantienes un enfoque práctico."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.5, // Temperatura moderada para balance entre creatividad y precisión
+      temperature: 0.2,
       max_tokens: 1500,
       top_p: 0.9
     });
 
-    const generatedText = response.choices[0]?.message?.content || '';
-    return { 
-      text: generatedText, 
-      groundingMetadata: undefined // OpenAI no proporciona grounding metadata
+    const result = response.choices[0]?.message?.content || '';
+    
+    return {
+      text: result,
+      groundingMetadata: {
+        groundingChunks: []
+      }
     };
   } catch (error) {
-    console.error('Error generating AI suggestions:', error);
-    throw new Error(`Error al generar sugerencias con IA: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Error generating evidence-based suggestions:', error);
+    throw new Error(`Error al generar sugerencias basadas en evidencia: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -1007,4 +1023,86 @@ export const formatEvidenceBasedReport = async (
   report += `**IMPORTANTE:**\n${analysisResult.disclaimerText}\n`;
 
   return report;
+}; 
+
+// ===== CONSULTA CLÍNICA SIMPLIFICADA BASADA EN EVIDENCIA =====
+
+export const generateSimplifiedEvidenceConsultation = async (
+  clinicalContent: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+
+  const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
+
+CONTENIDO CLÍNICO:
+---
+${clinicalContent}
+---
+
+INSTRUCCIONES:
+1. **ANÁLISIS CLÍNICO:**
+   - Identifica los hallazgos principales
+   - Evalúa la información disponible
+   - Destaca aspectos relevantes o preocupantes
+
+2. **RECOMENDACIONES BASADAS EN EVIDENCIA:**
+   - Proporciona sugerencias diagnósticas fundamentadas
+   - Incluye opciones terapéuticas respaldadas por evidencia
+   - Menciona estudios complementarios si son necesarios
+   - Sugiere seguimiento apropiado
+
+3. **CITAS CIENTÍFICAS:**
+   - Incluye referencias a estudios recientes
+   - Cita guías clínicas relevantes
+   - Menciona consensos de sociedades médicas
+   - Especifica niveles de evidencia cuando sea apropiado
+
+4. **FORMATO DE RESPUESTA:**
+   - Estructura clara y profesional
+   - Lenguaje médico apropiado
+   - Citas científicas integradas naturalmente
+   - Disclaimer sobre individualización del tratamiento
+
+FUENTES RECOMENDADAS PARA CITAR:
+- PubMed/MEDLINE
+- Cochrane Library
+- UpToDate
+- Guías de sociedades médicas especializadas
+- New England Journal of Medicine
+- The Lancet
+- JAMA
+- BMJ
+
+Proporciona un análisis completo y recomendaciones prácticas que apoyen la toma de decisiones clínicas.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un médico especialista experto en medicina basada en evidencia. Proporcionas análisis clínicos completos con recomendaciones respaldadas por literatura científica actual. Siempre incluyes citas relevantes y mantienes un enfoque práctico y profesional."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 2000,
+      top_p: 0.9
+    });
+
+    const result = response.choices[0]?.message?.content || '';
+    
+    return {
+      text: result,
+      groundingMetadata: {
+        groundingChunks: []
+      }
+    };
+  } catch (error) {
+    console.error('Error generating simplified evidence consultation:', error);
+    throw new Error(`Error al generar consulta basada en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }; 

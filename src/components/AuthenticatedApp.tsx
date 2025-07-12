@@ -6,9 +6,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   UserTemplate,
   GroundingMetadata,
-  SpeechRecognition, 
-  SpeechRecognitionEvent, 
-  SpeechRecognitionErrorEvent,
   HistoricNote,
   ActiveView
 } from '../types';
@@ -19,6 +16,7 @@ import {
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserTemplates } from '../hooks/useDatabase';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 // Services
 import { 
@@ -64,12 +62,22 @@ const AuthenticatedApp: React.FC = () => {
   
   const [error, setError] = useState<string | null>(null);
 
-  // Speech Recognition State
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [transcriptError, setTranscriptError] = useState<string | null>(null);
-  const [interimTranscript, setInterimTranscript] = useState<string>('');
-  const [isSpeechApiAvailable, setIsSpeechApiAvailable] = useState<boolean>(false);
-  const speechRecognitionInstance = useRef<SpeechRecognition | null>(null);
+  // Speech Recognition usando hook personalizado
+  const { 
+    isRecording, 
+    isSupported: isSpeechApiAvailable, 
+    interimTranscript, 
+    error: transcriptError, 
+    startRecording, 
+    stopRecording 
+  } = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      setPatientInfo(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
+    }
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -84,79 +92,13 @@ const AuthenticatedApp: React.FC = () => {
         setSelectedTemplate(firstTemplate);
       }
     }
-
-    // Initialize Speech Recognition
-    const SpeechRecognitionAPI = typeof window !== 'undefined' ? 
-      (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
-    
-    if (SpeechRecognitionAPI) {
-      setIsSpeechApiAvailable(true);
-      speechRecognitionInstance.current = new SpeechRecognitionAPI();
-      speechRecognitionInstance.current.continuous = true;
-      speechRecognitionInstance.current.interimResults = true;
-      speechRecognitionInstance.current.lang = 'es-CO'; 
-
-      speechRecognitionInstance.current.onstart = () => {
-        setIsRecording(true);
-        setTranscriptError(null);
-        setInterimTranscript('');
-      };
-
-      speechRecognitionInstance.current.onresult = (event: SpeechRecognitionEvent) => { 
-        let finalTranscript = '';
-        let currentInterim = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const result = event.results[i];
-          if (result && result[0]) {
-            if (result.isFinal) {
-              finalTranscript += result[0].transcript;
-            } else {
-              currentInterim += result[0].transcript;
-            }
-          }
-        }
-        setInterimTranscript(currentInterim);
-        if (finalTranscript) {
-          setPatientInfo((prevInfo) => prevInfo + (prevInfo.endsWith(' ') || prevInfo === '' ? '' : ' ') + finalTranscript + ' ');
-          setInterimTranscript(''); 
-        }
-      };
-
-      speechRecognitionInstance.current.onerror = (event: SpeechRecognitionErrorEvent) => { 
-        setTranscriptError(`Error de reconocimiento: ${event.error}`);
-        console.error('Speech recognition error', event);
-        setIsRecording(false);
-      };
-
-      speechRecognitionInstance.current.onend = () => {
-        setIsRecording(false);
-        setInterimTranscript(''); 
-      };
-    } else {
-      setIsSpeechApiAvailable(false);
-      setTranscriptError("La API de reconocimiento de voz no está disponible en este navegador.");
-    }
-
-    return () => {
-      if (speechRecognitionInstance.current) {
-        speechRecognitionInstance.current.stop();
-      }
-    };
   }, [user, userTemplates, selectedTemplate]);
 
   const handleToggleRecording = () => {
-    if (!speechRecognitionInstance.current) return;
     if (isRecording) {
-      speechRecognitionInstance.current.stop();
+      stopRecording();
     } else {
-      try {
-        setPatientInfo(prev => prev.trim() + (prev.trim() ? " " : "")); 
-        speechRecognitionInstance.current.start();
-      } catch (e) {
-        console.error("Error starting speech recognition:", e);
-        setTranscriptError("No se pudo iniciar el dictado. Verifique los permisos del micrófono.");
-        setIsRecording(false);
-      }
+      startRecording();
     }
   };
 
@@ -398,7 +340,7 @@ const AuthenticatedApp: React.FC = () => {
                   {isSpeechApiAvailable && (
                     <button
                         onClick={handleToggleRecording}
-                        disabled={!isSpeechApiAvailable || !speechRecognitionInstance.current} 
+                        disabled={!isSpeechApiAvailable} 
                         className={`p-2 rounded-full transition-colors shrink-0 ${
                           isRecording 
                             ? 'bg-red-500 hover:bg-red-600 text-white' 
@@ -451,7 +393,7 @@ const AuthenticatedApp: React.FC = () => {
                 <div>
                     <h3 id="ai-suggestions-heading" className="text-base md:text-lg font-semibold text-secondary mb-2 md:mb-3 flex items-center">
                     <LightBulbIcon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                    Ideas y Sugerencias
+                    Sugerencias Basadas en Evidencia
                     </h3>
                     <label htmlFor="ai-suggestion-input" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     Información Clínica o Consulta para IA
@@ -462,7 +404,7 @@ const AuthenticatedApp: React.FC = () => {
                     onChange={(e) => {setAiSuggestionInput(e.target.value); setError(null);}}
                     rows={5}
                     className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 mb-3 transition-colors text-sm md:text-base"
-                    placeholder="Describa la situación clínica, preguntas o áreas donde necesita ideas, recomendaciones o un análisis más libre..."
+                    placeholder="Describa la situación clínica, preguntas o áreas donde necesita recomendaciones basadas en evidencia científica..."
                     />
                     <button
                     onClick={handleGenerateAISuggestions}
@@ -472,12 +414,12 @@ const AuthenticatedApp: React.FC = () => {
                     {isGeneratingAISuggestion ? (
                         <> <LoadingSpinner className="text-white mr-2" /> Generando Sugerencias...</>
                     ) : (
-                        <> <SparklesIcon className="h-5 w-5 mr-2" /> Obtener Sugerencias IA </>
+                        <> <SparklesIcon className="h-5 w-5 mr-2" /> Obtener Sugerencias Basadas en Evidencia </>
                     )}
                     </button>
                     <NoteDisplay
                     note={generatedAISuggestion}
-                    title="Sugerencias y Recomendaciones IA"
+                    title="Sugerencias Basadas en Evidencia"
                     isLoading={isGeneratingAISuggestion}
                     groundingMetadata={aiSuggestionGrounding}
                     />

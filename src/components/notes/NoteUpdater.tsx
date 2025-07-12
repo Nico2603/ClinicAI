@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { MicrophoneIcon, SparklesIcon, LoadingSpinner } from '../ui/Icons';
+import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { GroundingMetadata } from '../../types';
-import { SpeechRecognition, SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from '../../types';
+import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
+import { Button } from '../ui/button';
+import NoteDisplay from './NoteDisplay';
 
 interface NoteUpdaterProps {
   className?: string;
@@ -20,92 +21,28 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '' }) => {
   const [error, setError] = useState<string | null>(null);
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
 
-  // Estados para grabación de voz
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [transcriptError, setTranscriptError] = useState<string | null>(null);
-  const [interimTranscript, setInterimTranscript] = useState<string>('');
-  const [isSpeechApiAvailable, setIsSpeechApiAvailable] = useState<boolean>(false);
-  const speechRecognitionInstance = useRef<SpeechRecognition | null>(null);
-
-  // Inicialización del reconocimiento de voz
-  useEffect(() => {
-    const SpeechRecognitionAPI = typeof window !== 'undefined' ? 
-      (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
-    
-    if (SpeechRecognitionAPI) {
-      setIsSpeechApiAvailable(true);
-      speechRecognitionInstance.current = new SpeechRecognitionAPI();
-      speechRecognitionInstance.current.continuous = true;
-      speechRecognitionInstance.current.interimResults = true;
-      speechRecognitionInstance.current.lang = 'es-CO';
-
-      speechRecognitionInstance.current.onstart = () => {
-        setIsRecording(true);
-        setTranscriptError(null);
-        setInterimTranscript('');
-      };
-
-      speechRecognitionInstance.current.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let currentInterim = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const result = event.results[i];
-          if (result && result[0]) {
-            if (result.isFinal) {
-              finalTranscript += result[0].transcript;
-            } else {
-              currentInterim += result[0].transcript;
-            }
-          }
-        }
-        
-        setInterimTranscript(currentInterim);
-        
-        if (finalTranscript) {
-          setNewInformation((prevInfo) => 
-            prevInfo + (prevInfo.endsWith(' ') || prevInfo === '' ? '' : ' ') + finalTranscript + ' '
-          );
-          setInterimTranscript('');
-        }
-      };
-
-      speechRecognitionInstance.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-        setTranscriptError(`Error de reconocimiento: ${event.error}`);
-        console.error('Speech recognition error', event);
-        setIsRecording(false);
-      };
-
-      speechRecognitionInstance.current.onend = () => {
-        setIsRecording(false);
-        setInterimTranscript('');
-      };
-    } else {
-      setIsSpeechApiAvailable(false);
-      setTranscriptError("La API de reconocimiento de voz no está disponible en este navegador.");
+  // Speech Recognition usando hook personalizado
+  const { 
+    isRecording, 
+    isSupported: isSpeechApiAvailable, 
+    interimTranscript, 
+    error: transcriptError, 
+    startRecording, 
+    stopRecording 
+  } = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
     }
-
-    return () => {
-      if (speechRecognitionInstance.current) {
-        speechRecognitionInstance.current.stop();
-      }
-    };
-  }, []);
+  });
 
   const handleToggleRecording = () => {
-    if (!speechRecognitionInstance.current) return;
-    
     if (isRecording) {
-      speechRecognitionInstance.current.stop();
+      stopRecording();
     } else {
-      try {
-        setNewInformation(prev => prev.trim() + (prev.trim() ? " " : ""));
-        speechRecognitionInstance.current.start();
-      } catch (e) {
-        console.error("Error starting speech recognition:", e);
-        setTranscriptError("No se pudo iniciar el dictado. Verifique los permisos del micrófono.");
-        setIsRecording(false);
-      }
+      startRecording();
     }
   };
 
@@ -136,54 +73,28 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '' }) => {
     }
   };
 
-  const handleSaveUpdatedNote = async () => {
-    if (!updatedNote.trim()) {
-      setError("No hay nota actualizada para guardar.");
-      return;
-    }
-
-    try {
-      // Crear blob y descargar
-      const blob = new Blob([updatedNote], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `nota_clinica_actualizada_${new Date().toISOString().split('T')[0]}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error saving note:', error);
-      setError("Error al guardar la nota actualizada.");
-    }
-  };
-
   const handleClearAll = () => {
     setOriginalNote('');
     setNewInformation('');
     setUpdatedNote('');
     setError(null);
     setGroundingMetadata(undefined);
-    if (speechRecognitionInstance.current && isRecording) {
-      speechRecognitionInstance.current.stop();
-    }
   };
 
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-700">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <SparklesIcon className="h-6 w-6 text-purple-600" />
           Actualizador de Notas Clínicas
         </h2>
         <p className="text-gray-600 dark:text-gray-300">
-          Actualiza notas clínicas existentes con nueva información de forma inteligente, manteniendo la estructura y coherencia original.
+          Actualiza y mejora notas clínicas existentes con nueva información de manera inteligente.
         </p>
       </div>
 
-      {/* Nota Original */}
+      {/* Entrada de Nota Original */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
           Nota Clínica Original
@@ -191,12 +102,12 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '' }) => {
         <textarea
           value={originalNote}
           onChange={(e) => setOriginalNote(e.target.value)}
-          placeholder="Pegue aquí la nota clínica completa que desea actualizar..."
+          placeholder="Pegue aquí la nota clínica original que desea actualizar..."
           className="w-full h-40 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
         />
       </div>
 
-      {/* Nueva Información */}
+      {/* Entrada de Nueva Información */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
           Nueva Información para Actualizar
@@ -287,49 +198,12 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '' }) => {
       )}
 
       {/* Nota Actualizada */}
-      {updatedNote && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Nota Clínica Actualizada
-            </h3>
-            <Button
-              onClick={handleSaveUpdatedNote}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm"
-            >
-              📄 Grabar Nota Actualizada
-            </Button>
-          </div>
-          
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
-              {updatedNote}
-            </pre>
-          </div>
-
-          {/* Grounding metadata si está disponible */}
-          {groundingMetadata?.groundingChunks && groundingMetadata.groundingChunks.length > 0 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-              <p className="font-medium">Fuentes consultadas:</p>
-              {groundingMetadata.groundingChunks.map((chunk, index) => (
-                chunk.web?.uri && (
-                  <div key={index} className="flex items-center gap-2">
-                    <span>•</span>
-                    <a 
-                      href={chunk.web.uri} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline truncate"
-                    >
-                      {chunk.web.title || chunk.web.uri}
-                    </a>
-                  </div>
-                )
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <NoteDisplay
+        note={updatedNote}
+        title="Nota Clínica Actualizada"
+        isLoading={isProcessing}
+        groundingMetadata={groundingMetadata}
+      />
     </div>
   );
 };
