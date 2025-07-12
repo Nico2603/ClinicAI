@@ -523,6 +523,95 @@ Máximo 8 resultados, ordenados por relevancia.`;
   }
 };
 
+// ===== ANÁLISIS INTELIGENTE DE INFORMACIÓN CLÍNICA =====
+
+export const analyzeClinicalDataForScales = async (
+  clinicalData: string
+): Promise<ScaleSearchResult[]> => {
+  validateApiKey();
+  validateClinicalInput(clinicalData);
+
+  const prompt = `Eres un experto en medicina clínica y escalas de evaluación. Tu tarea es analizar la información clínica proporcionada y sugerir las escalas clínicas más apropiadas y útiles.
+
+INFORMACIÓN CLÍNICA A ANALIZAR:
+---
+${clinicalData}
+---
+
+INSTRUCCIONES:
+1. **ANÁLISIS CLÍNICO:** Analiza cuidadosamente los síntomas, signos, antecedentes y datos clínicos proporcionados
+2. **IDENTIFICACIÓN DE ESCALAS:** Identifica las escalas clínicas más relevantes y útiles para evaluar la condición del paciente
+3. **PRIORIZACIÓN:** Ordena las escalas por relevancia clínica y utilidad práctica
+4. **VALIDACIÓN:** Solo sugiere escalas clínicas reconocidas, validadas y de uso común
+
+CRITERIOS DE SELECCIÓN:
+- Escalas específicas para la condición clínica identificada
+- Escalas de gravedad o pronóstico apropiadas
+- Escalas de seguimiento o monitoreo relevantes
+- Escalas de screening cuando sea pertinente
+
+FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+{
+  "scales": [
+    {
+      "name": "Nombre exacto de la escala",
+      "description": "Descripción de qué evalúa y por qué es relevante para este caso",
+      "category": "Categoría médica",
+      "confidence": 0.95,
+      "isStandardized": true,
+      "rationale": "Razón específica por la que se sugiere esta escala para este caso clínico"
+    }
+  ],
+  "clinicalSummary": "Resumen breve de los hallazgos clínicos identificados",
+  "recommendations": ["Recomendaciones clínicas generales basadas en la información"]
+}
+
+EJEMPLOS DE ESCALAS COMUNES:
+- Glasgow Coma Scale (GCS): Para nivel de conciencia
+- Glasgow-Blatchford Score: Para hemorragia digestiva alta
+- PHQ-9: Para depresión
+- GAD-7: Para ansiedad
+- APACHE II: Para mortalidad en UCI
+- NIHSS: Para accidente cerebrovascular
+- Wells Score: Para tromboembolismo pulmonar
+- CURB-65: Para neumonía
+- Child-Pugh: Para hepatopatía
+- CHA2DS2-VASc: Para fibrilación auricular
+
+Máximo 5 escalas sugeridas, ordenadas por relevancia clínica.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un médico experto en escalas clínicas que analiza información clínica y sugiere las herramientas de evaluación más apropiadas. Respondes siempre en formato JSON válido."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 1500,
+      top_p: 0.8
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      return parsed.scales || [];
+    } catch (jsonError) {
+      console.error('Error parsing clinical analysis response:', jsonError);
+      throw new Error('La IA no pudo analizar la información clínica. Intenta con más detalles.');
+    }
+  } catch (error) {
+    throw handleOpenAIError(error, 'análisis de información clínica');
+  }
+};
+
 export const generateIntelligentClinicalScale = async (
   request: ScaleGenerationRequest
 ): Promise<GeneratedScaleResult> => {

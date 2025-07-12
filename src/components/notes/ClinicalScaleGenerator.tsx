@@ -6,13 +6,15 @@ import { SearchIcon, SparklesIcon, LoadingSpinner, PlusIcon, CopyIcon, CheckIcon
 import { 
   searchClinicalScales, 
   generateIntelligentClinicalScale, 
-  formatScaleForNote 
+  formatScaleForNote,
+  analyzeClinicalDataForScales
 } from '../../lib/services/openaiService';
 import { 
   ScaleSearchResult, 
   GeneratedScaleResult, 
   ScaleGenerationRequest,
-  ClinicalScale 
+  ClinicalScale,
+  ClinicalAnalysisForScalesResult
 } from '../../types';
 import NoteDisplay from './NoteDisplay';
 
@@ -28,38 +30,64 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
   existingNoteContent 
 }) => {
   // Estados principales
+  const [clinicalData, setClinicalData] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisResult, setAnalysisResult] = useState<ClinicalAnalysisForScalesResult | null>(null);
+  const [selectedScale, setSelectedScale] = useState<ScaleSearchResult | null>(null);
+  
+  // Estados para búsqueda manual (fallback)
+  const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<ScaleSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [selectedScale, setSelectedScale] = useState<ScaleSearchResult | null>(null);
   
-  // Estados para datos clínicos
-  const [clinicalData, setClinicalData] = useState<string>('');
+  // Estados para generación de escala
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedScale, setGeneratedScale] = useState<GeneratedScaleResult | null>(null);
   const [formattedScaleText, setFormattedScaleText] = useState<string>('');
   
   // Estados de error y UI
   const [error, setError] = useState<string | null>(null);
-  const [showResults, setShowResults] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   
   // Referencias
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Búsqueda automática con debounce
+  // Análisis automático con debounce
+  useEffect(() => {
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+    }
+    
+    if (clinicalData.trim().length >= 50) {
+      analysisTimeoutRef.current = setTimeout(async () => {
+        await handleAnalyzeClinicalData();
+      }, 1000);
+    } else {
+      setAnalysisResult(null);
+      setSelectedScale(null);
+    }
+    
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [clinicalData]);
+  
+  // Búsqueda manual con debounce
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    if (searchQuery.trim().length >= 3) {
+    if (searchQuery.trim().length >= 3 && showManualSearch) {
       searchTimeoutRef.current = setTimeout(async () => {
-        await handleSearch();
+        await handleManualSearch();
       }, 500);
     } else {
       setSearchResults([]);
-      setShowResults(false);
     }
     
     return () => {
@@ -67,9 +95,30 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery]);
+  }, [searchQuery, showManualSearch]);
   
-  const handleSearch = async () => {
+  const handleAnalyzeClinicalData = async () => {
+    if (!clinicalData.trim()) return;
+    
+    setIsAnalyzing(true);
+    setError(null);
+    
+    try {
+      const result = await analyzeClinicalDataForScales(clinicalData.trim());
+      setAnalysisResult({
+        scales: result,
+        clinicalSummary: '',
+        recommendations: []
+      });
+    } catch (error) {
+      console.error('Error analyzing clinical data:', error);
+      setError(`Error al analizar la información clínica: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
+  const handleManualSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
@@ -78,7 +127,6 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
     try {
       const results = await searchClinicalScales(searchQuery.trim());
       setSearchResults(results);
-      setShowResults(true);
     } catch (error) {
       console.error('Error searching scales:', error);
       setError(`Error al buscar escalas: ${error instanceof Error ? error.message : String(error)}`);
@@ -89,15 +137,20 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
   
   const handleSelectScale = (scale: ScaleSearchResult) => {
     setSelectedScale(scale);
-    setSearchQuery(scale.name);
-    setShowResults(false);
     setGeneratedScale(null);
     setFormattedScaleText('');
+    
+    // Generar automáticamente la escala si hay información clínica
+    if (clinicalData.trim()) {
+      handleGenerateScale(scale);
+    }
   };
   
-  const handleGenerateScale = async () => {
-    if (!selectedScale) {
-      setError("Por favor, selecciona una escala de los resultados de búsqueda.");
+  const handleGenerateScale = async (scale?: ScaleSearchResult) => {
+    const scaleToUse = scale || selectedScale;
+    
+    if (!scaleToUse) {
+      setError("Por favor, selecciona una escala.");
       return;
     }
     
@@ -111,7 +164,7 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
     
     try {
       const request: ScaleGenerationRequest = {
-        scaleName: selectedScale.name,
+        scaleName: scaleToUse.name,
         clinicalData: clinicalData.trim(),
         existingNoteContent
       };
@@ -151,14 +204,15 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
   };
   
   const handleClearAll = () => {
+    setClinicalData('');
+    setAnalysisResult(null);
+    setSelectedScale(null);
     setSearchQuery('');
     setSearchResults([]);
-    setSelectedScale(null);
-    setClinicalData('');
     setGeneratedScale(null);
     setFormattedScaleText('');
     setError(null);
-    setShowResults(false);
+    setShowManualSearch(false);
   };
 
   return (
@@ -170,77 +224,158 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
           Generador Inteligente de Escalas Clínicas
         </h2>
         <p className="text-gray-600 dark:text-gray-300">
-          Busca y genera escalas clínicas reales con autocompletado inteligente basado en datos científicos indexados.
+          Ingresa información clínica del paciente y obtén automáticamente las escalas más apropiadas con autocompletado inteligente.
         </p>
       </div>
 
-      {/* Barra de Búsqueda */}
+      {/* Información Clínica - Ahora es lo primero */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Buscar Escala Clínica
+          Información Clínica del Paciente
         </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-gray-400" />
+        <textarea
+          value={clinicalData}
+          onChange={(e) => setClinicalData(e.target.value)}
+          placeholder="Describe la condición del paciente: síntomas, signos vitales, historia clínica, examen físico, laboratorios, etc. La IA analizará automáticamente esta información y sugerirá las escalas más apropiadas.
+
+Ejemplo: 'Paciente de 45 años con dolor abdominal, hematemesis, melena, hemoglobina 8.5 g/dL, presión arterial 100/60 mmHg, frecuencia cardiaca 110 lpm, sin antecedentes de hepatopatía.'"
+          className="w-full h-40 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
+        />
+        {isAnalyzing && (
+          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+            <LoadingSpinner className="h-4 w-4" />
+            Analizando información clínica...
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Escribe el nombre de la escala (ej: Glasgow, PHQ-9, APACHE II)..."
-            className="block w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
-          />
-          {isSearching && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <LoadingSpinner className="h-5 w-5 text-emerald-500" />
-            </div>
-          )}
-        </div>
-        
-        {/* Resultados de búsqueda */}
-        {showResults && searchResults.length > 0 && (
-          <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
-            {searchResults.map((result, index) => (
+        )}
+      </div>
+
+      {/* Escalas Sugeridas */}
+      {analysisResult && analysisResult.scales.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Escalas Sugeridas para este Caso
+            </h3>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {analysisResult.scales.length} escalas identificadas
+            </span>
+          </div>
+          
+          <div className="grid gap-3">
+            {analysisResult.scales.map((scale, index) => (
               <button
                 key={index}
-                onClick={() => handleSelectScale(result)}
-                className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
+                onClick={() => handleSelectScale(scale)}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all hover:shadow-md ${
+                  selectedScale?.name === scale.name
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-emerald-300'
+                }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900 dark:text-white">
-                      {result.name}
+                      {scale.name}
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {result.description}
+                      {scale.description}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
+                    {scale.rationale && (
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-2 font-medium">
+                        💡 {scale.rationale}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
-                        {result.category}
+                        {scale.category}
                       </span>
-                      {result.isStandardized && (
+                      {scale.isStandardized && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
-                          Estandarizada
+                          Validada
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="ml-2">
+                  <div className="ml-4 flex flex-col items-end">
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {Math.round(result.confidence * 100)}% match
+                      {Math.round(scale.confidence * 100)}% relevancia
                     </span>
+                    {selectedScale?.name === scale.name && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                        Seleccionada
+                      </span>
+                    )}
                   </div>
                 </div>
               </button>
             ))}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Búsqueda Manual (Fallback) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Búsqueda Manual de Escalas
+          </label>
+          <Button
+            onClick={() => setShowManualSearch(!showManualSearch)}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            {showManualSearch ? 'Ocultar' : 'Buscar manualmente'}
+          </Button>
+        </div>
         
-        {showResults && searchResults.length === 0 && !isSearching && (
-          <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-4 text-center">
-            <p className="text-gray-500 dark:text-gray-400">
-              No se encontraron escalas para "{searchQuery}". Intenta con otros términos.
-            </p>
+        {showManualSearch && (
+          <div className="space-y-2">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar escala específica (ej: Glasgow, PHQ-9, APACHE II)..."
+                className="block w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
+              />
+              {isSearching && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <LoadingSpinner className="h-5 w-5 text-emerald-500" />
+                </div>
+              )}
+            </div>
+            
+            {searchResults.length > 0 && (
+              <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-y-auto">
+                {searchResults.map((result, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSelectScale(result)}
+                    className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                          {result.name}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                          {result.description}
+                        </p>
+                      </div>
+                      <div className="ml-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {Math.round(result.confidence * 100)}% match
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -254,36 +389,27 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
           <p className="text-emerald-700 dark:text-emerald-200 text-sm">
             {selectedScale.description}
           </p>
+          {isGenerating && (
+            <div className="flex items-center gap-2 mt-3 text-sm text-emerald-600 dark:text-emerald-400">
+              <LoadingSpinner className="h-4 w-4" />
+              Generando escala automáticamente...
+            </div>
+          )}
         </div>
       )}
 
-      {/* Información Clínica */}
-      <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Información Clínica del Paciente
-        </label>
-        <textarea
-          value={clinicalData}
-          onChange={(e) => setClinicalData(e.target.value)}
-          placeholder="Ingresa aquí toda la información clínica disponible del paciente (síntomas, signos vitales, examen físico, antecedentes, etc.). La IA utilizará esta información para autocompletar la escala seleccionada..."
-          className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
-        />
-      </div>
-
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3">
-        <Button
-          onClick={handleGenerateScale}
-          disabled={!selectedScale || !clinicalData.trim() || isGenerating}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400"
-        >
-          {isGenerating ? (
-            <LoadingSpinner className="h-4 w-4" />
-          ) : (
+        {selectedScale && !isGenerating && !formattedScaleText && (
+          <Button
+            onClick={() => handleGenerateScale()}
+            disabled={!clinicalData.trim()}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400"
+          >
             <SparklesIcon className="h-4 w-4" />
-          )}
-          {isGenerating ? 'Generando...' : 'Generar Escala'}
-        </Button>
+            Generar Escala
+          </Button>
+        )}
         
         {formattedScaleText && (
           <>
@@ -330,7 +456,7 @@ const ClinicalScaleGenerator: React.FC<ClinicalScaleGeneratorProps> = ({
         <div className="space-y-4">
           <NoteDisplay
             note={formattedScaleText}
-            title={`Escala ${generatedScale.scale.name} - Generada`}
+            title={`Escala ${generatedScale.scale.name} - Generada Automáticamente`}
             isLoading={false}
           />
           

@@ -152,6 +152,7 @@ export interface ScaleSearchResult {
   category: string;
   confidence: number;
   isStandardized: boolean;
+  rationale?: string; // Razón específica por la que se sugiere esta escala
 }
 
 export interface GeneratedScaleResult {
@@ -167,6 +168,12 @@ export interface ScaleGenerationRequest {
   scaleName: string;
   clinicalData: string;
   existingNoteContent?: string;
+}
+
+export interface ClinicalAnalysisForScalesResult {
+  scales: ScaleSearchResult[];
+  clinicalSummary: string;
+  recommendations: string[];
 }
 
 // =============================================================================
