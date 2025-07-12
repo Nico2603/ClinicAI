@@ -31,10 +31,12 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Cliente OpenAI
+// Cliente OpenAI con timeout
 const openai = new OpenAI({
   apiKey: API_KEY || '',
-  dangerouslyAllowBrowser: true
+  dangerouslyAllowBrowser: true,
+  timeout: 30000, // 30 segundos timeout
+  maxRetries: 2, // Máximo 2 reintentos
 });
 
 // Funciones de validación
@@ -79,8 +81,17 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
     if (error.message.includes('rate limit')) {
       return new Error('Límite de API excedido. Por favor, inténtelo más tarde.');
     }
-    if (error.message.includes('timeout')) {
-      return new Error('Tiempo de espera agotado. Por favor, inténtelo de nuevo.');
+    if (error.message.includes('timeout') || error.message.includes('timed out')) {
+      return new Error('El servicio tardó demasiado en responder. Por favor, inténtelo de nuevo con menos contenido.');
+    }
+    if (error.message.includes('network') || error.message.includes('fetch')) {
+      return new Error('Error de conexión. Verifique su conexión a internet.');
+    }
+    if (error.message.includes('invalid_request_error')) {
+      return new Error('Solicitud inválida. El contenido puede ser demasiado largo.');
+    }
+    if (error.message.includes('context_length_exceeded')) {
+      return new Error('El contenido es demasiado largo. Por favor, reduce el tamaño del texto.');
     }
     return new Error(`Error en ${context}: ${error.message}`);
   }
@@ -1166,11 +1177,25 @@ export const extractTemplateFormat = async (
 ): Promise<string> => {
   validateApiKey();
 
+  // Validar entrada
+  if (!templateContent || typeof templateContent !== 'string') {
+    throw new Error('El contenido de la plantilla no es válido');
+  }
+
+  const trimmedContent = templateContent.trim();
+  if (trimmedContent.length === 0) {
+    throw new Error('La plantilla está vacía');
+  }
+
+  if (trimmedContent.length > 15000) {
+    throw new Error('La plantilla es demasiado larga. Por favor, reduce el contenido a menos de 15,000 caracteres.');
+  }
+
   const prompt = `Eres un asistente médico experto en análisis de estructuras de documentos clínicos. Tu tarea es extraer el FORMATO/ESTRUCTURA de la plantilla de historia clínica proporcionada, eliminando todos los datos específicos del paciente.
 
 PLANTILLA ORIGINAL:
 ---
-${templateContent}
+${trimmedContent}
 ---
 
 INSTRUCCIONES CRÍTICAS:
@@ -1229,6 +1254,11 @@ El resultado debe ser una plantilla en blanco que preserve la estructura pero qu
     });
 
     const result = response.choices[0]?.message?.content || '';
+    
+    if (!result.trim()) {
+      throw new Error('No se pudo extraer el formato de la plantilla. Intenta con una plantilla más específica.');
+    }
+
     return result;
   } catch (error) {
     throw handleOpenAIError(error, 'extracción de formato de plantilla');

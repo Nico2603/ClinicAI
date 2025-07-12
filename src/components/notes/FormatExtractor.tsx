@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SparklesIcon, LoadingSpinner } from '../ui/Icons';
 import { extractTemplateFormat } from '../../lib/services/openaiService';
 
@@ -11,31 +11,89 @@ const FormatExtractor: React.FC<FormatExtractorProps> = ({ template, templateNam
   const [extractedFormat, setExtractedFormat] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Referencias para manejar debounce y cancelación
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentTemplateRef = useRef<string>('');
+  const isExtractingRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    if (template.trim()) {
-      extractFormat();
-    } else {
-      setExtractedFormat('');
-    }
-  }, [template]);
-
-  const extractFormat = async () => {
-    if (!template.trim()) return;
-
+  // Función memoizada para extraer formato
+  const extractFormat = useCallback(async (templateContent: string) => {
+    // Evitar llamadas duplicadas
+    if (isExtractingRef.current || !templateContent.trim()) return;
+    
+    // Evitar procesar el mismo template múltiples veces
+    if (currentTemplateRef.current === templateContent.trim()) return;
+    
+    currentTemplateRef.current = templateContent.trim();
+    isExtractingRef.current = true;
     setIsExtracting(true);
     setError(null);
 
     try {
-      const format = await extractTemplateFormat(template);
-      setExtractedFormat(format);
+      const format = await extractTemplateFormat(templateContent);
+      
+      // Verificar si el template cambió durante la extracción
+      if (currentTemplateRef.current === templateContent.trim()) {
+        setExtractedFormat(format);
+      }
     } catch (err) {
       console.error('Error extracting format:', err);
-      setError('Error al extraer el formato de la plantilla');
+      
+      // Solo mostrar error si es para el template actual
+      if (currentTemplateRef.current === templateContent.trim()) {
+        setError('Error al extraer el formato de la plantilla. Por favor, intenta de nuevo.');
+      }
     } finally {
+      isExtractingRef.current = false;
       setIsExtracting(false);
     }
-  };
+  }, []);
+
+  // Función para limpiar el estado cuando el template está vacío
+  const clearFormat = useCallback(() => {
+    currentTemplateRef.current = '';
+    setExtractedFormat('');
+    setError(null);
+    setIsExtracting(false);
+    isExtractingRef.current = false;
+  }, []);
+
+  // useEffect con debounce para evitar llamadas excesivas
+  useEffect(() => {
+    // Limpiar timer previo
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const templateTrimmed = template.trim();
+    
+    if (!templateTrimmed) {
+      clearFormat();
+      return;
+    }
+
+    // Debounce de 1 segundo para evitar llamadas excesivas
+    debounceTimerRef.current = setTimeout(() => {
+      extractFormat(templateTrimmed);
+    }, 1000);
+
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [template, extractFormat, clearFormat]);
+
+  // Cleanup al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="mb-4 md:mb-6">
@@ -60,6 +118,17 @@ const FormatExtractor: React.FC<FormatExtractorProps> = ({ template, templateNam
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
           <p className="text-red-700 dark:text-red-200 text-sm">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              if (template.trim()) {
+                extractFormat(template.trim());
+              }
+            }}
+            className="mt-2 text-sm text-red-600 dark:text-red-400 underline hover:no-underline"
+          >
+            Intentar de nuevo
+          </button>
         </div>
       )}
 
@@ -84,7 +153,7 @@ const FormatExtractor: React.FC<FormatExtractorProps> = ({ template, templateNam
         </div>
       )}
 
-      {extractedFormat && (
+      {extractedFormat && !isExtracting && (
         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
           <p className="text-blue-700 dark:text-blue-200 text-sm">
             <strong>Formato extraído:</strong> Este es el formato que se utilizará para generar nuevas notas basadas en la estructura de tu plantilla.
