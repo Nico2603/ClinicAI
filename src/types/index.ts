@@ -16,6 +16,17 @@ export type ActiveView =
   | 'consulta-evidencia' 
   | 'note-updater';
 
+// Tipo para colección de plantillas
+export interface Templates {
+  [key: string]: {
+    id: string;
+    name: string;
+    content: string;
+    specialty_id?: string;
+    created_at: string;
+  };
+}
+
 // =============================================================================
 // TIPOS DE BASE DE DATOS
 // =============================================================================

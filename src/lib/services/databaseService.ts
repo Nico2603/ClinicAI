@@ -27,6 +27,26 @@ export interface UserTemplate {
   updated_at: string;
 }
 
+export interface Specialty {
+  id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  content: string;
+  specialty_id: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Servicios para Notas
 export const notesService = {
   // Obtener todas las notas del usuario
@@ -174,5 +194,138 @@ export const userTemplatesService = {
 
     if (error) throw error;
     return data;
+  }
+}; 
+
+// Servicios para Especialidades
+export const specialtiesService = {
+  // Obtener todas las especialidades activas
+  getSpecialties: async (): Promise<Specialty[]> => {
+    const { data, error } = await supabase
+      .from('specialties')
+      .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Crear una nueva especialidad
+  createSpecialty: async (specialtyData: Omit<Specialty, 'id' | 'created_at' | 'updated_at'>): Promise<Specialty> => {
+    const { data, error } = await supabase
+      .from('specialties')
+      .insert({
+        ...specialtyData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Actualizar una especialidad
+  updateSpecialty: async (id: string, updates: Partial<Omit<Specialty, 'id' | 'created_at'>>): Promise<Specialty> => {
+    const { data, error } = await supabase
+      .from('specialties')
+      .update({ 
+        ...updates, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Eliminar (desactivar) una especialidad
+  deleteSpecialty: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('specialties')
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+};
+
+// Servicios para Plantillas
+export const templatesService = {
+  // Obtener todas las plantillas activas
+  getActiveTemplates: async (): Promise<Template[]> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Obtener plantillas por especialidad
+  getTemplatesBySpecialty: async (specialtyId: string): Promise<Template[]> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .eq('specialty_id', specialtyId)
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Crear una nueva plantilla
+  createTemplate: async (templateData: Omit<Template, 'id' | 'created_at' | 'updated_at'>): Promise<Template> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .insert({
+        ...templateData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Actualizar una plantilla
+  updateTemplate: async (id: string, updates: Partial<Omit<Template, 'id' | 'created_at'>>): Promise<Template> => {
+    const { data, error } = await supabase
+      .from('templates')
+      .update({ 
+        ...updates, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Eliminar (desactivar) una plantilla
+  deleteTemplate: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('templates')
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) throw error;
   }
 }; 
