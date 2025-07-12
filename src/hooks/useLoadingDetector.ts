@@ -5,6 +5,8 @@ interface LoadingDetectorConfig {
   maxLoadingTime?: number;
   // Tiempo de verificación de inactividad (por defecto 30 segundos)
   inactivityTimeout?: number;
+  // Habilitar o deshabilitar el hook (por defecto true)
+  enabled?: boolean;
   // Callback cuando se detecta carga excesiva
   onExcessiveLoading?: () => void;
   // Callback cuando se detecta inactividad
@@ -25,6 +27,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
   const {
     maxLoadingTime = 15000, // 15 segundos
     inactivityTimeout = 30000, // 30 segundos
+    enabled = true,
     onExcessiveLoading,
     onInactivityDetected,
     onForceReload
@@ -196,6 +199,8 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
 
   // Configurar eventos de actividad
   useEffect(() => {
+    if (!enabled) return;
+    
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     
     const handleActivity = () => {
@@ -213,10 +218,12 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
         document.removeEventListener(event, handleActivity, true);
       });
     };
-  }, [registerActivity]);
+  }, [registerActivity, enabled]);
 
   // Configurar verificación periódica de salud
   useEffect(() => {
+    if (!enabled) return;
+    
     activityCheckIntervalRef.current = setInterval(() => {
       checkApplicationHealth();
     }, 5000); // Verificar cada 5 segundos
@@ -226,10 +233,12 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
         clearInterval(activityCheckIntervalRef.current);
       }
     };
-  }, [checkApplicationHealth]);
+  }, [checkApplicationHealth, enabled]);
 
   // Detectar cambios en el estado de carga del navegador
   useEffect(() => {
+    if (!enabled) return;
+    
     const handleBeforeUnload = () => {
       stopLoadingTracking();
     };
@@ -257,7 +266,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       window.removeEventListener('load', handleLoad);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [stopLoadingTracking, registerActivity]);
+  }, [stopLoadingTracking, registerActivity, enabled]);
 
   // Limpiar timers al desmontar
   useEffect(() => {

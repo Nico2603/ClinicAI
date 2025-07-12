@@ -6,6 +6,8 @@ interface SessionExpiryConfig {
   sessionTimeoutMs?: number;
   // Tiempo de aviso antes de expirar (por defecto 5 minutos)
   warningTimeMs?: number;
+  // Habilitar o deshabilitar el hook (por defecto true)
+  enabled?: boolean;
   // Callback cuando la sesión está a punto de expirar
   onSessionWarning?: () => void;
   // Callback cuando la sesión expira
@@ -20,6 +22,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
   const {
     sessionTimeoutMs = 30 * 60 * 1000, // 30 minutos
     warningTimeMs = 5 * 60 * 1000, // 5 minutos
+    enabled = true,
     onSessionWarning,
     onSessionExpiry,
     onCleanupLocalData,
@@ -234,6 +237,8 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
 
   // Configurar eventos de actividad del usuario
   useEffect(() => {
+    if (!enabled) return;
+    
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     
     const handleActivity = () => {
@@ -251,10 +256,12 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
         document.removeEventListener(event, handleActivity, true);
       });
     };
-  }, [registerActivity]);
+  }, [registerActivity, enabled]);
 
   // Configurar verificación periódica de sesión
   useEffect(() => {
+    if (!enabled) return;
+    
     // Verificar sesión cada 30 segundos
     checkIntervalRef.current = setInterval(() => {
       checkSessionHealth();
@@ -268,7 +275,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
         clearInterval(checkIntervalRef.current);
       }
     };
-  }, [checkSessionHealth]);
+  }, [checkSessionHealth, enabled]);
 
   // Limpiar timers al desmontar
   useEffect(() => {

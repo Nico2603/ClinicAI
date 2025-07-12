@@ -15,7 +15,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
   warningThreshold = 300, // 5 minutos
   autoExtendThreshold = 60 // 1 minuto
 }) => {
-  const { sessionStatus, extendSession, forceRefresh } = useAuth();
+  const { sessionStatus, extendSession, forceRefresh, isAuthenticated } = useAuth();
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [isExtending, setIsExtending] = useState(false);
@@ -54,6 +54,13 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
 
   // Efecto para controlar cuándo mostrar el aviso
   useEffect(() => {
+    // No mostrar modal si no hay usuario autenticado
+    if (!isAuthenticated) {
+      setShowWarning(false);
+      setCountdown(0);
+      return;
+    }
+    
     const timeRemaining = sessionStatus.timeRemaining;
     
     if (timeRemaining > 0 && timeRemaining <= warningThreshold) {
@@ -66,7 +73,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
       setShowWarning(false);
       setCountdown(0);
     }
-  }, [sessionStatus.timeRemaining, sessionStatus.isExpired, warningThreshold]);
+  }, [sessionStatus.timeRemaining, sessionStatus.isExpired, warningThreshold, isAuthenticated]);
 
   // Efecto para countdown
   useEffect(() => {
@@ -89,7 +96,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
     }
   }, [countdown, autoExtendThreshold, isExtending, handleExtendSession]);
 
-  if (!showWarning) {
+  if (!showWarning || !isAuthenticated) {
     return null;
   }
 

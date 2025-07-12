@@ -220,10 +220,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Configurar hooks de manejo de sesiones
+  // Configurar hooks de manejo de sesiones solo cuando hay usuario autenticado
   const sessionExpiry = useSessionExpiry({
     sessionTimeoutMs: 30 * 60 * 1000, // 30 minutos
     warningTimeMs: 5 * 60 * 1000, // 5 minutos
+    enabled: isAuthenticated && !isLoading, // Solo activar cuando hay usuario autenticado
     onSessionWarning: () => {
       console.log('⚠️ Sesión próxima a expirar');
       setSessionStatus(prev => ({ ...prev, isExpired: true }));
@@ -244,6 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadingDetector = useLoadingDetector({
     maxLoadingTime: 15000, // 15 segundos
+    enabled: isAuthenticated && !isLoading, // Solo activar cuando hay usuario autenticado
     onExcessiveLoading: () => {
       console.log('⚠️ Carga excesiva detectada');
       setSessionStatus(prev => ({ ...prev, isStuck: true }));
