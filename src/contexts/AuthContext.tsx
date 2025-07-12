@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { auth, supabase, type AuthUser } from '@/lib/supabase';
+import { cleanAuthUrl, handleAuthError, delay, isClient } from '@/lib/utils';
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -22,7 +23,6 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Todos los hooks deben estar en el nivel superior
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isAuthenticated = user !== null && session !== null;
 
   // Función para asegurar que el usuario existe en la base de datos
-  const ensureUserExists = async () => {
+  const ensureUserExists = useCallback(async () => {
     try {
       const { error } = await supabase.rpc('ensure_current_user_exists');
       if (error) {
@@ -41,93 +41,118 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err) {
       console.error('Error al verificar usuario:', err);
     }
-  };
+  }, []);
+
+  // Función para actualizar el estado del usuario
+  const updateUserState = useCallback(async (newSession: Session | null) => {
+    try {
+      setSession(newSession);
+      
+      if (newSession?.user) {
+        const userData: AuthUser = {
+          id: newSession.user.id,
+          email: newSession.user.email,
+          name: newSession.user.user_metadata?.full_name || newSession.user.user_metadata?.name,
+          image: newSession.user.user_metadata?.avatar_url || newSession.user.user_metadata?.picture,
+          created_at: newSession.user.created_at,
+          updated_at: newSession.user.updated_at,
+        };
+        setUser(userData);
+        setError(null);
+        
+        // Asegurar que el usuario existe en la base de datos
+        await ensureUserExists();
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Error al actualizar estado del usuario:', err);
+      setError(handleAuthError(err));
+    }
+  }, [ensureUserExists]);
+
+  // Función para obtener sesión con retry
+  const getSessionWithRetry = useCallback(async (maxRetries = 3, delayMs = 1000): Promise<Session | null> => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const { session, error } = await auth.getSession();
+        
+        if (error) {
+          console.error(`Error obteniendo sesión (intento ${i + 1}/${maxRetries}):`, error);
+          if (i === maxRetries - 1) throw error;
+        } else {
+          return session;
+        }
+      } catch (err) {
+        console.error(`Error en intento ${i + 1}/${maxRetries}:`, err);
+        if (i === maxRetries - 1) throw err;
+      }
+      
+      // Esperar antes del siguiente intento
+      await delay(delayMs);
+    }
+    
+    return null;
+  }, []);
 
   useEffect(() => {
     // Verificar que estamos en el cliente
-    if (typeof window === 'undefined') {
-      setIsLoading(false);
+    if (!isClient()) {
       return;
     }
 
     setMounted(true);
     
-    // Obtener la sesión inicial
-    const getInitialSession = async () => {
+    // Inicializar autenticación
+    const initAuth = async () => {
       try {
-        const { session, error } = await auth.getSession();
-
-        // Una vez obtenida la sesión, limpiar el hash si contiene tokens
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
+        // Obtener la sesión inicial con retry
+        const session = await getSessionWithRetry();
+        await updateUserState(session);
+        
+        if (session) {
+          console.log('Sesión inicial establecida:', session.user.email);
         }
         
-        if (error) {
-          console.error('Error obteniendo sesión inicial:', error);
-          setError('Error al obtener la sesión');
-        } else {
-          setSession(session);
-          
-          if (session?.user) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-              image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-              created_at: session.user.created_at,
-              updated_at: session.user.updated_at,
-            });
-            setError(null);
-            // Asegurar que el usuario existe en la base de datos
-            await ensureUserExists();
-          }
-        }
+        // Limpiar URL después de procesar la sesión
+        cleanAuthUrl();
       } catch (err) {
-        console.error('Error en getInitialSession:', err);
-        setError('Error al inicializar la autenticación');
+        console.error('Error al inicializar autenticación:', err);
+        setError(handleAuthError(err));
       } finally {
         setIsLoading(false);
       }
     };
 
-    getInitialSession();
+    initAuth();
 
     // Escuchar cambios en el estado de autenticación
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
       
-      setSession(session);
-      
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-          image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-          created_at: session.user.created_at,
-          updated_at: session.user.updated_at,
-        });
-        setError(null);
-        // Asegurar que el usuario existe en la base de datos
-        await ensureUserExists();
-      } else {
-        setUser(null);
+      try {
+        await updateUserState(session);
+        
         if (event === 'SIGNED_OUT') {
           setError(null);
+          // Limpiar la URL después de cerrar sesión
+          cleanAuthUrl();
         }
+      } catch (err) {
+        console.error('Error en onAuthStateChange:', err);
+        setError(handleAuthError(err));
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [updateUserState, getSessionWithRetry]);
 
   const signIn = async (): Promise<void> => {
-    if (typeof window === 'undefined') {
+    if (!isClient()) {
       throw new Error('Sign in solo disponible en el cliente');
     }
 
@@ -139,20 +164,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error) {
         console.error('Error durante el sign in:', error);
-        setError('Error al iniciar sesión con Google');
-        setIsLoading(false);
-        throw error;
+        const errorMessage = handleAuthError(error);
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (err) {
       console.error('Error en signIn:', err);
-      setError('Error al iniciar sesión');
-      setIsLoading(false);
+      const errorMessage = handleAuthError(err);
+      setError(errorMessage);
       throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async (): Promise<void> => {
-    if (typeof window === 'undefined') {
+    if (!isClient()) {
       throw new Error('Sign out solo disponible en el cliente');
     }
 
@@ -164,14 +191,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error) {
         console.error('Error durante el sign out:', error);
-        setError('Error al cerrar sesión');
-      } else {
-        setUser(null);
-        setSession(null);
+        const errorMessage = handleAuthError(error);
+        setError(errorMessage);
       }
     } catch (err) {
       console.error('Error en signOut:', err);
-      setError('Error al cerrar sesión');
+      const errorMessage = handleAuthError(err);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -187,26 +213,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
     mounted,
   };
-
-  // Evitar renderizado durante SSR
-  if (typeof window === 'undefined') {
-    const defaultValue: AuthContextType = {
-      user: null,
-      session: null,
-      isLoading: true,
-      isAuthenticated: false,
-      signIn: async () => {},
-      signOut: async () => {},
-      error: null,
-      mounted: false,
-    };
-    
-    return (
-      <AuthContext.Provider value={defaultValue}>
-        {children}
-      </AuthContext.Provider>
-    );
-  }
 
   return (
     <AuthContext.Provider value={value}>

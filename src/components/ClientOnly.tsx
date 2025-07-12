@@ -11,9 +11,15 @@ export default function ClientOnly({ children, fallback = null }: ClientOnlyProp
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setHasMounted(true);
+    // Agregar un pequeño delay para asegurar que el DOM esté completamente listo
+    const timer = setTimeout(() => {
+      setHasMounted(true);
+    }, 10);
+
+    return () => clearTimeout(timer);
   }, []);
 
+  // Durante la hidratación, mostrar el fallback
   if (!hasMounted) {
     return <>{fallback}</>;
   }
