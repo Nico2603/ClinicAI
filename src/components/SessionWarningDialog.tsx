@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -28,7 +28,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
   };
 
   // Manejar extensión de sesión
-  const handleExtendSession = async () => {
+  const handleExtendSession = useCallback(async () => {
     setIsExtending(true);
     try {
       const success = await extendSession();
@@ -44,7 +44,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
     } finally {
       setIsExtending(false);
     }
-  };
+  }, [extendSession]);
 
   // Manejar cierre manual de sesión
   const handleForceRefresh = async () => {
@@ -77,6 +77,8 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
       
       return () => clearTimeout(timer);
     }
+    // Retornar undefined explícitamente cuando countdown <= 0
+    return undefined;
   }, [countdown]);
 
   // Auto-extender si queda muy poco tiempo
@@ -85,7 +87,7 @@ export const SessionWarningDialog: React.FC<SessionWarningDialogProps> = ({
       console.log('🔄 Auto-extendiendo sesión...');
       handleExtendSession();
     }
-  }, [countdown, autoExtendThreshold, isExtending]);
+  }, [countdown, autoExtendThreshold, isExtending, handleExtendSession]);
 
   if (!showWarning) {
     return null;
