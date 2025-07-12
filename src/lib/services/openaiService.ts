@@ -34,43 +34,41 @@ export const generateNoteFromTemplate = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   if (!API_KEY) throw new Error("API key not configured for OpenAI.");
   
-  const prompt = `Contexto: Eres un asistente experto en la redacción de notas médicas altamente precisas y profesionales para la especialidad de ${specialtyName}.
-Tu tarea principal es completar la siguiente plantilla de nota médica utilizando la información del paciente proporcionada.
+  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
 
-Especialidad: ${specialtyName}
-Información del paciente (transcripción o datos ingresados): "${patientInfo}"
+INFORMACIÓN DEL PACIENTE:
+"${patientInfo}"
 
-Plantilla a completar:
+PLANTILLA A COMPLETAR:
 ---
 ${templateContent}
 ---
 
-Instrucciones Críticas para la Generación de la Nota:
-1.  **Coherencia y Terminología Médica:**
-    *   El contenido generado debe ser lógicamente coherente y reflejar un razonamiento clínico sólido.
-    *   Utiliza terminología médica precisa, formal y estandarizada, apropiada para la especialidad de ${specialtyName}.
-    *   Evita la ambigüedad y asegúrate de que la información sea clara y concisa.
-2.  **Adherencia Estricta al Formato de la Plantilla (Tipografía/Estilo de Texto):**
-    *   Debes replicar EXACTAMENTE la estructura, los encabezados, el uso de mayúsculas/minúsculas, la puntuación y cualquier otro elemento de formato presente en la plantilla original.
-    *   Si un encabezado en la plantilla está en MAYÚSCULAS (ej. "ANTECEDENTES:"), tu respuesta DEBE mantener ese encabezado en MAYÚSCULAS.
-    *   Si la plantilla utiliza viñetas, guiones, numeración o sangrías específicas, tu respuesta DEBE seguir el mismo estilo.
-    *   Considera esto como si estuvieras "calcando" el estilo de la plantilla mientras llenas los campos. La "tipografía" o "caligrafía" se refiere a esta fidelidad visual y estructural.
-3.  **Contenido y Profesionalismo:**
-    *   Sé conciso pero completo. No omitas información relevante si está disponible.
-    *   Si alguna sección de la plantilla no es applicable o no hay información proporcionada para ella en la "Información del paciente", indícalo de forma profesional (ej. "No refiere", "Sin hallazgos patológicos", "No aplica", "Información no disponible"). No dejes campos completamente vacíos sin una justificación implícita o explícita.
-    *   La nota debe seguir las mejores prácticas clínicas, idealmente adaptadas al contexto de Colombia si es relevante.
-4.  **Respuesta Final:**
-    *   Responde ÚNICAMENTE con el contenido de la nota médica completada. No incluyas introducciones, saludos, comentarios adicionales ni la frase "Aquí está la nota completada:" o similares. Tu respuesta debe ser directamente la nota.
+INSTRUCCIONES CRÍTICAS:
 
-Ejemplo de fidelidad de formato:
-Si la plantilla dice:
-   "DIAGNÓSTICO PRINCIPAL:
-   - [Detallar aquí]"
-Y la información del paciente sugiere "Cefalea tensional".
-Tu respuesta para esa sección DEBE SER:
-   "DIAGNÓSTICO PRINCIPAL:
-   - Cefalea tensional"
-(Manteniendo las mayúsculas del encabezado y el formato de viñeta).`;
+1. **FORMATO ES SAGRADO:**
+   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
+   - Si un encabezado está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
+   - Si usa viñetas (-), mantén las viñetas.
+   - Si usa numeración (1., 2.), mantén la numeración.
+   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
+
+2. **CONTENIDO:**
+   - Usa ÚNICAMENTE la información del paciente proporcionada.
+   - NO inventes datos que no estén en la información del paciente.
+   - Si falta información para una sección, usa: "No refiere", "Sin datos disponibles", "No aplica", o "Información no disponible".
+   - Usa terminología médica precisa y profesional.
+
+3. **IMPORTANTE:**
+   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
+   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
+   - Reemplaza todos los campos con información real del paciente o con "No refiere" si no hay datos.
+
+4. **RESPUESTA:**
+   - Responde SOLO con la nota médica completada.
+   - No agregues comentarios, explicaciones, ni introducciones.
+
+La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.`;
 
   try {
     const response = await openai.chat.completions.create({

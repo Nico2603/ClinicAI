@@ -1,10 +1,8 @@
-import { SpecialtyBase, Templates } from '@/types';
+// Constantes para el sistema de plantillas personalizadas
+// Sistema simplificado - solo plantillas personalizadas del usuario
 
-// Especialidades básicas para el sistema de plantillas personalizadas
-export const DEFAULT_SPECIALTIES: SpecialtyBase[] = [
-  { id: 'medicina_general', name: 'Medicina General' },
-  { id: 'personalizada', name: 'Personalizada (Mi Plantilla)' },
-];
+export const APP_NAME = 'Notas AI';
+export const DEFAULT_TEMPLATE_NAME = 'Mi Plantilla';
 
 // Sistema de plantillas personalizadas - Los usuarios ahora crean sus propias plantillas
 // Las plantillas se guardan en la tabla user_templates con nombres como:

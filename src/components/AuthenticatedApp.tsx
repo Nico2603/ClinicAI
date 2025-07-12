@@ -165,7 +165,7 @@ const AuthenticatedApp: React.FC = () => {
           title: `Nota ${new Date().toLocaleString()}`,
           content: result.text,
           user_id: user.id,
-          template_id: selectedTemplate.id,
+          user_template_id: selectedTemplate.id,
           is_private: true,
           tags: [],
         }).catch((dbErr) => {

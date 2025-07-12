@@ -45,16 +45,16 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
       const templateContent = `PLANTILLA PERSONALIZADA - ${newTemplateName.toUpperCase()}:
 
 SECCIÓN 1:
-- [Campo personalizado]
-- [Campo personalizado]
+- 
+- 
 
 SECCIÓN 2:
-- [Detalles específicos]
-- [Observaciones]
+- 
+- 
 
 CONCLUSIÓN:
-- [Resumen y plan]
-- [Recomendaciones]
+- 
+- 
 
 (Edita esta plantilla para crear tu formato ideal)`;
 

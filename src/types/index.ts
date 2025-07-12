@@ -46,6 +46,7 @@ export interface Note {
   user_id: string;
   specialty_id?: string;
   template_id?: string;
+  user_template_id?: string;
   patient_id?: string;
   patient_name?: string;
   diagnosis?: string;
