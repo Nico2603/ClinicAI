@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserTemplate } from '@/types';
-import { CustomTemplateManager, TemplateEditor, FormatExtractor } from '../';
+import { SimpleTemplateEditor } from '../';
 
 interface TemplatesViewProps {
   selectedTemplate: UserTemplate | null;
@@ -24,32 +24,10 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
         Editor de Plantillas
       </h2>
       
-      <div className="mb-6">
-        <CustomTemplateManager
-          onSelectTemplate={onSelectTemplate}
-          selectedTemplateId={selectedTemplate?.id}
-        />
-      </div>
-      
-      {selectedTemplate && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <TemplateEditor
-              template={selectedTemplate.content}
-              onSaveTemplate={onSaveTemplate}
-              specialtyName={selectedTemplate.name}
-              userId={userId}
-            />
-          </div>
-          
-          <div>
-            <FormatExtractor
-              template={selectedTemplate.content}
-              templateName={selectedTemplate.name}
-            />
-          </div>
-        </div>
-      )}
+      <SimpleTemplateEditor
+        onSelectTemplate={onSelectTemplate}
+        selectedTemplateId={selectedTemplate?.id}
+      />
     </section>
   );
 }; 

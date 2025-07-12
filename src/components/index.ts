@@ -20,6 +20,7 @@ export { default as EvidenceBasedConsultation } from './notes/EvidenceBasedConsu
 export { default as FormatExtractor } from './notes/FormatExtractor';
 export { default as NoteDisplay } from './notes/NoteDisplay';
 export { default as NoteUpdater } from './notes/NoteUpdater';
+export { SimpleTemplateEditor } from './notes/SimpleTemplateEditor';
 export { default as SpecialtySelector } from './notes/SpecialtySelector';
 export { default as TemplateEditor } from './notes/TemplateEditor';
 
