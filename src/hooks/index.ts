@@ -19,4 +19,8 @@ export * from './useDatabase';
 
 // Hooks de utilidades
 export * from './useDarkMode';
-export * from './useSpeechRecognition'; 
+export * from './useSpeechRecognition';
+
+// Hooks de manejo de sesiones y recuperación
+export * from './useSessionExpiry';
+export * from './useLoadingDetector'; 

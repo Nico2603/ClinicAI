@@ -184,3 +184,111 @@ export const removeUserFavoriteTemplate = (userId: string, favId: string): Favor
   saveUserFavoriteTemplates(userId, favorites);
   return favorites;
 };
+
+// Funciones de limpieza completa para manejo de sesiones
+export const clearAllUserData = (userId?: string): void => {
+  try {
+    if (userId) {
+      // Limpiar datos específicos del usuario
+      localStorage.removeItem(getUserTemplatesKey(userId));
+      localStorage.removeItem(getUserHistoryKey(userId));
+      localStorage.removeItem(getUserFavoritesKey(userId));
+    }
+    
+    // Limpiar datos generales
+    localStorage.removeItem(TEMPLATES_KEY);
+    localStorage.removeItem(HISTORY_KEY);
+    
+    console.log('✅ Datos de usuario limpiados del localStorage');
+  } catch (error) {
+    console.error('❌ Error al limpiar datos del usuario:', error);
+  }
+};
+
+export const clearAllApplicationData = (): void => {
+  try {
+    // Obtener todas las claves que empiecen con 'notasai_'
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('notasai_')) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Remover las claves encontradas
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    console.log(`✅ ${keysToRemove.length} elementos de la aplicación limpiados`);
+  } catch (error) {
+    console.error('❌ Error al limpiar datos de la aplicación:', error);
+  }
+};
+
+export const clearAllSessionData = (): void => {
+  try {
+    // Limpiar sessionStorage
+    const sessionKeysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith('notasai_')) {
+        sessionKeysToRemove.push(key);
+      }
+    }
+    
+    sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+    
+    console.log(`✅ ${sessionKeysToRemove.length} elementos de sesión limpiados`);
+  } catch (error) {
+    console.error('❌ Error al limpiar datos de sesión:', error);
+  }
+};
+
+export const performCompleteCleanup = (userId?: string): void => {
+  console.log('🧹 Iniciando limpieza completa de datos...');
+  
+  try {
+    clearAllUserData(userId);
+    clearAllApplicationData();
+    clearAllSessionData();
+    
+    console.log('✅ Limpieza completa finalizada');
+  } catch (error) {
+    console.error('❌ Error durante la limpieza completa:', error);
+  }
+};
+
+export const getStorageStats = (userId?: string): {
+  userTemplates: number;
+  userHistory: number;
+  userFavorites: number;
+  globalTemplates: number;
+  globalHistory: number;
+  totalItems: number;
+} => {
+  try {
+    const stats = {
+      userTemplates: userId ? Object.keys(getUserStoredTemplates(userId)).length : 0,
+      userHistory: userId ? getUserStoredHistoricNotes(userId).length : 0,
+      userFavorites: userId ? getUserFavoriteTemplates(userId).length : 0,
+      globalTemplates: Object.keys(getStoredTemplates()).length,
+      globalHistory: getStoredHistoricNotes().length,
+      totalItems: 0
+    };
+    
+    stats.totalItems = stats.userTemplates + stats.userHistory + stats.userFavorites + 
+                      stats.globalTemplates + stats.globalHistory;
+    
+    return stats;
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas de almacenamiento:', error);
+    return {
+      userTemplates: 0,
+      userHistory: 0,
+      userFavorites: 0,
+      globalTemplates: 0,
+      globalHistory: 0,
+      totalItems: 0
+    };
+  }
+};

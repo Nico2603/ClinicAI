@@ -3,6 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { auth, supabase, type AuthUser } from '@/lib/supabase';
 import { cleanAuthUrl, handleAuthError, delay, isClient } from '@/lib/utils';
+import { useSessionExpiry } from '@/hooks/useSessionExpiry';
+import { useLoadingDetector } from '@/hooks/useLoadingDetector';
+import { performCompleteCleanup } from '@/lib/services/storageService';
+import { forceCompleteRefresh } from '@/lib/utils/refreshUtils';
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -14,6 +18,14 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   error: string | null;
   mounted: boolean;
+  // Nuevas funciones para manejo de sesiones
+  extendSession: () => Promise<boolean>;
+  forceRefresh: () => Promise<void>;
+  sessionStatus: {
+    isExpired: boolean;
+    isStuck: boolean;
+    timeRemaining: number;
+  };
 }
 
 interface AuthProviderProps {
@@ -28,6 +40,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState({
+    isExpired: false,
+    isStuck: false,
+    timeRemaining: 0
+  });
 
   const isAuthenticated = user !== null && session !== null;
 
@@ -203,6 +220,84 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Configurar hooks de manejo de sesiones
+  const sessionExpiry = useSessionExpiry({
+    sessionTimeoutMs: 30 * 60 * 1000, // 30 minutos
+    warningTimeMs: 5 * 60 * 1000, // 5 minutos
+    onSessionWarning: () => {
+      console.log('⚠️ Sesión próxima a expirar');
+      setSessionStatus(prev => ({ ...prev, isExpired: true }));
+    },
+    onSessionExpiry: () => {
+      console.log('🔄 Sesión expirada');
+      setSessionStatus(prev => ({ ...prev, isExpired: true }));
+    },
+    onCleanupLocalData: () => {
+      if (user?.id) {
+        performCompleteCleanup(user.id);
+      }
+    },
+    onForceRefresh: () => {
+      forceCompleteRefresh();
+    }
+  });
+
+  const loadingDetector = useLoadingDetector({
+    maxLoadingTime: 15000, // 15 segundos
+    onExcessiveLoading: () => {
+      console.log('⚠️ Carga excesiva detectada');
+      setSessionStatus(prev => ({ ...prev, isStuck: true }));
+    },
+    onInactivityDetected: () => {
+      console.log('⚠️ Inactividad detectada');
+    },
+    onForceReload: () => {
+      forceCompleteRefresh();
+    }
+  });
+
+  // Funciones para el contexto
+  const extendSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const result = await sessionExpiry.extendSession();
+      if (result) {
+        setSessionStatus(prev => ({ ...prev, isExpired: false }));
+      }
+      return result;
+    } catch (error) {
+      console.error('Error al extender sesión:', error);
+      return false;
+    }
+  }, [sessionExpiry]);
+
+  const forceRefresh = useCallback(async (): Promise<void> => {
+    try {
+      console.log('🔄 Forzando refresco completo...');
+      if (user?.id) {
+        performCompleteCleanup(user.id);
+      }
+      await forceCompleteRefresh();
+    } catch (error) {
+      console.error('Error al forzar refresco:', error);
+      window.location.reload();
+    }
+  }, [user?.id]);
+
+  // Actualizar estado de sesión basado en la sesión actual
+  useEffect(() => {
+    if (session) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      const timeRemaining = Math.max(0, expiresAt - now);
+      
+      setSessionStatus(prev => ({
+        ...prev,
+        timeRemaining,
+        isExpired: timeRemaining <= 0
+      }));
+    }
+  }, [session]);
+
   const value: AuthContextType = {
     user,
     session,
@@ -212,6 +307,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     error,
     mounted,
+    extendSession,
+    forceRefresh,
+    sessionStatus,
   };
 
   return (
