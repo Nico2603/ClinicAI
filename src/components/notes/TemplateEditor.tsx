@@ -29,7 +29,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplat
           Plantilla: <span className="text-primary">{specialtyName}</span>
         </h3>
         <div className="text-sm text-neutral-600 dark:text-neutral-400">
-          Lado izquierdo: Plantilla con datos reales
+          Crea la estructura de tu plantilla (no datos reales)
         </div>
       </div>
       <textarea
@@ -37,7 +37,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplat
         onChange={(e) => setEditedTemplate(e.target.value)}
         rows={12}
         className="w-full p-3 md:p-4 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 transition-colors text-sm md:text-base resize-y min-h-[200px]"
-        placeholder="Coloca aquí un ejemplo de historia clínica que manejes actualmente con datos reales de un paciente (será usado como plantilla para extraer el formato)..."
+        placeholder="Crea tu plantilla con la ESTRUCTURA que deseas usar. Usa marcadores como [Nombre del paciente], [Edad], [Síntomas], etc. NO pongas datos reales de pacientes. Al generar notas, se llenará con información real del paciente y se marcará 'Dato faltante' donde no haya información disponible."
         aria-label={`Editor de plantilla para ${specialtyName}`}
       />
       <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

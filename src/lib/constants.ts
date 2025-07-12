@@ -159,50 +159,47 @@ export const CONFIRMATION_MESSAGES = {
 
 export const DEFAULT_USER_TEMPLATES = [
   {
-    name: 'Plantilla 1',
+    name: 'Mi Plantilla',
     content: `NOTA CLÍNICA
 
-DATOS DEL PACIENTE:
+INFORMACIÓN DEL PACIENTE:
 Nombre: [Nombre del paciente]
 Edad: [Edad] años
 Género: [Género]
-Documento: [Tipo y número de documento]
+Documento: [Documento de identidad]
 
 MOTIVO DE CONSULTA:
-[Descripción del motivo principal de la consulta]
+[Motivo de consulta]
 
 HISTORIA DE LA ENFERMEDAD ACTUAL:
-[Evolución temporal de los síntomas, características, factores desencadenantes, etc.]
+[Historia de la enfermedad actual]
 
 REVISIÓN POR SISTEMAS:
-[Síntomas asociados por sistemas]
+[Revisión por sistemas]
 
 ANTECEDENTES:
-- Personales: [Enfermedades previas, cirugías, hospitalizaciones]
-- Farmacológicos: [Medicamentos actuales, alergias]
-- Familiares: [Antecedentes familiares relevantes]
-- Sociales: [Hábitos, ocupación, estado civil]
+- Personales: [Antecedentes personales]
+- Farmacológicos: [Medicamentos actuales]
+- Familiares: [Antecedentes familiares]
+- Sociales: [Antecedentes sociales]
 
 EXAMEN FÍSICO:
-- Signos vitales: FC: ___ lpm, FR: ___ rpm, TA: ___/__ mmHg, T°: ___°C, Sat O2: ___%
-- Aspecto general: [Descripción del estado general del paciente]
-- [Examen por sistemas relevantes]
+- Signos vitales: [Signos vitales]
+- Aspecto general: [Aspecto general]
+- Examen por sistemas: [Hallazgos del examen]
 
 ANÁLISIS:
-[Impresión diagnóstica y diagnósticos diferenciales]
+[Impresión diagnóstica]
 
 PLAN:
-1. Diagnóstico:
-   - [Estudios diagnósticos solicitados]
-2. Tratamiento:
-   - [Plan terapéutico]
-3. Educación:
-   - [Recomendaciones al paciente]
-4. Control:
-   - [Seguimiento programado]
+1. Diagnóstico: [Plan diagnóstico]
+2. Tratamiento: [Plan terapéutico]
+3. Educación al paciente: [Educación al paciente]
+4. Seguimiento: [Plan de seguimiento]
 
 MÉDICO: [Nombre del médico]
-REGISTRO: [Número de registro médico]
-FECHA: [Fecha de la consulta]`
+FECHA: [Fecha de la consulta]
+
+NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos reales del paciente y se marcará "Dato faltante" donde no haya información disponible.`
   }
 ] as const;

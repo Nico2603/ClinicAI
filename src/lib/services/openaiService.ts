@@ -133,13 +133,14 @@ INSTRUCCIONES CRÍTICAS:
 2. **CONTENIDO:**
    - Usa ÚNICAMENTE la información del paciente proporcionada.
    - NO inventes datos que no estén en la información del paciente.
-   - Si falta información para una sección, usa: "No refiere", "Sin datos disponibles", "No aplica", o "Información no disponible".
+   - Si falta información para una sección, usa ESPECÍFICAMENTE: "Dato faltante" o "Falta dato".
    - Usa terminología médica precisa y profesional.
 
 3. **IMPORTANTE:**
    - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
    - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
-   - Reemplaza todos los campos con información real del paciente o con "No refiere" si no hay datos.
+   - Reemplaza todos los campos con información real del paciente o con "Dato faltante" si no hay datos.
+   - NUNCA copies ni reutilices los valores de ejemplo que vengan en la plantilla.
 
 4. **RESPUESTA:**
    - Responde SOLO con la nota médica completada.

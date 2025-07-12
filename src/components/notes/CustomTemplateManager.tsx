@@ -44,19 +44,29 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
     try {
       const templateContent = `PLANTILLA PERSONALIZADA - ${newTemplateName.toUpperCase()}:
 
-SECCIÓN 1:
-- 
-- 
+INFORMACIÓN DEL PACIENTE:
+Nombre: [Nombre del paciente]
+Edad: [Edad] años
+Documento: [Documento de identidad]
 
-SECCIÓN 2:
-- 
-- 
+MOTIVO DE CONSULTA:
+[Motivo de consulta]
 
-CONCLUSIÓN:
-- 
-- 
+ANTECEDENTES:
+- Personales: [Antecedentes personales]
+- Familiares: [Antecedentes familiares]
 
-(Edita esta plantilla para crear tu formato ideal)`;
+EXAMEN FÍSICO:
+- Signos vitales: [Signos vitales]
+- Exploración: [Hallazgos del examen]
+
+IMPRESIÓN DIAGNÓSTICA:
+[Diagnóstico]
+
+PLAN:
+[Plan de tratamiento]
+
+NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos reales del paciente.`;
 
       const newTemplate = await createUserTemplate({
         name: newTemplateName,

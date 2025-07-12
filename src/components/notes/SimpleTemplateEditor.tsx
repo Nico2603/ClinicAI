@@ -229,12 +229,12 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
               onChange={(e) => setTemplateContent(e.target.value)}
               rows={15}
               className="w-full p-4 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-              placeholder="Pega aquí tu plantilla o historia clínica completa. Ejemplo:
+              placeholder="Crea tu plantilla con la ESTRUCTURA que deseas usar. Usa campos genéricos como [Nombre del paciente], [Edad], etc. NO pongas datos reales de pacientes. Ejemplo:
 
 HISTORIA CLÍNICA
 Paciente: [Nombre del paciente]
-Edad: [Edad]
-Motivo de consulta: [Motivo]
+Edad: [Edad] años
+Motivo de consulta: [Motivo de consulta]
 
 ANTECEDENTES:
 - Personales: [Antecedentes personales]
@@ -242,13 +242,15 @@ ANTECEDENTES:
 
 EXAMEN FÍSICO:
 - Signos vitales: [Signos vitales]
-- Exploración: [Hallazgos]
+- Exploración: [Hallazgos del examen]
 
 IMPRESIÓN DIAGNÓSTICA:
-[Diagnóstico]
+[Diagnóstico principal]
 
 PLAN DE TRATAMIENTO:
-[Plan terapéutico]"
+[Plan terapéutico]
+
+IMPORTANTE: Esta plantilla es solo ESTRUCTURA. Al generar notas, se llenará con datos reales del paciente y se marcará 'Dato faltante' donde no haya información."
             />
           </div>
 
