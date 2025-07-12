@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { generateSimplifiedEvidenceConsultation } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -28,16 +28,8 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [autoAnalyzed, setAutoAnalyzed] = useState<boolean>(false);
 
-  // Auto-análisis cuando se proporciona contenido
-  useEffect(() => {
-    if (autoAnalyzeContent && autoAnalyzeContent.trim() && enableAutoAnalysis && !autoAnalyzed) {
-      setClinicalContent(autoAnalyzeContent);
-      handleAnalyzeContent(autoAnalyzeContent);
-      setAutoAnalyzed(true);
-    }
-  }, [autoAnalyzeContent, enableAutoAnalysis, autoAnalyzed]);
-
-  const handleAnalyzeContent = async (contentToAnalyze?: string) => {
+  // Función con useCallback
+  const handleAnalyzeContent = useCallback(async (contentToAnalyze?: string) => {
     const content = contentToAnalyze || clinicalContent;
     
     if (!content.trim()) {
@@ -63,7 +55,16 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [clinicalContent, onConsultationGenerated]);
+
+  // Auto-análisis cuando se proporciona contenido
+  useEffect(() => {
+    if (autoAnalyzeContent && autoAnalyzeContent.trim() && enableAutoAnalysis && !autoAnalyzed) {
+      setClinicalContent(autoAnalyzeContent);
+      handleAnalyzeContent(autoAnalyzeContent);
+      setAutoAnalyzed(true);
+    }
+  }, [autoAnalyzeContent, enableAutoAnalysis, autoAnalyzed, handleAnalyzeContent]);
 
   const handleCopyReport = () => {
     if (!analysisResult) return;
