@@ -9,8 +9,7 @@ export * from './useAppState';
 export * from './useTemplateNotes';
 export * from './useTemplateManager';
 
-// Hooks de sugerencias de IA
-export * from './useAISuggestions';
+
 
 // Hooks de historial
 export * from './useHistoryManager';

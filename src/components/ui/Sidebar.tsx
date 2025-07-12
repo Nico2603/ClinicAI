@@ -28,7 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
   const navItems = [
     { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
     { id: 'nota-plantilla', label: 'Nota con Plantilla', icon: <PencilSquareIcon className="h-5 w-5" /> },
-    { id: 'sugerencia-evidencia', label: 'Sugerencia basada en Evidencia', icon: <LightBulbIcon className="h-5 w-5" /> },
     { id: 'escalas-clinicas', label: 'Escalas Clínicas', icon: <CalculatorIcon className="h-5 w-5" /> },
     { id: 'consulta-evidencia', label: 'Consulta Basada en Evidencia', icon: <SearchIcon className="h-5 w-5" /> },
     { id: 'note-updater', label: 'Actualizador de Notas', icon: <EditIcon className="h-5 w-5" /> },

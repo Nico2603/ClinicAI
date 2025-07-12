@@ -9,7 +9,6 @@ import {
   useSpeechRecognition, 
   useAppState, 
   useTemplateNotes, 
-  useAISuggestions, 
   useHistoryManager, 
   useTemplateManager 
 } from '../hooks';
@@ -26,8 +25,7 @@ import {
   UserProfile,
   Footer,
   TemplatesView,
-  TemplateNoteView,
-  EvidenceSuggestionView
+  TemplateNoteView
 } from './';
 
 const AuthenticatedApp: React.FC = () => {
@@ -70,19 +68,7 @@ const AuthenticatedApp: React.FC = () => {
     resetState: resetTemplateState,
   } = useTemplateNotes();
 
-  // Gestión de sugerencias de IA
-  const {
-    suggestionInput: aiSuggestionInput,
-    setSuggestionInput: setAiSuggestionInput,
-    generatedSuggestion: generatedAISuggestion,
-    groundingMetadata: aiSuggestionGrounding,
-    isGenerating: isGeneratingAISuggestion,
-    error: suggestionError,
-    generateSuggestions,
-    clearError: clearSuggestionError,
-    resetState: resetSuggestionState,
-    syncInputFromPatientInfo,
-  } = useAISuggestions();
+
 
   // Gestión del historial
   const {
@@ -109,13 +95,7 @@ const AuthenticatedApp: React.FC = () => {
     }
   });
 
-  // Efecto para sincronizar datos entre hooks
-  useEffect(() => {
-    // Sincronizar input de sugerencias con información del paciente
-    if (patientInfo && !aiSuggestionInput) {
-      syncInputFromPatientInfo(patientInfo);
-    }
-  }, [patientInfo, aiSuggestionInput, syncInputFromPatientInfo]);
+
 
   // Manejadores de eventos
   const handleToggleRecording = useCallback(() => {
@@ -139,9 +119,6 @@ const AuthenticatedApp: React.FC = () => {
       const result = await generateNote(selectedTemplate, user?.id || '');
       
       if (result) {
-        // Sincronizar con sugerencias de IA
-        syncInputFromPatientInfo(patientInfo);
-        
         // Agregar al historial
         addNoteToHistory({
           type: 'template',
@@ -155,28 +132,7 @@ const AuthenticatedApp: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_GENERATION_ERROR;
       showError(errorMessage);
     }
-  }, [selectedTemplate, user?.id, generateNote, patientInfo, syncInputFromPatientInfo, addNoteToHistory, clearGlobalError, clearTemplateError, showError]);
-
-  const handleGenerateAISuggestions = useCallback(async () => {
-    clearGlobalError();
-    clearSuggestionError();
-
-    try {
-      const result = await generateSuggestions();
-      
-      if (result) {
-        // Agregar al historial
-        addNoteToHistory({
-          type: 'suggestion',
-          originalInput: aiSuggestionInput,
-          content: result,
-        });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.SUGGESTIONS_GENERATION_ERROR;
-      showError(errorMessage);
-    }
-  }, [generateSuggestions, aiSuggestionInput, addNoteToHistory, clearGlobalError, clearSuggestionError, showError]);
+  }, [selectedTemplate, user?.id, generateNote, patientInfo, addNoteToHistory, clearGlobalError, clearTemplateError, showError]);
 
   const handleLoadFromHistory = useCallback((note: any) => {
     loadNoteFromHistory(note, userTemplates, {
@@ -184,13 +140,13 @@ const AuthenticatedApp: React.FC = () => {
       setSelectedTemplate,
       setPatientInfo,
       setGeneratedNote: updateGeneratedTemplateNote,
-      setSuggestionInput: setAiSuggestionInput,
-      setGeneratedSuggestion: () => {}, // Se manejará en el hook
+      setSuggestionInput: () => {}, // No usado
+      setGeneratedSuggestion: () => {}, // No usado
       clearMetadata: () => {
         // Limpiar metadatos de grounding
       },
     });
-  }, [loadNoteFromHistory, userTemplates, setActiveView, setSelectedTemplate, setPatientInfo, updateGeneratedTemplateNote, setAiSuggestionInput]);
+  }, [loadNoteFromHistory, userTemplates, setActiveView, setSelectedTemplate, setPatientInfo, updateGeneratedTemplateNote]);
 
   const handleSaveTemplateWrapper = useCallback(async (newContent: string) => {
     if (!selectedTemplate) return;
@@ -204,7 +160,7 @@ const AuthenticatedApp: React.FC = () => {
   }, [selectedTemplate, handleSaveTemplate, showError]);
 
   // Determinar el error actual a mostrar
-  const currentError = globalError || templateError || suggestionError;
+  const currentError = globalError || templateError;
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
@@ -262,20 +218,7 @@ const AuthenticatedApp: React.FC = () => {
             />
           )}
 
-          {activeView === 'sugerencia-evidencia' && (
-            <EvidenceSuggestionView
-              suggestionInput={aiSuggestionInput}
-              onSuggestionInputChange={setAiSuggestionInput}
-              generatedSuggestion={generatedAISuggestion}
-              onGenerateSuggestions={handleGenerateAISuggestions}
-              isGenerating={isGeneratingAISuggestion}
-              groundingMetadata={aiSuggestionGrounding}
-              onClearError={() => {
-                clearGlobalError();
-                clearSuggestionError();
-              }}
-            />
-          )}
+
 
           {activeView === 'escalas-clinicas' && (
             <section aria-labelledby="escalas-clinicas-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
@@ -284,12 +227,12 @@ const AuthenticatedApp: React.FC = () => {
                 onScaleGenerated={(scaleText) => {
                   addNoteToHistory({
                     type: 'scale',
-                    originalInput: aiSuggestionInput,
+                    originalInput: patientInfo,
                     content: scaleText,
                     scaleName: 'Escala Inteligente'
                   });
                 }}
-                existingNoteContent={generatedTemplateNote || aiSuggestionInput}
+                existingNoteContent={generatedTemplateNote || patientInfo}
               />
             </section>
           )}
@@ -301,12 +244,12 @@ const AuthenticatedApp: React.FC = () => {
                 onConsultationGenerated={(consultationText) => {
                   addNoteToHistory({
                     type: 'suggestion',
-                    originalInput: aiSuggestionInput,
+                    originalInput: patientInfo,
                     content: consultationText
                   });
                 }}
-                autoAnalyzeContent={generatedTemplateNote || aiSuggestionInput}
-                enableAutoAnalysis={Boolean(generatedTemplateNote || aiSuggestionInput)}
+                autoAnalyzeContent={generatedTemplateNote || patientInfo}
+                enableAutoAnalysis={Boolean(generatedTemplateNote || patientInfo)}
               />
             </section>
           )}

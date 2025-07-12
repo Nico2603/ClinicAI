@@ -11,7 +11,6 @@ export enum Theme {
 export type ActiveView = 
   | 'templates' 
   | 'nota-plantilla' 
-  | 'sugerencia-evidencia' 
   | 'escalas-clinicas' 
   | 'consulta-evidencia' 
   | 'note-updater';

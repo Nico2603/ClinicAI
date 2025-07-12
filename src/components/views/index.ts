@@ -3,5 +3,4 @@
 // =============================================================================
 
 export { TemplatesView } from './TemplatesView';
-export { TemplateNoteView } from './TemplateNoteView';
-export { EvidenceSuggestionView } from './EvidenceSuggestionView'; 
+export { TemplateNoteView } from './TemplateNoteView'; 

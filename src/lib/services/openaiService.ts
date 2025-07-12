@@ -180,69 +180,7 @@ La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos 
   }
 };
 
-export const generateAISuggestions = async (
-  clinicalInput: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateClinicalInput(clinicalInput);
 
-  const prompt = `Eres un médico experto especializado en medicina basada en evidencia. Tu tarea es analizar la información clínica proporcionada y ofrecer sugerencias profesionales respaldadas por evidencia científica.
-
-INFORMACIÓN CLÍNICA:
-"${clinicalInput}"
-
-INSTRUCCIONES:
-1. Analiza la información clínica proporcionada
-2. Proporciona sugerencias prácticas basadas en evidencia científica actual
-3. Incluye citas de estudios relevantes, guías clínicas o consensos médicos
-4. Menciona niveles de evidencia cuando sea apropiado
-5. Sugiere consideraciones diagnósticas, terapéuticas o de seguimiento
-6. Incluye recomendaciones de estudios adicionales si es necesario
-
-FORMATO DE RESPUESTA:
-- Usa texto claro y profesional
-- Incluye citas científicas reales y relevantes
-- Menciona fuentes como: PubMed, Cochrane, UpToDate, guías de sociedades médicas
-- Estructura las sugerencias de manera organizada
-- Incluye disclaimer sobre la necesidad de evaluación clínica personalizada
-
-EJEMPLO DE CITA: "Según las guías de la American Heart Association (2023), se recomienda..."
-EJEMPLO DE EVIDENCIA: "Un metaanálisis reciente en el New England Journal of Medicine demostró que..."
-
-Proporciona sugerencias profesionales, prácticas y basadas en evidencia que sean útiles para la toma de decisiones clínicas.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un médico experto en medicina basada en evidencia. Proporcionas sugerencias clínicas profesionales respaldadas por literatura científica actual. Siempre citas fuentes confiables y mantienes un enfoque práctico."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
-      max_tokens: TOKEN_LIMITS.EVIDENCE_SUGGESTIONS,
-      top_p: 0.9
-    });
-
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo generar contenido válido');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de sugerencias basadas en evidencia');
-  }
-};
 
 export const generateMedicalScale = async (
   clinicalInput: string,
