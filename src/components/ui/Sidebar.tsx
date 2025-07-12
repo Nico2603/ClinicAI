@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Theme, ActiveView } from '../../types'; // Import ActiveView
-import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, SparklesIcon, ClockIcon, EditIcon } from './Icons';
+import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, SparklesIcon, ClockIcon, EditIcon, LightBulbIcon, CalculatorIcon, SearchIcon } from './Icons';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -26,11 +26,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
   }, []);
 
   const navItems = [
-    { id: 'generate', label: 'Generar Nota', icon: <PencilSquareIcon className="h-5 w-5" /> },
     { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
+    { id: 'nota-plantilla', label: 'Nota con Plantilla', icon: <PencilSquareIcon className="h-5 w-5" /> },
+    { id: 'sugerencia-evidencia', label: 'Sugerencia basada en Evidencia', icon: <LightBulbIcon className="h-5 w-5" /> },
+    { id: 'escalas-clinicas', label: 'Escalas Clínicas', icon: <CalculatorIcon className="h-5 w-5" /> },
+    { id: 'consulta-evidencia', label: 'Consulta Basada en Evidencia', icon: <SearchIcon className="h-5 w-5" /> },
     { id: 'note-updater', label: 'Actualizador de Notas', icon: <EditIcon className="h-5 w-5" /> },
-    { id: 'notes', label: 'Mis Notas', icon: <DocumentTextIcon className="h-5 w-5" /> },
-    { id: 'history', label: 'Historial Local', icon: <ClockIcon className="h-5 w-5" /> },
   ];
 
   const handleNavClick = (view: ActiveView) => {

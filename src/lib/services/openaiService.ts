@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
-import { OPENAI_MODEL_TEXT } from '../constants';
+import { 
+  OPENAI_MODEL_TEXT, 
+  TEMPERATURE_CONFIG, 
+  TOKEN_LIMITS, 
+  ERROR_MESSAGES,
+  VALIDATION_RULES
+} from '../constants';
 import { 
   GroundingMetadata, 
   ScaleSearchResult, 
@@ -13,7 +19,11 @@ import {
   ClinicalRecommendation
 } from '../../types';
 
-// ✅ Para Next.js usamos process.env
+// =============================================================================
+// CONFIGURACIÓN Y VALIDACIÓN
+// =============================================================================
+
+// Configuración de OpenAI
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
 if (!API_KEY) {
@@ -21,18 +31,74 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Inicializar OpenAI client
+// Cliente OpenAI
 const openai = new OpenAI({
   apiKey: API_KEY || '',
-  dangerouslyAllowBrowser: true // Permitir uso en el navegador (Next.js)
+  dangerouslyAllowBrowser: true
 });
+
+// Funciones de validación
+const validateApiKey = (): void => {
+  if (!API_KEY) {
+    throw new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
+  }
+};
+
+const validateInput = (input: string, minLength: number = 1): void => {
+  if (!input || input.trim().length < minLength) {
+    throw new Error('Input inválido: el texto debe tener al menos ' + minLength + ' caracteres');
+  }
+};
+
+const validateTemplateInput = (templateContent: string, patientInfo: string): void => {
+  validateInput(templateContent, 10);
+  validateInput(patientInfo, VALIDATION_RULES.MIN_PATIENT_INFO_LENGTH);
+  
+  if (patientInfo.length > VALIDATION_RULES.MAX_PATIENT_INFO_LENGTH) {
+    throw new Error('La información del paciente es demasiado larga');
+  }
+};
+
+const validateClinicalInput = (clinicalInput: string): void => {
+  validateInput(clinicalInput, VALIDATION_RULES.MIN_CLINICAL_INFO_LENGTH);
+  
+  if (clinicalInput.length > VALIDATION_RULES.MAX_CLINICAL_INFO_LENGTH) {
+    throw new Error('La información clínica es demasiado larga');
+  }
+};
+
+// Función para manejar errores de OpenAI
+const handleOpenAIError = (error: unknown, context: string): Error => {
+  console.error(`Error en ${context}:`, error);
+  
+  if (error instanceof Error) {
+    // Manejar errores específicos de OpenAI
+    if (error.message.includes('API key')) {
+      return new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
+    }
+    if (error.message.includes('rate limit')) {
+      return new Error('Límite de API excedido. Por favor, inténtelo más tarde.');
+    }
+    if (error.message.includes('timeout')) {
+      return new Error('Tiempo de espera agotado. Por favor, inténtelo de nuevo.');
+    }
+    return new Error(`Error en ${context}: ${error.message}`);
+  }
+  
+  return new Error(`Error desconocido en ${context}`);
+};
+
+// =============================================================================
+// SERVICIOS PRINCIPALES
+// =============================================================================
 
 export const generateNoteFromTemplate = async (
   specialtyName: string,
   templateContent: string,
   patientInfo: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
+  validateTemplateInput(templateContent, patientInfo);
   
   const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
 
@@ -83,26 +149,31 @@ La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos 
           content: prompt
         }
       ],
-      temperature: 0.3, // Baja temperatura para respuestas más consistentes y precisas
-      max_tokens: 2000,
+      temperature: TEMPERATURE_CONFIG.TEMPLATE_GENERATION,
+      max_tokens: TOKEN_LIMITS.TEMPLATE_NOTE,
       top_p: 0.9
     });
 
     const generatedText = response.choices[0]?.message?.content || '';
+    
+    if (!generatedText.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+
     return { 
       text: generatedText, 
-      groundingMetadata: undefined // OpenAI no proporciona grounding metadata como Gemini
+      groundingMetadata: undefined
     };
   } catch (error) {
-    console.error('Error generating note from template:', error);
-    throw new Error(`Error al generar nota con IA: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de nota con plantilla');
   }
 };
 
 export const generateAISuggestions = async (
   clinicalInput: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
+  validateClinicalInput(clinicalInput);
 
   const prompt = `Eres un médico experto especializado en medicina basada en evidencia. Tu tarea es analizar la información clínica proporcionada y ofrecer sugerencias profesionales respaldadas por evidencia científica.
 
@@ -142,22 +213,23 @@ Proporciona sugerencias profesionales, prácticas y basadas en evidencia que sea
           content: prompt
         }
       ],
-      temperature: 0.2,
-      max_tokens: 1500,
+      temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
+      max_tokens: TOKEN_LIMITS.EVIDENCE_SUGGESTIONS,
       top_p: 0.9
     });
 
     const result = response.choices[0]?.message?.content || '';
     
+    if (!result.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+    
     return {
       text: result,
-      groundingMetadata: {
-        groundingChunks: []
-      }
+      groundingMetadata: { groundingChunks: [] }
     };
   } catch (error) {
-    console.error('Error generating evidence-based suggestions:', error);
-    throw new Error(`Error al generar sugerencias basadas en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de sugerencias basadas en evidencia');
   }
 };
 
@@ -165,7 +237,9 @@ export const generateMedicalScale = async (
   clinicalInput: string,
   scaleName: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
+  validateClinicalInput(clinicalInput);
+  validateInput(scaleName, 2);
 
   const prompt = `Contexto: Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas.
 Tarea: Basado en la siguiente "Información Clínica", evalúa y completa la escala "${scaleName}". Debes presentar el resultado en un formato claro y profesional, listo para ser copiado y pegado en una historia clínica.
@@ -176,34 +250,13 @@ Información Clínica Proporcionada:
 Escala a Aplicar: ${scaleName}
 
 Instrucciones para la Generación:
-1.  **Analiza la Información:** Lee detenidamente la información clínica para encontrar datos que correspondan a los ítems de la escala ${scaleName}.
-2.  **Puntúa cada Ítem:** Asigna un puntaje a cada ítem de la escala basándote en la información. Si la información para un ítem es insuficiente, usa tu juicio clínico para inferir o indica "No se puede determinar". No inventes datos que no tengan base en el texto.
-3.  **Calcula el Puntaje Total:** Suma los puntajes de los ítems para obtener el resultado total de la escala.
-4.  **Proporciona una Interpretación:** Basado en el puntaje total, ofrece una interpretación clínica estandarizada (ej. "Riesgo bajo", "Síntomas depresivos moderados", "Ansiedad severa").
-5.  **Formato de Respuesta:** La respuesta debe ser ÚNICAMENTE el resultado de la escala. No incluyas saludos ni comentarios introductorios. La estructura debe ser:
-    *   Un encabezado claro (ej. "Evaluación con Escala PHQ-9").
-    *   Una lista de cada ítem de la escala con su puntaje correspondiente.
-    *   El "Puntaje Total".
-    *   Una sección de "Interpretación Clínica".
+1. **Analiza la Información:** Lee detenidamente la información clínica para encontrar datos que correspondan a los ítems de la escala ${scaleName}.
+2. **Puntúa cada Ítem:** Asigna un puntaje a cada ítem de la escala basándote en la información. Si la información para un ítem es insuficiente, usa tu juicio clínico para inferir o indica "No se puede determinar". No inventes datos que no tengan base en el texto.
+3. **Calcula el Puntaje Total:** Suma los puntajes de los ítems para obtener el resultado total de la escala.
+4. **Proporciona una Interpretación:** Basado en el puntaje total, ofrece una interpretación clínica estandarizada (ej. "Riesgo bajo", "Síntomas depresivos moderados", "Ansiedad severa").
+5. **Formato de Respuesta:** La respuesta debe ser ÚNICAMENTE el resultado de la escala. No incluyas saludos ni comentarios introductorios.
 
-Ejemplo de formato de respuesta deseado (para PHQ-9):
----
-**Evaluación con Escala PHQ-9**
-
-- Poco interés o placer en hacer las cosas: [Puntaje]
-- Sentirse desanimado/a, deprimido/a o sin esperanzas: [Puntaje]
-- Problemas para dormir o dormir demasiado: [Puntaje]
-- Sentirse cansado/a o con poca energía: [Puntaje]
-- Poco apetito o comer en exceso: [Puntaje]
-- Sentirse mal consigo mismo/a o como un fracaso: [Puntaje]
-- Dificultad para concentrarse: [Puntaje]
-- Moverse o hablar tan lento que otros lo han notado, o ser muy inquieto/a: [Puntaje]
-- Pensamientos de que estaría mejor muerto/a o de hacerse daño: [Puntaje]
-
-**Puntaje Total:** [Suma de los puntajes]
-
-**Interpretación Clínica:** [Ej: Síntomas depresivos moderadamente severos. Se recomienda evaluación de salud mental.]
----`;
+Proporciona un resultado preciso y basado en estándares clínicos reconocidos.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -211,35 +264,42 @@ Ejemplo de formato de respuesta deseado (para PHQ-9):
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto especializado en la aplicación y evaluación de escalas clínicas estandarizadas. Proporcionas evaluaciones precisas y profesionales."
+          content: "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. Aplicas las escalas con precisión y proporcionas interpretaciones basadas en estándares clínicos reconocidos."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.2, // Temperatura muy baja para máxima precisión en escalas
-      max_tokens: 1500,
-      top_p: 0.8
+      temperature: TEMPERATURE_CONFIG.CLINICAL_SCALES,
+      max_tokens: TOKEN_LIMITS.CLINICAL_SCALE,
+      top_p: 0.9
     });
 
-    const generatedText = response.choices[0]?.message?.content || '';
-    return { 
-      text: generatedText, 
-      groundingMetadata: undefined // OpenAI no proporciona grounding metadata
+    const result = response.choices[0]?.message?.content || '';
+    
+    if (!result.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+    
+    return {
+      text: result,
+      groundingMetadata: { groundingChunks: [] }
     };
   } catch (error) {
-    console.error('Error generating medical scale:', error);
-    throw new Error(`Error al generar la escala con IA: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de escala médica');
   }
-}; 
+};
 
-// Agrego función para generar plantilla desde una nota clínica con IA
+// =============================================================================
+// SERVICIOS ADICIONALES (mantener funcionalidad existente)
+// =============================================================================
 
 export const generateTemplateFromClinicalNote = async (
   clinicalNote: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
+  validateClinicalInput(clinicalNote);
 
   const prompt = `Eres un asistente experto en redacción de notas clínicas. Tu tarea es transformar la nota clínica que recibirás a continuación en una PLANTILLA.
 
@@ -283,8 +343,7 @@ ${clinicalNote}
       groundingMetadata: undefined
     };
   } catch (error) {
-    console.error('Error generating template from clinical note:', error);
-    throw new Error(`Error al generar plantilla con IA: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de plantilla desde nota clínica');
   }
 }; 
 
@@ -292,7 +351,7 @@ export const updateClinicalNote = async (
   originalNote: string,
   newInformation: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información. Tu tarea es integrar de forma inteligente la nueva información en la nota clínica original manteniendo coherencia, estilo médico profesional y estructura adecuada.
 
@@ -361,8 +420,7 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
       groundingMetadata: undefined
     };
   } catch (error) {
-    console.error('Error updating clinical note:', error);
-    throw new Error(`Error al actualizar nota clínica con IA: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'actualización de nota clínica');
   }
 }; 
 
@@ -371,7 +429,7 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
 export const searchClinicalScales = async (
   searchQuery: string
 ): Promise<ScaleSearchResult[]> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un experto en escalas clínicas y herramientas de evaluación médica. Tu tarea es buscar escalas clínicas reales y estandarizadas basándote en la consulta del usuario.
 
@@ -450,15 +508,14 @@ Máximo 8 resultados, ordenados por relevancia.`;
       }];
     }
   } catch (error) {
-    console.error('Error searching clinical scales:', error);
-    throw new Error(`Error al buscar escalas clínicas: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'búsqueda de escalas clínicas');
   }
 };
 
 export const generateIntelligentClinicalScale = async (
   request: ScaleGenerationRequest
 ): Promise<GeneratedScaleResult> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un experto en escalas clínicas y evaluación médica. Tu tarea es generar una escala clínica completa, precisa y funcional basándote en la información proporcionada.
 
@@ -580,8 +637,7 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
       throw new Error('La IA no pudo generar una escala válida. Intenta con más información clínica.');
     }
   } catch (error) {
-    console.error('Error generating intelligent clinical scale:', error);
-    throw new Error(`Error al generar escala clínica: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de escala clínica inteligente');
   }
 };
 
@@ -630,7 +686,7 @@ export const formatScaleForNote = async (
 export const analyzeClinicalContent = async (
   request: EvidenceConsultationRequest
 ): Promise<ClinicalAnalysisResult> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un asistente médico experto especializado en análisis clínico basado en evidencia científica. Tu tarea es analizar el contenido clínico proporcionado y generar recomendaciones basadas en la mejor evidencia disponible de fuentes científicas reconocidas.
 
@@ -763,8 +819,7 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
       throw new Error('La IA no pudo generar un análisis válido. Intenta con información clínica más específica.');
     }
   } catch (error) {
-    console.error('Error analyzing clinical content:', error);
-    throw new Error(`Error al analizar contenido clínico: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'análisis de contenido clínico');
   }
 };
 
@@ -772,7 +827,7 @@ export const searchEvidenceBasedRecommendations = async (
   query: string,
   clinicalContext?: string
 ): Promise<EvidenceSearchResult> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un experto en medicina basada en evidencia con acceso a las principales bases de datos médicas. Tu tarea es buscar y proporcionar recomendaciones específicas basadas en la mejor evidencia científica disponible.
 
@@ -854,8 +909,7 @@ Enfócate en proporcionar información práctica y actualizada que sea directame
       throw new Error('La IA no pudo generar resultados de búsqueda válidos.');
     }
   } catch (error) {
-    console.error('Error searching evidence-based recommendations:', error);
-    throw new Error(`Error al buscar recomendaciones basadas en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'búsqueda de recomendaciones basadas en evidencia');
   }
 };
 
@@ -863,7 +917,7 @@ export const generateEvidenceBasedConsultation = async (
   clinicalContent: string,
   specificQuestions?: string[]
 ): Promise<{ analysis: ClinicalAnalysisResult; evidenceSearch?: EvidenceSearchResult }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   // Configurar la solicitud de consulta
   const consultationRequest: EvidenceConsultationRequest = {
@@ -888,8 +942,7 @@ export const generateEvidenceBasedConsultation = async (
       evidenceSearch
     };
   } catch (error) {
-    console.error('Error generating evidence-based consultation:', error);
-    throw new Error(`Error al generar consulta basada en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de consulta basada en evidencia');
   }
 };
 
@@ -1028,7 +1081,7 @@ export const formatEvidenceBasedReport = async (
 export const generateSimplifiedEvidenceConsultation = async (
   clinicalContent: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  if (!API_KEY) throw new Error("API key not configured for OpenAI.");
+  validateApiKey();
 
   const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
 
@@ -1093,14 +1146,107 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
 
     const result = response.choices[0]?.message?.content || '';
     
+    if (!result.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+    
     return {
       text: result,
-      groundingMetadata: {
-        groundingChunks: []
-      }
+      groundingMetadata: { groundingChunks: [] }
     };
   } catch (error) {
-    console.error('Error generating simplified evidence consultation:', error);
-    throw new Error(`Error al generar consulta basada en evidencia: ${error instanceof Error ? error.message : String(error)}`);
+    throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
   }
+};
+
+// ===== EXTRACCIÓN DE FORMATO DE PLANTILLA =====
+
+export const extractTemplateFormat = async (
+  templateContent: string
+): Promise<string> => {
+  validateApiKey();
+
+  const prompt = `Eres un asistente médico experto en análisis de estructuras de documentos clínicos. Tu tarea es extraer el FORMATO/ESTRUCTURA de la plantilla de historia clínica proporcionada, eliminando todos los datos específicos del paciente.
+
+PLANTILLA ORIGINAL:
+---
+${templateContent}
+---
+
+INSTRUCCIONES CRÍTICAS:
+
+1. **EXTRAER SOLO EL FORMATO:**
+   - Mantén EXACTAMENTE la estructura: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, espacios en blanco.
+   - Preserva todos los signos de puntuación, dos puntos, guiones, etc.
+   - Mantén la jerarquía y organización visual.
+
+2. **ELIMINAR DATOS ESPECÍFICOS:**
+   - Reemplaza nombres de pacientes con: [Nombre del paciente]
+   - Reemplaza edades con: [Edad]
+   - Reemplaza fechas con: [Fecha]
+   - Reemplaza números de documento con: [Documento]
+   - Reemplaza síntomas específicos con: [Describir síntoma]
+   - Reemplaza medicamentos con: [Medicamento]
+   - Reemplaza diagnósticos con: [Diagnóstico]
+   - Reemplaza valores de laboratorio con: [Valor]
+   - Reemplaza signos vitales con: [Valor]
+
+3. **MANTENER ELEMENTOS ESTRUCTURALES:**
+   - Todos los encabezados deben permanecer idénticos
+   - Todas las etiquetas y campos deben mantenerse
+   - Los formatos de lista (viñetas, números) deben preservarse
+   - Los espacios y saltos de línea deben mantenerse
+
+4. **EJEMPLO DE TRANSFORMACIÓN:**
+   - "Paciente: Juan Pérez" → "Paciente: [Nombre del paciente]"
+   - "Edad: 45 años" → "Edad: [Edad] años"
+   - "Presenta cefalea intensa" → "Presenta [Describir síntoma]"
+   - "Paracetamol 500mg" → "[Medicamento] [Dosis]"
+
+5. **RESPUESTA:**
+   - Responde SOLO con el formato extraído
+   - No agregues comentarios ni explicaciones
+   - Mantén exactamente la misma estructura visual
+
+El resultado debe ser una plantilla en blanco que preserve la estructura pero que pueda ser llenada con datos de cualquier paciente.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL_TEXT,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un asistente médico experto en análisis de estructuras de documentos clínicos. Tu especialidad es extraer formatos y estructuras de plantillas médicas manteniendo la organización visual exacta pero eliminando datos específicos del paciente."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.1, // Muy baja para consistencia máxima
+      max_tokens: 2000,
+      top_p: 0.8
+    });
+
+    const result = response.choices[0]?.message?.content || '';
+    return result;
+  } catch (error) {
+    throw handleOpenAIError(error, 'extracción de formato de plantilla');
+  }
+}; 
+
+// =============================================================================
+// UTILIDADES
+// =============================================================================
+
+export const validateOpenAIConfiguration = (): boolean => {
+  return Boolean(API_KEY);
+};
+
+export const getOpenAIModelInfo = () => {
+  return {
+    textModel: OPENAI_MODEL_TEXT,
+    temperatureConfig: TEMPERATURE_CONFIG,
+    tokenLimits: TOKEN_LIMITS,
+  };
 }; 
