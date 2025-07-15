@@ -350,94 +350,7 @@ ESCALA A EVALUAR: ${scaleName}
 // SERVICIOS ADICIONALES (mantener funcionalidad existente)
 // =============================================================================
 
-export const generateTemplateFromClinicalNote = async (
-  clinicalNote: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateClinicalInput(clinicalNote);
-
-  const prompt = `Eres un experto en crear PLANTILLAS ESTRUCTURALES a partir de notas clínicas. Tu tarea es convertir la nota clínica en una plantilla que sirva como FORMATO PURO, eliminando TODOS los datos específicos del paciente.
-
-🎯 OBJETIVO: Crear una plantilla que sea un MOLDE ESTRUCTURAL VACÍO, sin ningún dato real del paciente.
-
-NOTA CLÍNICA ORIGINAL:
----
-${clinicalNote}
----
-
-🚨 INSTRUCCIONES CRÍTICAS PARA CREAR PLANTILLA FORMATO:
-
-1. **PRESERVAR ESTRUCTURA EXACTA:**
-   - Mantén EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
-   - Conserva todos los elementos visuales: dos puntos (:), guiones (-), números, espacios
-   - Respeta la jerarquía y organización de secciones
-   - NO cambies el orden ni elimines secciones estructurales
-
-2. **ELIMINAR TODOS LOS DATOS ESPECÍFICOS:**
-   - Nombres de pacientes → [Nombre del paciente]
-   - Edades específicas → [Edad] años
-   - Fechas específicas → [Fecha]
-   - Números de documento → [Documento de identidad]
-   - Diagnósticos específicos → [Diagnóstico]
-   - Medicamentos específicos → [Medicamento]
-   - Valores de laboratorio → [Valor de laboratorio]
-   - Signos vitales → [Signos vitales]
-   - Síntomas específicos → [Síntoma]
-   - Nombres de médicos → [Nombre del médico]
-
-3. **MARCADORES DESCRIPTIVOS GENERALES:**
-   - Usa marcadores GENÉRICOS que describan el TIPO de dato, no el dato específico
-   - Ejemplos correctos: [Motivo de consulta], [Antecedentes familiares], [Hallazgos del examen]
-   - Ejemplos INCORRECTOS: [Dolor abdominal], [Diabetes], [Juan Pérez]
-   - NO preserves información específica en los marcadores
-
-4. **CONSERVAR ELEMENTOS ESTRUCTURALES NO ESPECÍFICOS:**
-   - Mantén frases estructurales como "Signos vitales:", "Antecedentes:", "Plan:"
-   - Conserva palabras de enlace y estructura médica general
-   - Mantén terminología médica general no específica al paciente
-
-5. **ELIMINAR INFORMACIÓN CONTEXTUAL ESPECÍFICA:**
-   - NO conserves hallazgos específicos de la patología original
-   - NO mantengas valores normales específicos si son del paciente particular
-   - Reemplaza TODO lo que sea específico del caso particular
-
-6. **AGREGAR NOTA EXPLICATIVA:**
-   - Al final, agrega: "NOTA: Esta es una plantilla ESTRUCTURAL. Los marcadores entre corchetes deben reemplazarse con datos reales del paciente."
-
-7. **RESPUESTA FINAL:**
-   - Responde ÚNICAMENTE con la plantilla resultante
-   - NO agregues comentarios, explicaciones adicionales, ni introducciones
-   - La plantilla debe ser directamente utilizable como formato
-
-RECUERDA: Estás creando un FORMATO REUTILIZABLE. Toda información específica del paciente original debe convertirse en marcadores genéricos. La plantilla resultante debe poder usarse para CUALQUIER paciente de cualquier edad, sexo o condición.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateTemplateFromClinicalNote,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un experto en crear plantillas estructurales médicas. Tu especialidad es convertir notas clínicas en formatos reutilizables eliminando TODA información específica del paciente y creando marcadores genéricos. Las plantillas resultantes son moldes vacíos sin datos reales."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: TEMPERATURE_CONFIG.TEMPLATE_GENERATION,
-      max_tokens: TOKEN_LIMITS.TEMPLATE_NOTE,
-      top_p: 0.9
-    });
-
-    const generatedText = response.choices[0]?.message?.content || '';
-    return {
-      text: generatedText,
-      groundingMetadata: undefined
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de plantilla desde nota clínica');
-  }
-}; 
+ 
 
 export const updateClinicalNote = async (
   originalNote: string,
@@ -535,12 +448,6 @@ ${newInformation}
     throw handleOpenAIError(error, 'actualización selectiva de nota clínica');
   }
 }; 
-
-// ===== ANÁLISIS INTELIGENTE DE INFORMACIÓN CLÍNICA =====
-
-
-
-
 
 // ===== CONSULTA CLÍNICA PARA IA BASADA EN EVIDENCIA =====
 

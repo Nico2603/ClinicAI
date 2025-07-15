@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useUserTemplates } from '../../hooks/useDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
-import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon } from '../ui/Icons';
+import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
+import { extractTemplateFormat } from '../../lib/services/openaiService';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -30,6 +31,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
   const [editingContent, setEditingContent] = useState('');
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplateContent, setNewTemplateContent] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   if (!user) return null;
@@ -38,9 +40,15 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
     if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
 
     try {
+      setIsProcessing(true);
+
+      // Procesar el contenido para extraer solo la estructura/formato
+      const cleanFormat = await extractTemplateFormat(newTemplateContent);
+
+      // Crear la plantilla con el formato limpio
       const newTemplate = await createUserTemplate({
         name: newTemplateName,
-        content: newTemplateContent,
+        content: cleanFormat,
         user_id: user.id,
         is_active: true
       });
@@ -51,6 +59,8 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
       onSelectTemplate(newTemplate);
     } catch (err) {
       console.error('Error al crear plantilla:', err);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -156,37 +166,70 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
                 className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100"
                 placeholder="Ingrese el nombre de la plantilla"
                 autoFocus
+                disabled={isProcessing}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Contenido de la plantilla
+                Ejemplo de contenido (con datos de paciente)
               </label>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+                💡 Ingrese un ejemplo completo con datos de un paciente. El sistema extraerá automáticamente solo la estructura para crear una plantilla reutilizable.
+              </p>
               <textarea
                 value={newTemplateContent}
                 onChange={(e) => setNewTemplateContent(e.target.value)}
                 rows={12}
                 className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                placeholder="Escriba aquí el contenido de su plantilla personalizada..."
+                placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente. Por ejemplo:
+
+CONSULTA MEDICINA INTERNA
+
+Paciente: Juan Pérez
+Edad: 45 años
+Documento: 12345678
+
+MOTIVO DE CONSULTA:
+Dolor abdominal desde hace 3 días...
+
+El sistema extraerá automáticamente la estructura y creará marcadores genéricos."
+                disabled={isProcessing}
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleCreateTemplate}
-                disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
+                disabled={!newTemplateName.trim() || !newTemplateContent.trim() || isProcessing}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-neutral-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
               >
-                <CheckIcon className="h-4 w-4 mr-1" />
-                Guardar
+                {isProcessing ? (
+                  <>
+                    <LoadingSpinner className="h-4 w-4 mr-2 text-white" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <CheckIcon className="h-4 w-4 mr-1" />
+                    Guardar Plantilla
+                  </>
+                )}
               </button>
               <button
                 onClick={handleCancelCreate}
-                className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                disabled={isProcessing}
+                className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50"
               >
                 <XMarkIcon className="h-4 w-4 mr-1" />
                 Cancelar
               </button>
             </div>
+            {isProcessing && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <p className="text-blue-600 dark:text-blue-400 text-sm">
+                  ⚡ Procesando contenido para extraer la estructura de plantilla...
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -224,7 +267,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                      Contenido
+                      Contenido de la plantilla
                     </label>
                     <textarea
                       value={editingContent}

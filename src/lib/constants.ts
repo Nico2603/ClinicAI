@@ -40,7 +40,6 @@ export const MEDICAL_AI_MODELS = {
   
   // Funciones IMPORTANTES - Requieren buena calidad
   IMPORTANT_MEDICAL_FUNCTIONS: {
-    generateTemplateFromClinicalNote: 'gpt-4o',    // Análisis estructural
     searchEvidenceBasedRecommendations: 'gpt-4o',  // Búsqueda de evidencia médica
     generateSimplifiedEvidenceConsultation: 'gpt-4o', // Consultas de evidencia
   },
