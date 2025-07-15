@@ -25,7 +25,8 @@ import {
   UserProfile,
   Footer,
   TemplatesView,
-  TemplateNoteView
+  TemplateNoteView,
+  HistoryView
 } from './';
 
 const AuthenticatedApp: React.FC = () => {
@@ -72,6 +73,7 @@ const AuthenticatedApp: React.FC = () => {
   const {
     historicNotes,
     addNoteToHistory,
+    deleteNote,
     clearHistory,
     loadNoteFromHistory,
   } = useHistoryManager(user?.id || null);
@@ -238,6 +240,30 @@ const AuthenticatedApp: React.FC = () => {
                   content: note,
                 });
               }}
+            />
+          )}
+
+          {activeView === 'history' && (
+            <HistoryView
+              historicNotes={historicNotes}
+              userTemplates={userTemplates}
+              onLoadNoteInEditor={(note) => {
+                loadNoteFromHistory(note, userTemplates, {
+                  setActiveView,
+                  setSelectedTemplate,
+                  setPatientInfo,
+                  setGeneratedNote: updateGeneratedTemplateNote,
+                  setSuggestionInput: () => {},
+                  setGeneratedSuggestion: () => {},
+                  clearMetadata: () => {},
+                });
+              }}
+              onLoadNoteInUpdater={(note) => {
+                setNoteForUpdater(note.content);
+                setActiveView('note-updater');
+              }}
+              onDeleteNote={deleteNote}
+              onClearHistory={clearHistory}
             />
           )}
 

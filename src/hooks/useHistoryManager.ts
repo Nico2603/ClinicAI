@@ -25,6 +25,16 @@ export const useHistoryManager = (userId: string | null) => {
     setHistoricNotes(updatedHistory);
   }, [userId]);
 
+  const deleteNote = useCallback((noteId: string) => {
+    if (!userId) return;
+    
+    const currentHistory = getUserStoredHistoricNotes(userId);
+    const updatedHistory = currentHistory.filter(note => note.id !== noteId);
+    
+    localStorage.setItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`, JSON.stringify(updatedHistory));
+    setHistoricNotes(updatedHistory);
+  }, [userId]);
+
   const clearHistory = useCallback(() => {
     if (!userId) return;
     
@@ -75,6 +85,7 @@ export const useHistoryManager = (userId: string | null) => {
   return {
     historicNotes,
     addNoteToHistory,
+    deleteNote,
     clearHistory,
     loadNoteFromHistory,
   };

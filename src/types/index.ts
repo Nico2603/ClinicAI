@@ -10,7 +10,7 @@ export enum Theme {
 
 export type ActiveView = 
   | 'nota-plantilla' 
-  | 'historial-notas' 
+  | 'history' 
   | 'templates' 
   | 'note-updater';
 
