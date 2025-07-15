@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useUserTemplates } from '../../hooks/useDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
-import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, SparklesIcon, LoadingSpinner } from '../ui/Icons';
-import { generateTemplateFromClinicalNote } from '../../lib/services/openaiService';
+import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon } from '../ui/Icons';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -26,87 +25,32 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
   } = useUserTemplates();
 
   const [isCreating, setIsCreating] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingContent, setEditingContent] = useState('');
   const [newTemplateName, setNewTemplateName] = useState('');
-  const [aiTemplateName, setAiTemplateName] = useState('');
-  const [aiClinicalNote, setAiClinicalNote] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [newTemplateContent, setNewTemplateContent] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   if (!user) return null;
 
   const handleCreateTemplate = async () => {
-    if (!newTemplateName.trim()) return;
+    if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
 
     try {
-      const templateContent = `PLANTILLA PERSONALIZADA - ${newTemplateName.toUpperCase()}:
-
-INFORMACIÓN DEL PACIENTE:
-Nombre: [Nombre del paciente]
-Edad: [Edad] años
-Documento: [Documento de identidad]
-
-MOTIVO DE CONSULTA:
-[Motivo de consulta]
-
-ANTECEDENTES:
-- Personales: [Antecedentes personales]
-- Familiares: [Antecedentes familiares]
-
-EXAMEN FÍSICO:
-- Signos vitales: [Signos vitales]
-- Exploración: [Hallazgos del examen]
-
-IMPRESIÓN DIAGNÓSTICA:
-[Diagnóstico]
-
-PLAN:
-[Plan de tratamiento]
-
-NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos reales del paciente.`;
-
       const newTemplate = await createUserTemplate({
         name: newTemplateName,
-        content: templateContent,
+        content: newTemplateContent,
         user_id: user.id,
         is_active: true
       });
 
       setNewTemplateName('');
+      setNewTemplateContent('');
       setIsCreating(false);
       onSelectTemplate(newTemplate);
     } catch (err) {
       console.error('Error al crear plantilla:', err);
-    }
-  };
-
-  const handleGenerateTemplateAI = async () => {
-    if (!aiTemplateName.trim() || !aiClinicalNote.trim() || !user) return;
-
-    try {
-      setIsGenerating(true);
-      const result = await generateTemplateFromClinicalNote(aiClinicalNote);
-
-      const newTemplate = await createUserTemplate({
-        name: aiTemplateName,
-        content: result.text,
-        user_id: user.id,
-        is_active: true,
-      });
-
-      // limpiar estados
-      setIsGeneratingAI(false);
-      setAiTemplateName('');
-      setAiClinicalNote('');
-
-      onSelectTemplate(newTemplate);
-    } catch (err) {
-      console.error('Error al generar plantilla con IA:', err);
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -147,6 +91,12 @@ NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos
     }
   };
 
+  const handleCancelCreate = () => {
+    setIsCreating(false);
+    setNewTemplateName('');
+    setNewTemplateContent('');
+  };
+
   const getNextTemplateName = () => {
     const templateNumbers = userTemplates
       .map(t => {
@@ -183,16 +133,6 @@ NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos
           <PlusIcon className="h-4 w-4 mr-2" />
           Nueva Plantilla
         </button>
-        <button
-          onClick={() => {
-            setAiTemplateName(getNextTemplateName());
-            setIsGeneratingAI(true);
-          }}
-          className="ml-2 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-colors"
-        >
-          <SparklesIcon className="h-4 w-4 mr-2" />
-          Generar con IA
-        </button>
       </div>
 
       {error && (
@@ -204,7 +144,7 @@ NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos
       {/* Crear nueva plantilla */}
       {isCreating && (
         <div className="p-4 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-800">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                 Nombre de la plantilla
@@ -214,82 +154,34 @@ NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos
                 value={newTemplateName}
                 onChange={(e) => setNewTemplateName(e.target.value)}
                 className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100"
-                placeholder="Ej: Medicina Interna"
+                placeholder="Ingrese el nombre de la plantilla"
                 autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                Contenido de la plantilla
+              </label>
+              <textarea
+                value={newTemplateContent}
+                onChange={(e) => setNewTemplateContent(e.target.value)}
+                rows={12}
+                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+                placeholder="Escriba aquí el contenido de su plantilla personalizada..."
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleCreateTemplate}
-                disabled={!newTemplateName.trim()}
+                disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-neutral-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
               >
                 <CheckIcon className="h-4 w-4 mr-1" />
-                Crear
+                Guardar
               </button>
               <button
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewTemplateName('');
-                }}
+                onClick={handleCancelCreate}
                 className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
-              >
-                <XMarkIcon className="h-4 w-4 mr-1" />
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Generar plantilla con IA */}
-      {isGeneratingAI && (
-        <div className="p-4 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-800 mt-4">
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Nombre de la plantilla
-              </label>
-              <input
-                type="text"
-                value={aiTemplateName}
-                onChange={(e) => setAiTemplateName(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100"
-                placeholder="Ej: Plantilla Generada"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Nota clínica de referencia
-              </label>
-              <textarea
-                value={aiClinicalNote}
-                onChange={(e) => setAiClinicalNote(e.target.value)}
-                rows={8}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-secondary focus:border-secondary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                placeholder="Pega aquí la nota clínica completa..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleGenerateTemplateAI}
-                disabled={isGenerating || !aiTemplateName.trim() || !aiClinicalNote.trim()}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-secondary hover:bg-secondary-dark disabled:bg-neutral-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-colors"
-              >
-                {isGenerating ? (
-                  <><LoadingSpinner className="h-4 w-4 mr-2 text-white" /> Generando...</>
-                ) : (
-                  <><SparklesIcon className="h-4 w-4 mr-1" /> Generar Plantilla</>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setIsGeneratingAI(false);
-                  setAiTemplateName('');
-                  setAiClinicalNote('');
-                }}
-                className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-colors"
               >
                 <XMarkIcon className="h-4 w-4 mr-1" />
                 Cancelar
@@ -337,7 +229,7 @@ NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos
                     <textarea
                       value={editingContent}
                       onChange={(e) => setEditingContent(e.target.value)}
-                      rows={10}
+                      rows={12}
                       className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
                     />
                   </div>
