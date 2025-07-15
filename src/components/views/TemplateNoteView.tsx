@@ -117,50 +117,53 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       {/* Tab Content */}
       {activeTab === 'note' && (
         <div className="space-y-6">
-          <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-              Información del Paciente
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                {patientInfo.length} caracteres
-              </span>
+          <div className="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 mb-4">
+            <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100 mb-2">
+              📝 Información del Paciente
+            </h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              Ingrese la información del paciente que desea incluir en la nota. Puede usar el micrófono para dictar.
+            </p>
+            <div className="relative">
+              <label htmlFor="patient-info" className="sr-only">
+                Información del paciente
+              </label>
+              <textarea
+                id="patient-info"
+                value={patientInfo + (interimTranscript ? ` ${interimTranscript}` : '')}
+                onChange={(e) => onPatientInfoChange(e.target.value)}
+                rows={6}
+                className="w-full p-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                placeholder="Ingrese la información del paciente que desea incluir en la nota..."
+              />
+              
               {isSpeechApiAvailable && (
                 <button
                   onClick={onToggleRecording}
-                  className={`inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded transition-colors ${
+                  className={`absolute bottom-3 right-3 p-2 rounded-full transition-all ${
                     isRecording
-                      ? 'text-red-700 bg-red-50 border-red-300 dark:text-red-400 dark:bg-red-900/20 dark:border-red-600'
-                      : 'text-neutral-700 bg-white hover:bg-neutral-50 dark:text-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700'
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-500'
                   }`}
+                  title={isRecording ? 'Detener grabación' : 'Iniciar grabación de voz'}
                 >
-                  <MicrophoneIcon className="h-3 w-3 mr-1" />
-                  {isRecording ? 'Detener' : 'Dictar'}
+                  <MicrophoneIcon className="h-4 w-4" />
                 </button>
               )}
             </div>
-          </div>
-
-          <div className="relative">
-            <textarea
-              value={patientInfo + interimTranscript}
-              onChange={(e) => onPatientInfoChange(e.target.value)}
-              placeholder="Ingrese la información del paciente que desea incluir en la nota..."
-              className="w-full h-32 p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-primary"
-              disabled={isGenerating}
-            />
-            {isRecording && (
-              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-                Grabando...
+            
+            {interimTranscript && (
+              <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded text-sm text-blue-800 dark:text-blue-200">
+                <span className="font-medium">Transcribiendo:</span> {interimTranscript}
+              </div>
+            )}
+            
+            {transcriptError && (
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-sm text-red-800 dark:text-red-200">
+                <span className="font-medium">Error de transcripción:</span> {transcriptError}
               </div>
             )}
           </div>
-
-          {transcriptError && (
-            <div className="text-sm text-red-500 dark:text-red-400">
-              Error de transcripción: {transcriptError}
-            </div>
-          )}
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -203,43 +206,41 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
         </div>
       )}
 
-      {activeTab === 'evidence' && (
-        <div className="space-y-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              🔬 Recomendaciones Basadas en Evidencia Científica
-            </h3>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              Obtenga recomendaciones clínicas fundamentadas en evidencia científica actual para mejorar 
-              la calidad de sus decisiones médicas.
-            </p>
-          </div>
-          
-          <EvidenceBasedConsultation 
-            onConsultationGenerated={(consultationText) => {
-              if (onEvidenceGenerated) {
-                onEvidenceGenerated(consultationText);
-              }
-            }}
-            autoAnalyzeContent={generatedNote || patientInfo}
-            enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
-          />
+      {/* Pestaña de Evidencia Científica - Siempre renderizada, solo oculta */}
+      <div className={`space-y-6 ${activeTab === 'evidence' ? 'block' : 'hidden'}`}>
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            🔬 Recomendaciones Basadas en Evidencia Científica
+          </h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            Obtenga recomendaciones clínicas fundamentadas en evidencia científica actual para mejorar 
+            la calidad de sus decisiones médicas.
+          </p>
         </div>
-      )}
+        
+        <EvidenceBasedConsultation 
+          onConsultationGenerated={(consultationText) => {
+            if (onEvidenceGenerated) {
+              onEvidenceGenerated(consultationText);
+            }
+          }}
+          autoAnalyzeContent={generatedNote || patientInfo}
+          enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
+        />
+      </div>
 
-      {activeTab === 'scales' && (
-        <div className="space-y-6">
-          <AIClinicalScales 
-            onScaleGenerated={(scaleText: string) => {
-              if (onScaleGenerated) {
-                onScaleGenerated(scaleText);
-              }
-            }}
-            autoAnalyzeContent={generatedNote || patientInfo}
-            enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
-          />
-        </div>
-      )}
+      {/* Pestaña de Escalas Clínicas - Siempre renderizada, solo oculta */}
+      <div className={`space-y-6 ${activeTab === 'scales' ? 'block' : 'hidden'}`}>
+        <AIClinicalScales 
+          onScaleGenerated={(scaleText: string) => {
+            if (onScaleGenerated) {
+              onScaleGenerated(scaleText);
+            }
+          }}
+          autoAnalyzeContent={generatedNote || patientInfo}
+          enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
+        />
+      </div>
     </section>
   );
 }; 
