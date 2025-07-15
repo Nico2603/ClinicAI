@@ -1,8 +1,12 @@
-import OpenAI from 'openai';
-import { 
-  OPENAI_MODEL_TEXT, 
-  TEMPERATURE_CONFIG, 
-  TOKEN_LIMITS, 
+import { OpenAI } from 'openai';
+import {
+  OPENAI_MODEL_TEXT,
+  OPENAI_MODEL_ADVANCED,
+  OPENAI_MODEL_LATEST,
+  OPENAI_MODEL_REASONING,
+  MEDICAL_AI_MODELS,
+  TEMPERATURE_CONFIG,
+  TOKEN_LIMITS,
   ERROR_MESSAGES,
   VALIDATION_RULES
 } from '../constants';
@@ -165,7 +169,7 @@ RECUERDA: La plantilla es un MOLDE VACÍO que defines la forma, pero NUNCA el co
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate,
       messages: [
         {
           role: "system",
@@ -176,8 +180,8 @@ RECUERDA: La plantilla es un MOLDE VACÍO que defines la forma, pero NUNCA el co
           content: prompt
         }
       ],
-      temperature: TEMPERATURE_CONFIG.TEMPLATE_GENERATION,
-      max_tokens: TOKEN_LIMITS.TEMPLATE_NOTE,
+      temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
+      max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
       top_p: 0.9
     });
 
@@ -270,7 +274,7 @@ ESCALA A EVALUAR: ${scaleName}
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateMedicalScale,
       messages: [
         {
           role: "system",
@@ -281,8 +285,8 @@ ESCALA A EVALUAR: ${scaleName}
           content: prompt
         }
       ],
-      temperature: TEMPERATURE_CONFIG.CLINICAL_SCALES,
-      max_tokens: TOKEN_LIMITS.CLINICAL_SCALE,
+      temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
+      max_tokens: TOKEN_LIMITS.MEDICAL_SCALE,
       top_p: 0.9
     });
 
@@ -368,7 +372,7 @@ RECUERDA: Estás creando un FORMATO REUTILIZABLE. Toda información específica 
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateTemplateFromClinicalNote,
       messages: [
         {
           role: "system",
@@ -379,8 +383,8 @@ RECUERDA: Estás creando un FORMATO REUTILIZABLE. Toda información específica 
           content: prompt
         }
       ],
-      temperature: 0.25, // Alta conservaduría para minimizar cambios innecesarios
-      max_tokens: 1800,
+      temperature: TEMPERATURE_CONFIG.TEMPLATE_GENERATION,
+      max_tokens: TOKEN_LIMITS.TEMPLATE_NOTE,
       top_p: 0.9
     });
 
@@ -465,7 +469,7 @@ ${newInformation}
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.updateClinicalNote,
       messages: [
         {
           role: "system",
@@ -476,8 +480,8 @@ ${newInformation}
           content: prompt
         }
       ],
-      temperature: 0.1, // Temperatura muy baja para máxima precisión y conservación
-      max_tokens: 2500,
+      temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
+      max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
       top_p: 0.8
     });
 
@@ -603,7 +607,7 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.analyzeClinicalContent,
       messages: [
         {
           role: "system",
@@ -614,8 +618,8 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
           content: prompt
         }
       ],
-      temperature: 0.1,
-      max_tokens: 3000,
+      temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
+      max_tokens: TOKEN_LIMITS.CLINICAL_ANALYSIS,
       top_p: 0.8
     });
 
@@ -699,7 +703,7 @@ Enfócate en proporcionar información práctica y actualizada que sea directame
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.searchEvidenceBasedRecommendations,
       messages: [
         {
           role: "system",
@@ -710,8 +714,8 @@ Enfócate en proporcionar información práctica y actualizada que sea directame
           content: prompt
         }
       ],
-      temperature: 0.1,
-      max_tokens: 2500,
+      temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
+      max_tokens: TOKEN_LIMITS.EVIDENCE_SUGGESTIONS,
       top_p: 0.8
     });
 
@@ -944,7 +948,7 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateSimplifiedEvidenceConsultation,
       messages: [
         {
           role: "system",
@@ -955,8 +959,8 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
           content: prompt
         }
       ],
-      temperature: 0.2,
-      max_tokens: 2000,
+      temperature: TEMPERATURE_CONFIG.CONSULTATION,
+      max_tokens: TOKEN_LIMITS.CONSULTATION,
       top_p: 0.9
     });
 
@@ -1060,7 +1064,7 @@ RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visu
 
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL_TEXT,
+      model: MEDICAL_AI_MODELS.AUXILIARY_FUNCTIONS.extractTemplateFormat,
       messages: [
         {
           role: "system",
@@ -1071,8 +1075,8 @@ RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visu
           content: prompt
         }
       ],
-      temperature: 0.1, // Muy baja para consistencia máxima
-      max_tokens: 2000,
+      temperature: TEMPERATURE_CONFIG.FORMAT_EXTRACTION,
+      max_tokens: TOKEN_LIMITS.FORMAT_EXTRACTION,
       top_p: 0.8
     });
 
@@ -1099,6 +1103,10 @@ export const validateOpenAIConfiguration = (): boolean => {
 export const getOpenAIModelInfo = () => {
   return {
     textModel: OPENAI_MODEL_TEXT,
+    advancedModel: OPENAI_MODEL_ADVANCED,
+    latestModel: OPENAI_MODEL_LATEST,
+    reasoningModel: OPENAI_MODEL_REASONING,
+    medicalModels: MEDICAL_AI_MODELS,
     temperatureConfig: TEMPERATURE_CONFIG,
     tokenLimits: TOKEN_LIMITS,
   };

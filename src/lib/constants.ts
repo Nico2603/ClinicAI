@@ -13,27 +13,79 @@ export const MAX_TEMPLATE_NAME_LENGTH = 100;
 export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS DE IA
+// CONFIGURACIÓN DE MODELOS DE IA OPTIMIZADOS POR TAREA
 // =============================================================================
 
-// Modelos OpenAI
+// Modelos OpenAI Base
 export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
 export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
 
-// Configuración de temperatura para diferentes tipos de generación
-export const TEMPERATURE_CONFIG = {
-  TEMPLATE_GENERATION: 0.3,
-  EVIDENCE_SUGGESTIONS: 0.2,
-  CLINICAL_SCALES: 0.1,
-  CONSULTATION: 0.2,
+// Modelos OpenAI Nuevos (2025)
+export const OPENAI_MODEL_LATEST = 'gpt-4.1';          // Último modelo con ventana de contexto 1M
+export const OPENAI_MODEL_REASONING = 'o1-preview';    // Especializado en razonamiento
+export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';  // Razonamiento económico
+
+// =============================================================================
+// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA
+// =============================================================================
+
+export const MEDICAL_AI_MODELS = {
+  // Funciones CRÍTICAS - Requieren máxima precisión
+  CRITICAL_MEDICAL_FUNCTIONS: {
+    generateNoteFromTemplate: 'gpt-4.1',           // Generación de notas médicas - CRÍTICO
+    updateClinicalNote: 'gpt-4.1',                 // Actualización de notas - CRÍTICO  
+    generateMedicalScale: 'o1-preview',             // Escalas médicas - Requiere razonamiento
+    analyzeClinicalContent: 'o1-preview',           // Análisis clínico complejo - Requiere razonamiento
+  },
+  
+  // Funciones IMPORTANTES - Requieren buena calidad
+  IMPORTANT_MEDICAL_FUNCTIONS: {
+    generateTemplateFromClinicalNote: 'gpt-4o',    // Análisis estructural
+    searchEvidenceBasedRecommendations: 'gpt-4o',  // Búsqueda de evidencia médica
+    generateSimplifiedEvidenceConsultation: 'gpt-4o', // Consultas de evidencia
+  },
+  
+  // Funciones AUXILIARES - Pueden usar modelos económicos
+  AUXILIARY_FUNCTIONS: {
+    extractTemplateFormat: 'gpt-4o-mini',          // Extracción de formato - tarea simple
+  }
 } as const;
 
-// Configuración de tokens
+// =============================================================================
+// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA POR FUNCIÓN
+// =============================================================================
+
+export const TEMPERATURE_CONFIG = {
+  // Funciones críticas - máxima precisión
+  CRITICAL_MEDICAL: 0.1,              // Para notas médicas y escalas
+  CLINICAL_REASONING: 0.2,             // Para análisis clínico complejo
+  
+  // Funciones importantes - buena precisión
+  TEMPLATE_GENERATION: 0.3,
+  EVIDENCE_SUGGESTIONS: 0.2,
+  CONSULTATION: 0.2,
+  
+  // Funciones auxiliares - pueden ser más creativas
+  FORMAT_EXTRACTION: 0.1,
+} as const;
+
+// =============================================================================
+// CONFIGURACIÓN DE TOKENS OPTIMIZADA
+// =============================================================================
+
 export const TOKEN_LIMITS = {
+  // Funciones críticas - más tokens para mejor análisis
+  CRITICAL_MEDICAL_NOTE: 3000,        // Notas médicas pueden ser extensas
+  CLINICAL_ANALYSIS: 4000,             // Análisis clínico complejo
+  MEDICAL_SCALE: 2000,                 // Escalas médicas detalladas
+  
+  // Funciones importantes - tokens moderados
   TEMPLATE_NOTE: 2000,
-  EVIDENCE_SUGGESTIONS: 1500,
-  CLINICAL_SCALE: 1000,
+  EVIDENCE_SUGGESTIONS: 2500,          // Aumentado para mejor evidencia
   CONSULTATION: 2000,
+  
+  // Funciones auxiliares - tokens básicos  
+  FORMAT_EXTRACTION: 1500,
 } as const;
 
 // =============================================================================
