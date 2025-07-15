@@ -86,6 +86,17 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   // Estado para el editor de notas
   const [noteForEditor, setNoteForEditor] = useState<HistoricNote | null>(null);
 
+  // Callback para el reconocimiento de voz
+  const handleTranscript = useCallback((transcript: string) => {
+    if (activeView === 'nota-plantilla') {
+      setPatientInfo(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    }
+  }, [activeView, setPatientInfo]);
+
+  const handleSpeechError = useCallback((error: string) => {
+    console.error('Speech recognition error:', error);
+  }, []);
+
   // Reconocimiento de voz
   const {
     isRecording,
@@ -94,7 +105,10 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     error: transcriptError,
     startRecording,
     stopRecording,
-  } = useSpeechRecognition();
+  } = useSpeechRecognition({
+    onTranscript: handleTranscript,
+    onError: handleSpeechError
+  });
 
   // Callbacks memoizados para evitar re-renders
   const handleToggleRecording = useCallback(() => {
@@ -164,15 +178,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     setActiveView('historial-notas');
   }, [setActiveView]);
 
-  // Efectos para transcript
-  useEffect(() => {
-    if (interimTranscript && activeView === 'nota-plantilla') {
-      setPatientInfo(prevInfo => {
-        const newInfo = prevInfo ? `${prevInfo} ${interimTranscript}` : interimTranscript;
-        return newInfo.trim();
-      });
-    }
-  }, [interimTranscript, activeView, setPatientInfo]);
+
 
   // Memoizar el título de la vista
   const viewTitle = useMemo(() => getViewTitle(activeView), [getViewTitle, activeView]);

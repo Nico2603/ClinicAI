@@ -130,7 +130,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
               </label>
               <textarea
                 id="patient-info"
-                value={patientInfo + (interimTranscript ? ` ${interimTranscript}` : '')}
+                value={patientInfo}
                 onChange={(e) => onPatientInfoChange(e.target.value)}
                 rows={6}
                 className="w-full p-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
