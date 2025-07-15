@@ -35,9 +35,47 @@ if (!API_KEY) {
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
-  timeout: 15000, // Reducido a 15 segundos
-  maxRetries: 1, // Solo 1 reintento para ser más rápido
+  timeout: 60000, // Aumentado a 60 segundos para operaciones complejas
+  maxRetries: 2, // 2 reintentos para mayor confiabilidad
 });
+
+// =============================================================================
+// UTILIDADES PARA COMPATIBILIDAD DE MODELOS
+// =============================================================================
+
+// Función para verificar si un modelo soporta mensajes de sistema
+const supportsSystemMessages = (model: string): boolean => {
+  // Los modelos o1 no soportan mensajes de sistema
+  return !model.startsWith('o1');
+};
+
+// Función para adaptar mensajes según las capacidades del modelo
+const adaptMessagesForModel = (model: string, systemMessage: string, userMessage: string) => {
+  if (supportsSystemMessages(model)) {
+    return [
+      { role: "system" as const, content: systemMessage },
+      { role: "user" as const, content: userMessage }
+    ];
+  } else {
+    // Para modelos o1, combinar el mensaje de sistema con el mensaje de usuario
+    const combinedMessage = `${systemMessage}\n\n${userMessage}`;
+    return [{ role: "user" as const, content: combinedMessage }];
+  }
+};
+
+// Función para adaptar parámetros según las capacidades del modelo
+const adaptParametersForModel = (model: string, baseParams: any) => {
+  if (model.startsWith('o1')) {
+    // Los modelos o1 tienen parámetros limitados
+    return {
+      model,
+      messages: baseParams.messages,
+      // No incluir temperature, top_p para modelos o1
+    };
+  } else {
+    return baseParams;
+  }
+};
 
 // =============================================================================
 // SISTEMA DE CACHÉ Y DEBOUNCING
@@ -141,7 +179,7 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
     if (error.message.includes('rate limit')) {
       return new Error('Límite de API excedido. Intenta en unos momentos.');
     }
-    if (error.message.includes('timeout') || error.message.includes('timed out')) {
+    if (error.message.includes('timeout') || error.message.includes('timed out') || error.message.includes('Request timed out')) {
       return new Error('Tiempo de espera agotado. Intenta con contenido más breve.');
     }
     if (error.message.includes('network') || error.message.includes('fetch')) {
@@ -152,6 +190,12 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
     }
     if (error.message.includes('context_length_exceeded')) {
       return new Error('Contenido demasiado largo. Reduce el texto.');
+    }
+    if (error.message.includes('Unsupported value') && error.message.includes('system')) {
+      return new Error('Error en configuración del modelo. El modelo no soporta mensajes de sistema.');
+    }
+    if (error.message.includes('Unsupported parameter')) {
+      return new Error('Error en configuración del modelo. Parámetros no soportados.');
     }
     return new Error(`Error en ${context}: ${error.message}`);
   }
@@ -203,22 +247,21 @@ INSTRUCCIONES CRÍTICAS:
 Genera la nota médica completada:`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate,
-        messages: [
-          {
-            role: "system",
-            content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
+      const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate;
+      const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes.";
+      
+      const messages = adaptMessagesForModel(model, systemMessage, prompt);
+      
+      const baseParams = {
+        model,
+        messages,
         temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
         max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
         top_p: 0.9
-      });
+      };
+      
+      const adaptedParams = adaptParametersForModel(model, baseParams);
+      const response = await openai.chat.completions.create(adaptedParams);
 
       const generatedText = response.choices[0]?.message?.content || '';
       
@@ -314,22 +357,21 @@ ESCALA A EVALUAR: ${scaleName}
 **REGLA FUNDAMENTAL:** Solo usa información explícitamente proporcionada. Si no hay suficiente información para evaluar la escala completa, sé transparente sobre las limitaciones.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateMedicalScale,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. SOLO usas información explícitamente proporcionada para puntuar escalas, NUNCA inventas datos. Eres transparente sobre limitaciones cuando falta información."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateMedicalScale;
+    const systemMessage = "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. SOLO usas información explícitamente proporcionada para puntuar escalas, NUNCA inventas datos. Eres transparente sobre limitaciones cuando falta información.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
       max_tokens: TOKEN_LIMITS.MEDICAL_SCALE,
       top_p: 0.9
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const result = response.choices[0]?.message?.content || '';
     
@@ -422,22 +464,21 @@ ${newInformation}
 **REGLA FUNDAMENTAL:** Solo actualiza lo que está explícitamente mencionado en la nueva información. NUNCA inventes, completes o asumas datos adicionales.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.updateClinicalNote,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. SOLO usas información explícitamente proporcionada, NUNCA inventas datos adicionales. Preservas la estructura original y modificas únicamente lo estrictamente necesario."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.updateClinicalNote;
+    const systemMessage = "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. SOLO usas información explícitamente proporcionada, NUNCA inventas datos adicionales. Preservas la estructura original y modificas únicamente lo estrictamente necesario.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
       max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
       top_p: 0.8
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const generatedText = response.choices[0]?.message?.content || '';
     return { 
@@ -554,22 +595,21 @@ CRITERIOS DE CALIDAD:
 Asegúrate de que la respuesta sea un JSON válido y completo.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.analyzeClinicalContent,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un asistente médico experto en análisis clínico basado en evidencia científica. Proporcionas recomendaciones precisas basadas en la mejor evidencia disponible, siempre en formato JSON válido."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.analyzeClinicalContent;
+    const systemMessage = "Eres un asistente médico experto en análisis clínico basado en evidencia científica. Proporcionas recomendaciones precisas basadas en la mejor evidencia disponible, siempre en formato JSON válido.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
       max_tokens: TOKEN_LIMITS.CLINICAL_ANALYSIS,
       top_p: 0.8
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const responseText = response.choices[0]?.message?.content || '';
     
@@ -650,22 +690,21 @@ FORMATO DE RESPUESTA REQUERIDO (JSON válido):
 Enfócate en proporcionar información práctica y actualizada que sea directamente aplicable al contexto clínico.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.searchEvidenceBasedRecommendations,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un experto en medicina basada en evidencia que proporciona búsquedas precisas en literatura médica. Respondes siempre en formato JSON válido con información científicamente respaldada."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.searchEvidenceBasedRecommendations;
+    const systemMessage = "Eres un experto en medicina basada en evidencia que proporciona búsquedas precisas en literatura médica. Respondes siempre en formato JSON válido con información científicamente respaldada.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
       max_tokens: TOKEN_LIMITS.EVIDENCE_SUGGESTIONS,
       top_p: 0.8
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const responseText = response.choices[0]?.message?.content || '';
     
@@ -907,22 +946,21 @@ FUENTES RECOMENDADAS PARA CITAR:
 Proporciona un análisis completo y recomendaciones prácticas que apoyen la toma de decisiones clínicas.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateSimplifiedEvidenceConsultation,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un médico especialista experto en medicina basada en evidencia. Proporcionas análisis clínicos completos con recomendaciones respaldadas por literatura científica actual. Siempre incluyes citas relevantes y mantienes un enfoque práctico y profesional."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateSimplifiedEvidenceConsultation;
+    const systemMessage = "Eres un médico especialista experto en medicina basada en evidencia. Proporcionas análisis clínicos completos con recomendaciones respaldadas por literatura científica actual. Siempre incluyes citas relevantes y mantienes un enfoque práctico y profesional.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.CONSULTATION,
       max_tokens: TOKEN_LIMITS.CONSULTATION,
       top_p: 0.9
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const result = response.choices[0]?.message?.content || '';
     
@@ -1029,22 +1067,21 @@ ${trimmedContent}
 RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visual exacta pero que pueda usarse para CUALQUIER paciente, sin datos específicos del caso original.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.AUXILIARY_FUNCTIONS.extractTemplateFormat,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un experto en crear moldes estructurales de documentos médicos. Tu especialidad es convertir plantillas con datos específicos en formatos puros reutilizables, eliminando TODA información del paciente original y creando marcadores genéricos universales."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const model = MEDICAL_AI_MODELS.AUXILIARY_FUNCTIONS.extractTemplateFormat;
+    const systemMessage = "Eres un experto en crear moldes estructurales de documentos médicos. Tu especialidad es convertir plantillas con datos específicos en formatos puros reutilizables, eliminando TODA información del paciente original y creando marcadores genéricos universales.";
+    
+    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    
+    const baseParams = {
+      model,
+      messages,
       temperature: TEMPERATURE_CONFIG.FORMAT_EXTRACTION,
       max_tokens: TOKEN_LIMITS.FORMAT_EXTRACTION,
       top_p: 0.8
-    });
+    };
+    
+    const adaptedParams = adaptParametersForModel(model, baseParams);
+    const response = await openai.chat.completions.create(adaptedParams);
 
     const result = response.choices[0]?.message?.content || '';
     

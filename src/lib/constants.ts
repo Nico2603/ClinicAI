@@ -21,32 +21,32 @@ export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
 export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
 
 // Modelos OpenAI Nuevos (2025)
-export const OPENAI_MODEL_LATEST = 'gpt-4.1';          // Último modelo con ventana de contexto 1M
-export const OPENAI_MODEL_REASONING = 'o1-preview';    // Especializado en razonamiento
-export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';  // Razonamiento económico
+export const OPENAI_MODEL_LATEST = 'o4-mini-2025-04-16';          // Modelo principal o4-mini específico
+export const OPENAI_MODEL_REASONING = 'o1-preview';               // Especializado en razonamiento (con limitaciones)
+export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';             // Razonamiento económico (con limitaciones)
 
 // =============================================================================
 // CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA
 // =============================================================================
 
 export const MEDICAL_AI_MODELS = {
-  // Funciones CRÍTICAS - Requieren máxima precisión
+  // Funciones CRÍTICAS - Usando el modelo o4-mini-2025-04-16 específicamente solicitado
   CRITICAL_MEDICAL_FUNCTIONS: {
-    generateNoteFromTemplate: 'gpt-4.1',           // Generación de notas médicas - CRÍTICO
-    updateClinicalNote: 'gpt-4.1',                 // Actualización de notas - CRÍTICO  
-    generateMedicalScale: 'o1-preview',             // Escalas médicas - Requiere razonamiento
-    analyzeClinicalContent: 'o1-preview',           // Análisis clínico complejo - Requiere razonamiento
+    generateNoteFromTemplate: 'o4-mini-2025-04-16',               // Generación de notas médicas - CRÍTICO
+    updateClinicalNote: 'o4-mini-2025-04-16',                     // Actualización de notas - CRÍTICO  
+    generateMedicalScale: 'o4-mini-2025-04-16',                   // Escalas médicas - Modelo específico solicitado
+    analyzeClinicalContent: 'o4-mini-2025-04-16',                 // Análisis clínico complejo - Modelo específico solicitado
   },
   
-  // Funciones IMPORTANTES - Requieren buena calidad
+  // Funciones IMPORTANTES - Usando el modelo o4-mini-2025-04-16 para consistencia
   IMPORTANT_MEDICAL_FUNCTIONS: {
-    searchEvidenceBasedRecommendations: 'gpt-4o',  // Búsqueda de evidencia médica
-    generateSimplifiedEvidenceConsultation: 'gpt-4o', // Consultas de evidencia
+    searchEvidenceBasedRecommendations: 'o4-mini-2025-04-16',     // Búsqueda de evidencia médica
+    generateSimplifiedEvidenceConsultation: 'o4-mini-2025-04-16', // Consultas de evidencia
   },
   
   // Funciones AUXILIARES - Pueden usar modelos económicos
   AUXILIARY_FUNCTIONS: {
-    extractTemplateFormat: 'gpt-4o-mini',          // Extracción de formato - tarea simple
+    extractTemplateFormat: 'gpt-4o-mini',                         // Extracción de formato - tarea simple
   }
 } as const;
 
