@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserTemplate } from '@/types';
-import { SimpleTemplateEditor } from '../';
+import CustomTemplateManager from '../notes/CustomTemplateManager';
 
 interface TemplatesViewProps {
   selectedTemplate: UserTemplate | null;
@@ -26,13 +26,8 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
         Editor de Plantillas
       </h2>
       
-      <SimpleTemplateEditor
-        onSelectTemplate={(templateId: string) => {
-          const template = userTemplates.find(t => t.id === templateId);
-          if (template) {
-            onSelectTemplate(template);
-          }
-        }}
+      <CustomTemplateManager
+        onSelectTemplate={onSelectTemplate}
         selectedTemplateId={selectedTemplate?.id}
       />
     </section>
