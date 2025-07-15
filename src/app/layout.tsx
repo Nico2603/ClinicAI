@@ -4,7 +4,7 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ClientOnly from '@/components/ClientOnly'
-import SessionWarningDialog from '@/components/SessionWarningDialog'
+import { SessionWarningDialog } from '@/components/SessionWarningDialog'
 
 const inter = Inter({ subsets: ['latin'] })
 

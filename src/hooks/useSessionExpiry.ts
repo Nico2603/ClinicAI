@@ -65,30 +65,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
     }
   }, []);
 
-  // Extender sesión automáticamente por 1 hora
-  const extendSessionAutomatically = useCallback(async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error || !session) {
-        console.error('❌ No se puede extender sesión automáticamente:', error);
-        return false;
-      }
 
-      // Extender la sesión por 1 hora más
-      const newExpiryTime = Date.now() + (60 * 60 * 1000); // 1 hora
-      console.log('🔄 Sesión extendida automáticamente por 1 hora');
-      
-      // Reiniciar timer con nueva duración
-      resetSessionTimer();
-      registerActivity();
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Error al extender sesión automáticamente:', error);
-      return false;
-    }
-  }, []);
 
   // Forzar recarga completa (como Ctrl+Shift+R)
   const forceHardRefresh = useCallback(() => {
@@ -112,6 +89,56 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       window.location.reload();
     }
   }, []);
+
+
+
+  // Registrar actividad del usuario
+  const registerActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  // Resetear timers de sesión
+  const resetSessionTimer = useCallback(() => {
+    // Limpiar timers existentes
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current);
+    }
+    if (warningTimeoutRef.current) {
+      clearTimeout(warningTimeoutRef.current);
+    }
+
+    // Configurar nuevo timer de expiración (sin popup de aviso)
+    sessionTimeoutRef.current = setTimeout(() => {
+      handleSessionExpiry();
+    }, sessionTimeoutMs);
+
+    console.log(`🔄 Timer de sesión reiniciado: ${sessionTimeoutMs / 1000 / 60} minutos`);
+  }, [sessionTimeoutMs]);
+
+  // Extender sesión automáticamente por 1 hora
+  const extendSessionAutomatically = useCallback(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.error('❌ No se puede extender sesión automáticamente:', error);
+        return false;
+      }
+
+      // Extender la sesión por 1 hora más
+      const newExpiryTime = Date.now() + (60 * 60 * 1000); // 1 hora
+      console.log('🔄 Sesión extendida automáticamente por 1 hora');
+      
+      // Reiniciar timer con nueva duración
+      resetSessionTimer();
+      registerActivity();
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error al extender sesión automáticamente:', error);
+      return false;
+    }
+  }, [resetSessionTimer, registerActivity]);
 
   // Manejar expiración de sesión automáticamente
   const handleSessionExpiry = useCallback(async () => {
@@ -153,29 +180,6 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       forceHardRefresh();
     }
   }, [extendSessionAutomatically, clearUserLocalStorage, onCleanupLocalData, onSessionExpiry, onForceRefresh, forceHardRefresh]);
-
-  // Registrar actividad del usuario
-  const registerActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
-  }, []);
-
-  // Resetear timers de sesión
-  const resetSessionTimer = useCallback(() => {
-    // Limpiar timers existentes
-    if (sessionTimeoutRef.current) {
-      clearTimeout(sessionTimeoutRef.current);
-    }
-    if (warningTimeoutRef.current) {
-      clearTimeout(warningTimeoutRef.current);
-    }
-
-    // Configurar nuevo timer de expiración (sin popup de aviso)
-    sessionTimeoutRef.current = setTimeout(() => {
-      handleSessionExpiry();
-    }, sessionTimeoutMs);
-
-    console.log(`🔄 Timer de sesión reiniciado: ${sessionTimeoutMs / 1000 / 60} minutos`);
-  }, [sessionTimeoutMs, handleSessionExpiry]);
 
   // Verificar estado de la sesión
   const checkSessionHealth = useCallback(async () => {
