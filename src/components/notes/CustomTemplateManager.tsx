@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useUserTemplates } from '../../hooks/useDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
-import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
+import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
 import { extractTemplateFormat } from '../../lib/services/openaiService';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { Button } from '../ui/button';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -34,7 +36,57 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
+  // Speech Recognition para el contenido de la plantilla
+  const { 
+    isRecording, 
+    isSupported: isSpeechApiAvailable, 
+    interimTranscript, 
+    error: transcriptError, 
+    startRecording, 
+    stopRecording 
+  } = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      setNewTemplateContent(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
+    }
+  });
+
+  // Speech Recognition para edición de contenido
+  const { 
+    isRecording: isRecordingEdit, 
+    isSupported: isSpeechApiAvailableEdit, 
+    interimTranscript: interimTranscriptEdit, 
+    error: transcriptErrorEdit, 
+    startRecording: startRecordingEdit, 
+    stopRecording: stopRecordingEdit 
+  } = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      setEditingContent(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error) => {
+      console.error('Speech recognition error in edit mode:', error);
+    }
+  });
+
   if (!user) return null;
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleToggleRecordingEdit = () => {
+    if (isRecordingEdit) {
+      stopRecordingEdit();
+    } else {
+      startRecordingEdit();
+    }
+  };
 
   const handleCreateTemplate = async () => {
     if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
@@ -170,18 +222,40 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Ejemplo de contenido (con datos de paciente)
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Ejemplo de contenido (con datos de paciente)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {newTemplateContent.length} caracteres
+                  </span>
+                  {isSpeechApiAvailable && (
+                    <Button
+                      onClick={handleToggleRecording}
+                      variant="outline"
+                      size="sm"
+                      disabled={isProcessing}
+                      className={`flex items-center gap-2 ${
+                        isRecording ? 'bg-red-50 text-red-600 border-red-300' : 'text-neutral-600'
+                      }`}
+                    >
+                      <MicrophoneIcon className="h-4 w-4" />
+                      {isRecording ? 'Detener' : 'Dictar'}
+                    </Button>
+                  )}
+                </div>
+              </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
                 💡 Ingrese un ejemplo completo con datos de un paciente. El sistema extraerá automáticamente solo la estructura para crear una plantilla reutilizable.
               </p>
-              <textarea
-                value={newTemplateContent}
-                onChange={(e) => setNewTemplateContent(e.target.value)}
-                rows={12}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente. Por ejemplo:
+              <div className="relative">
+                <textarea
+                  value={newTemplateContent}
+                  onChange={(e) => setNewTemplateContent(e.target.value)}
+                  rows={12}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+                  placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente. Por ejemplo:
 
 CONSULTA MEDICINA INTERNA
 
@@ -193,8 +267,24 @@ MOTIVO DE CONSULTA:
 Dolor abdominal desde hace 3 días...
 
 El sistema extraerá automáticamente la estructura y creará marcadores genéricos."
-                disabled={isProcessing}
-              />
+                  disabled={isProcessing}
+                />
+                {isRecording && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                    Grabando...
+                  </div>
+                )}
+              </div>
+              {interimTranscript && (
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 italic mt-1">
+                  Transcripción en progreso: {interimTranscript}
+                </p>
+              )}
+              {transcriptError && (
+                <p className="text-sm text-red-500 mt-1">
+                  Error de transcripción: {transcriptError}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -266,15 +356,52 @@ El sistema extraerá automáticamente la estructura y creará marcadores genéri
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                      Contenido de la plantilla
-                    </label>
-                    <textarea
-                      value={editingContent}
-                      onChange={(e) => setEditingContent(e.target.value)}
-                      rows={12}
-                      className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                    />
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                        Contenido de la plantilla
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {editingContent.length} caracteres
+                        </span>
+                        {isSpeechApiAvailableEdit && (
+                          <Button
+                            onClick={handleToggleRecordingEdit}
+                            variant="outline"
+                            size="sm"
+                            className={`flex items-center gap-2 ${
+                              isRecordingEdit ? 'bg-red-50 text-red-600 border-red-300' : 'text-neutral-600'
+                            }`}
+                          >
+                            <MicrophoneIcon className="h-4 w-4" />
+                            {isRecordingEdit ? 'Detener' : 'Dictar'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        rows={12}
+                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+                      />
+                      {isRecordingEdit && (
+                        <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                          Grabando...
+                        </div>
+                      )}
+                    </div>
+                    {interimTranscriptEdit && (
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 italic mt-1">
+                        Transcripción en progreso: {interimTranscriptEdit}
+                      </p>
+                    )}
+                    {transcriptErrorEdit && (
+                      <p className="text-sm text-red-500 mt-1">
+                        Error de transcripción: {transcriptErrorEdit}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
