@@ -45,6 +45,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isTrackingRef = useRef(false);
 
   // Detectar si la página está realmente cargando
   const isPageReallyLoading = useCallback(() => {
@@ -75,8 +76,14 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
 
   // Iniciar seguimiento de carga
   const startLoadingTracking = useCallback(() => {
+    // Evitar iniciar tracking múltiple
+    if (isTrackingRef.current) {
+      return;
+    }
+
     const startTime = Date.now();
     loadingStartRef.current = startTime;
+    isTrackingRef.current = true;
     
     setLoadingState(prev => ({
       ...prev,
@@ -85,15 +92,23 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       loadingDuration: 0
     }));
 
+    // Limpiar timer anterior si existe
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+    }
+
     // Timer para detectar carga excesiva
     loadingTimerRef.current = setTimeout(() => {
-      setLoadingState(prev => ({
-        ...prev,
-        isStuck: true
-      }));
-      
-      console.warn('⚠️ Estado de carga excesivo detectado');
-      onExcessiveLoading?.();
+      // Solo mostrar warning si aún está cargando
+      if (isTrackingRef.current) {
+        setLoadingState(prev => ({
+          ...prev,
+          isStuck: true
+        }));
+        
+        console.warn('⚠️ Estado de carga excesivo detectado');
+        onExcessiveLoading?.();
+      }
     }, maxLoadingTime);
 
     console.log('🔄 Iniciando seguimiento de carga');
@@ -101,6 +116,11 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
 
   // Detener seguimiento de carga
   const stopLoadingTracking = useCallback(() => {
+    // Solo detener si está tracking
+    if (!isTrackingRef.current) {
+      return;
+    }
+
     if (loadingTimerRef.current) {
       clearTimeout(loadingTimerRef.current);
       loadingTimerRef.current = null;
@@ -117,6 +137,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
     }));
 
     loadingStartRef.current = null;
+    isTrackingRef.current = false;
     console.log(`✅ Carga completada en ${duration}ms`);
   }, []);
 
@@ -135,6 +156,8 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       if (activityCheckIntervalRef.current) {
         clearInterval(activityCheckIntervalRef.current);
       }
+      
+      isTrackingRef.current = false;
       
       // Callback personalizado
       onForceReload?.();
@@ -164,12 +187,12 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       onInactivityDetected?.();
     }
     
-    // Verificar si la carga está atascada
-    if (loadingState.isLoading && !isPageReallyLoading()) {
+    // Verificar si la carga está atascada solo si estamos tracking
+    if (isTrackingRef.current && loadingState.isLoading && !isPageReallyLoading()) {
       console.warn('⚠️ Carga fantasma detectada');
       stopLoadingTracking();
     }
-  }, [loadingState, inactivityTimeout, onInactivityDetected, isPageReallyLoading, stopLoadingTracking]);
+  }, [loadingState.lastActivity, loadingState.isLoading, inactivityTimeout, onInactivityDetected, isPageReallyLoading, stopLoadingTracking]);
 
   // Recuperar de estado problemático
   const recoverFromStuckState = useCallback(() => {
@@ -220,13 +243,13 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
     };
   }, [registerActivity, enabled]);
 
-  // Configurar verificación periódica de salud
+  // Configurar verificación periódica de salud (reducida frecuencia)
   useEffect(() => {
     if (!enabled) return;
     
     activityCheckIntervalRef.current = setInterval(() => {
       checkApplicationHealth();
-    }, 5000); // Verificar cada 5 segundos
+    }, 10000); // Verificar cada 10 segundos en lugar de 5
 
     return () => {
       if (activityCheckIntervalRef.current) {
@@ -270,21 +293,17 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
 
   // Limpiar timers al desmontar
   useEffect(() => {
-    // Capturar los valores actuales de los refs para usar en la limpieza
-    const loadingTimer = loadingTimerRef.current;
-    const inactivityTimer = inactivityTimerRef.current;
-    const activityCheckInterval = activityCheckIntervalRef.current;
-    
     return () => {
-      if (loadingTimer) {
-        clearTimeout(loadingTimer);
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
       }
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
       }
-      if (activityCheckInterval) {
-        clearInterval(activityCheckInterval);
+      if (activityCheckIntervalRef.current) {
+        clearInterval(activityCheckIntervalRef.current);
       }
+      isTrackingRef.current = false;
     };
   }, []);
 

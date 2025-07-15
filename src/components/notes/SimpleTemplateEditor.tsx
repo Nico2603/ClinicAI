@@ -37,6 +37,7 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
   // Detector de carga excesiva
   const { startLoadingTracking, stopLoadingTracking, forceEmergencyReload } = useLoadingDetector({
     maxLoadingTime: 12000, // 12 segundos antes de mostrar advertencia
+    enabled: true, // Solo habilitado cuando es necesario
     onExcessiveLoading: () => {
       console.warn('Carga excesiva detectada en Editor de Plantillas');
     },
@@ -52,7 +53,14 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
     } else {
       stopLoadingTracking();
     }
-  }, [isLoading, startLoadingTracking, stopLoadingTracking]);
+    
+    // Cleanup al cambiar el estado o al desmontar
+    return () => {
+      if (!isLoading) {
+        stopLoadingTracking();
+      }
+    };
+  }, [isLoading]); // Remover las funciones de las dependencias para evitar re-ejecuciones
 
   // Función de retry inteligente
   const handleRetry = () => {
