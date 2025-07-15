@@ -81,7 +81,7 @@ export interface GeneratedNote {
 
 export interface HistoricNote {
   id: string;
-  type: 'template' | 'suggestion' | 'scale';
+  type: 'template' | 'suggestion' | 'scale' | 'evidence';
   timestamp: string;
   originalInput: string;
   content: string;

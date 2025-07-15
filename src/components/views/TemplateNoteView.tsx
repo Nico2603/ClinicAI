@@ -19,6 +19,8 @@ interface TemplateNoteViewProps {
   transcriptError: string | null;
   onClearError: () => void;
   onNoteGenerated?: (note: string) => void;
+  onEvidenceGenerated?: (evidence: string) => void;
+  onScaleGenerated?: (scale: string) => void;
 }
 
 export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
@@ -38,6 +40,8 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   transcriptError,
   onClearError,
   onNoteGenerated,
+  onEvidenceGenerated,
+  onScaleGenerated,
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
@@ -213,8 +217,8 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
           
           <EvidenceBasedConsultation 
             onConsultationGenerated={(consultationText) => {
-              if (onNoteGenerated) {
-                onNoteGenerated(consultationText);
+              if (onEvidenceGenerated) {
+                onEvidenceGenerated(consultationText);
               }
             }}
             autoAnalyzeContent={generatedNote || patientInfo}
@@ -227,8 +231,8 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
         <div className="space-y-6">
           <AIClinicalScales 
             onScaleGenerated={(scaleText: string) => {
-              if (onNoteGenerated) {
-                onNoteGenerated(scaleText);
+              if (onScaleGenerated) {
+                onScaleGenerated(scaleText);
               }
             }}
             autoAnalyzeContent={generatedNote || patientInfo}

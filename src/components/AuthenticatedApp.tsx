@@ -283,6 +283,20 @@ const AuthenticatedApp: React.FC = () => {
                   content: note,
                 });
               }}
+              onEvidenceGenerated={(evidence) => {
+                addNoteToHistory({
+                  type: 'evidence',
+                  originalInput: patientInfo,
+                  content: evidence,
+                });
+              }}
+              onScaleGenerated={(scale) => {
+                addNoteToHistory({
+                  type: 'scale',
+                  originalInput: patientInfo,
+                  content: scale,
+                });
+              }}
             />
           )}
 

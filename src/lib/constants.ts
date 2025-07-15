@@ -54,7 +54,7 @@ export const SPEECH_CONFIG = {
 // Títulos de vistas
 export const VIEW_TITLES = {
   'nota-plantilla': 'Generador de Nota',
-  'historial-notas': 'Historial de Notas',
+  'historial-notas': 'Historial',
   templates: 'Editor de Plantillas',
   'note-updater': 'Actualizador de Notas',
   'note-editor': 'Editor de Nota',
