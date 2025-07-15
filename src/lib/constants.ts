@@ -67,10 +67,9 @@ export const MEDICAL_SCALES = [
 
 // Títulos de vistas
 export const VIEW_TITLES = {
-  templates: 'Editor de Plantillas',
   'nota-plantilla': 'Nota con Plantilla',
-  'escalas-clinicas': 'Escalas Clínicas',
-  'consulta-evidencia': 'Consulta Basada en Evidencia',
+  'historial-notas': 'Historial de Notas',
+  templates: 'Editor de Plantillas',
   'note-updater': 'Actualizador de Notas',
 } as const;
 

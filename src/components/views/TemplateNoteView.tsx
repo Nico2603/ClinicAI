@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
-import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../';
+import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, ClinicalScaleGenerator, EvidenceBasedConsultation } from '../';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -18,6 +18,7 @@ interface TemplateNoteViewProps {
   interimTranscript: string;
   transcriptError: string | null;
   onClearError: () => void;
+  onNoteGenerated?: (note: string) => void;
 }
 
 export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
@@ -36,7 +37,10 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   interimTranscript,
   transcriptError,
   onClearError,
+  onNoteGenerated,
 }) => {
+  const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
+
   if (!selectedTemplate) {
     return (
       <section className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
@@ -58,6 +62,12 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     );
   }
 
+  const tabs = [
+    { id: 'note', label: 'Generación de Nota', icon: '📝' },
+    { id: 'evidence', label: 'Evidencia Científica', icon: '🔬' },
+    { id: 'scales', label: 'Escalas Clínicas', icon: '📊' },
+  ];
+
   return (
     <section 
       aria-labelledby="template-note-heading" 
@@ -76,74 +86,162 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
           </button>
         </div>
       </div>
-      
-      <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-        <label htmlFor="patient-info" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Información del Paciente (para plantilla)
-        </label>
-        {isSpeechApiAvailable && (
-          <button
-            onClick={onToggleRecording}
-            disabled={!isSpeechApiAvailable} 
-            className={`p-2 rounded-full transition-colors shrink-0 ${
-              isRecording 
-                ? 'bg-red-500 hover:bg-red-600 text-white' 
-                : 'bg-secondary hover:bg-secondary-dark text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            title={isRecording ? 'Detener dictado' : 'Iniciar dictado por voz'}
-            aria-label={isRecording ? 'Detener dictado por voz' : 'Iniciar dictado por voz para información del paciente'}
-          >
-            <MicrophoneIcon className="h-5 w-5" />
-          </button>
-        )}
+
+      {/* Tabs Navigation */}
+      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
+        <nav className="flex space-x-8">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as 'note' | 'evidence' | 'scales')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300'
+              }`}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
-      
-      <textarea
-        id="patient-info"
-        value={patientInfo}
-        onChange={(e) => { onPatientInfoChange(e.target.value); onClearError(); }}
-        rows={5}
-        className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 mb-1 transition-colors text-sm md:text-base"
-        placeholder="Ingrese aquí los datos del paciente, síntomas, observaciones para completar la plantilla... o use el botón de micrófono para dictar."
-      />
-      
-      {!isSpeechApiAvailable && (
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 mb-2">
-          El dictado por voz no es compatible con este navegador.
-        </p>
+
+      {/* Tab Content */}
+      {activeTab === 'note' && (
+        <div className="space-y-6">
+          <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Información del Paciente
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                {patientInfo.length} caracteres
+              </span>
+              {isSpeechApiAvailable && (
+                <button
+                  onClick={onToggleRecording}
+                  className={`inline-flex items-center px-2 py-1 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded transition-colors ${
+                    isRecording
+                      ? 'text-red-700 bg-red-50 border-red-300 dark:text-red-400 dark:bg-red-900/20 dark:border-red-600'
+                      : 'text-neutral-700 bg-white hover:bg-neutral-50 dark:text-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  <MicrophoneIcon className="h-3 w-3 mr-1" />
+                  {isRecording ? 'Detener' : 'Dictar'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relative">
+            <textarea
+              value={patientInfo + interimTranscript}
+              onChange={(e) => onPatientInfoChange(e.target.value)}
+              placeholder="Ingrese la información del paciente que desea incluir en la nota..."
+              className="w-full h-32 p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-primary"
+              disabled={isGenerating}
+            />
+            {isRecording && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                Grabando...
+              </div>
+            )}
+          </div>
+
+          {transcriptError && (
+            <div className="text-sm text-red-500 dark:text-red-400">
+              Error de transcripción: {transcriptError}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onGenerateNote}
+              disabled={isGenerating || !patientInfo.trim()}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isGenerating ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="h-4 w-4 mr-2" />
+                  Generar Nota
+                </>
+              )}
+            </button>
+            {onClearError && (
+              <button
+                onClick={onClearError}
+                className="inline-flex items-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {generatedNote && (
+            <div className="mt-6">
+              <NoteDisplay
+                note={generatedNote}
+                title="Nota Generada"
+                isLoading={isGenerating}
+                groundingMetadata={groundingMetadata}
+              />
+            </div>
+          )}
+        </div>
       )}
-      
-      {interimTranscript && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 p-2 bg-neutral-100 dark:bg-neutral-700/50 rounded-md my-2">
-          <i>{interimTranscript}</i>
-        </p>
+
+      {activeTab === 'evidence' && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              🔬 Recomendaciones Basadas en Evidencia Científica
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Obtenga recomendaciones clínicas fundamentadas en evidencia científica actual para mejorar 
+              la calidad de sus decisiones médicas.
+            </p>
+          </div>
+          
+          <EvidenceBasedConsultation 
+            onConsultationGenerated={(consultationText) => {
+              if (onNoteGenerated) {
+                onNoteGenerated(consultationText);
+              }
+            }}
+            autoAnalyzeContent={generatedNote || patientInfo}
+            enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
+          />
+        </div>
       )}
-      
-      {transcriptError && (
-        <p className="text-xs text-red-600 dark:text-red-400 mt-1 mb-2">
-          {transcriptError}
-        </p>
+
+      {activeTab === 'scales' && (
+        <div className="space-y-6">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-4">
+            <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+              📊 Escalas Clínicas Inteligentes
+            </h3>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              Aplique escalas clínicas automatizadas que se calculan inteligentemente tomando los datos 
+              de la información del paciente o la nota generada.
+            </p>
+          </div>
+          
+          <ClinicalScaleGenerator 
+            onScaleGenerated={(scaleText) => {
+              if (onNoteGenerated) {
+                onNoteGenerated(scaleText);
+              }
+            }}
+            existingNoteContent={generatedNote || patientInfo}
+          />
+        </div>
       )}
-      
-      <button
-        onClick={onGenerateNote}
-        disabled={isGenerating || isRecording}
-        className="w-full mt-3 inline-flex items-center justify-center px-4 md:px-6 py-3 border border-transparent text-sm md:text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark disabled:opacity-60 dark:focus:ring-offset-neutral-900 transition-colors"
-      >
-        {isGenerating ? (
-          <> <LoadingSpinner className="text-white mr-2" /> Generando Nota...</>
-        ) : (
-          <> <SparklesIcon className="h-5 w-5 mr-2" /> Generar Nota con Plantilla </>
-        )}
-      </button>
-      
-      <NoteDisplay
-        note={generatedNote}
-        onNoteChange={onUpdateNote}
-        title={`Nota Clínica: ${selectedTemplate.name}`}
-        isLoading={isGenerating}
-        groundingMetadata={groundingMetadata}
-      />
     </section>
   );
 }; 

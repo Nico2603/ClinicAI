@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Theme, ActiveView } from '../../types'; // Import ActiveView
+import { Theme, ActiveView, HistoricNote, UserTemplate } from '../../types';
 import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, SparklesIcon, ClockIcon, EditIcon, LightBulbIcon, CalculatorIcon, SearchIcon } from './Icons';
 
 interface SidebarProps {
@@ -9,11 +9,25 @@ interface SidebarProps {
   setActiveView: (view: ActiveView) => void;
   theme: Theme;
   toggleTheme: () => void;
+  historicNotes?: HistoricNote[];
+  userTemplates?: UserTemplate[];
+  onLoadNoteInEditor?: (note: HistoricNote) => void;
+  onLoadNoteInUpdater?: (note: HistoricNote) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, toggleTheme }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+  activeView, 
+  setActiveView, 
+  theme, 
+  toggleTheme, 
+  historicNotes = [], 
+  userTemplates = [],
+  onLoadNoteInEditor,
+  onLoadNoteInUpdater
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -26,15 +40,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
   }, []);
 
   const navItems = [
-    { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
     { id: 'nota-plantilla', label: 'Nota con Plantilla', icon: <PencilSquareIcon className="h-5 w-5" /> },
-    { id: 'escalas-clinicas', label: 'Escalas Clínicas', icon: <CalculatorIcon className="h-5 w-5" /> },
-    { id: 'consulta-evidencia', label: 'Consulta Basada en Evidencia', icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'historial-notas', label: 'Historial de Notas', icon: <ClockIcon className="h-5 w-5" /> },
+    { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
     { id: 'note-updater', label: 'Actualizador de Notas', icon: <EditIcon className="h-5 w-5" /> },
   ];
 
   const handleNavClick = (view: ActiveView) => {
-    setActiveView(view);
+    if (view === 'historial-notas') {
+      setShowHistoryDropdown(!showHistoryDropdown);
+    } else {
+      setActiveView(view);
+      setShowHistoryDropdown(false);
+    }
     if (isMobile) {
       setIsOpen(false);
     }
@@ -42,6 +60,34 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
+  };
+
+  const getTemplateName = (specialtyId: string): string => {
+    const template = userTemplates.find(t => t.id === specialtyId);
+    return template ? template.name : 'Plantilla desconocida';
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleLoadInEditor = (note: HistoricNote) => {
+    onLoadNoteInEditor?.(note);
+    setActiveView('nota-plantilla');
+    setShowHistoryDropdown(false);
+  };
+
+  const handleLoadInUpdater = (note: HistoricNote) => {
+    onLoadNoteInUpdater?.(note);
+    setActiveView('note-updater');
+    setShowHistoryDropdown(false);
   };
 
   const sidebarClasses = `
@@ -105,30 +151,83 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
         </div>
 
         {/* Navigation */}
-        <nav className="flex-grow p-3 space-y-1">
+        <nav className="flex-grow p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item.id as ActiveView)}
-              className={`
-                w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg
-                text-sm font-medium
-                transition-all duration-200 ease-in-out group
-                focus:outline-none focus:ring-2 focus:ring-offset-2 
-                dark:focus:ring-offset-neutral-900 focus:ring-primary
-                ${
-                  activeView === item.id
-                    ? 'bg-primary text-white shadow-md'
-                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:text-primary'
-                }
-              `}
-              aria-current={activeView === item.id ? 'page' : undefined}
-            >
-              {React.cloneElement(item.icon, { 
-                className: `h-5 w-5 ${activeView === item.id ? 'text-white' : 'text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors'}`
-              })}
-              <span className="truncate">{item.label}</span>
-            </button>
+            <div key={item.id}>
+              <button
+                onClick={() => handleNavClick(item.id as ActiveView)}
+                className={`
+                  w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg
+                  text-sm font-medium
+                  transition-all duration-200 ease-in-out group
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 
+                  dark:focus:ring-offset-neutral-900 focus:ring-primary
+                  ${
+                    activeView === item.id
+                      ? 'bg-primary text-white shadow-md'
+                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:text-primary'
+                  }
+                  ${item.id === 'historial-notas' && showHistoryDropdown ? 'bg-neutral-100 dark:bg-neutral-800' : ''}
+                `}
+                aria-current={activeView === item.id ? 'page' : undefined}
+              >
+                {React.cloneElement(item.icon, { 
+                  className: `h-5 w-5 ${activeView === item.id ? 'text-white' : 'text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors'}`
+                })}
+                <span className="truncate">{item.label}</span>
+                {item.id === 'historial-notas' && (
+                  <svg 
+                    className={`h-4 w-4 transition-transform ${showHistoryDropdown ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </button>
+              
+              {/* Historial de Notas Dropdown */}
+              {item.id === 'historial-notas' && showHistoryDropdown && (
+                <div className="mt-2 ml-4 space-y-1 max-h-64 overflow-y-auto">
+                  {historicNotes.length === 0 ? (
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400 px-3 py-2">
+                      No hay notas guardadas
+                    </div>
+                  ) : (
+                    historicNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-2 border border-neutral-200 dark:border-neutral-700"
+                      >
+                        <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                          {note.type === 'template' ? getTemplateName(note.specialty_id || '') : 'Nota General'}
+                        </div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+                          {formatDate(note.timestamp)}
+                        </div>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => handleLoadInEditor(note)}
+                            className="flex-1 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                            title="Cargar en editor"
+                          >
+                            Editor
+                          </button>
+                          <button
+                            onClick={() => handleLoadInUpdater(note)}
+                            className="flex-1 px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
+                            title="Cargar en actualizador"
+                          >
+                            Actualizar
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </nav>
 
@@ -136,16 +235,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, theme, tog
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-700">
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary text-neutral-700 dark:text-neutral-300 transition-colors group"
-            aria-label={theme === Theme.Light ? 'Activar modo oscuro' : 'Activar modo claro'}
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary"
+            aria-label={theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
           >
-            {theme === Theme.Light ? (
-              <MoonIcon className="h-5 w-5 text-neutral-500 dark:text-neutral-400 group-hover:text-primary" />
+            {theme === 'light' ? (
+              <MoonIcon className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
             ) : (
-              <SunIcon className="h-5 w-5 text-yellow-500 group-hover:text-yellow-400" />
+              <SunIcon className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
             )}
             <span className="truncate">
-              {theme === Theme.Light ? 'Modo Oscuro' : 'Modo Claro'}
+              {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
             </span>
           </button>
         </div>

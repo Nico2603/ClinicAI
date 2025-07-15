@@ -222,16 +222,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Configurar hooks de manejo de sesiones solo cuando hay usuario autenticado
   const sessionExpiry = useSessionExpiry({
-    sessionTimeoutMs: 30 * 60 * 1000, // 30 minutos
-    warningTimeMs: 5 * 60 * 1000, // 5 minutos
+    sessionTimeoutMs: 60 * 60 * 1000, // 60 minutos
+    warningTimeMs: 5 * 60 * 1000, // 5 minutos (no se usa)
     enabled: isAuthenticated && !isLoading, // Solo activar cuando hay usuario autenticado
     onSessionWarning: () => {
-      console.log('⚠️ Sesión próxima a expirar');
-      setSessionStatus(prev => ({ ...prev, isExpired: true }));
+      // No mostrar avisos al usuario
+      console.log('⚠️ Sesión próxima a expirar (sin notificación)');
     },
     onSessionExpiry: () => {
-      console.log('🔄 Sesión expirada');
-      setSessionStatus(prev => ({ ...prev, isExpired: true }));
+      console.log('🔄 Sesión expirada, procesando automáticamente');
     },
     onCleanupLocalData: () => {
       if (user?.id) {

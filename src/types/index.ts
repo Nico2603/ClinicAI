@@ -9,10 +9,9 @@ export enum Theme {
 }
 
 export type ActiveView = 
-  | 'templates' 
   | 'nota-plantilla' 
-  | 'escalas-clinicas' 
-  | 'consulta-evidencia' 
+  | 'historial-notas' 
+  | 'templates' 
   | 'note-updater';
 
 // Tipo para colección de plantillas

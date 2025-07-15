@@ -133,16 +133,22 @@ INSTRUCCIONES CRÍTICAS:
 2. **CONTENIDO:**
    - Usa ÚNICAMENTE la información del paciente proporcionada.
    - NO inventes datos que no estén en la información del paciente.
-   - Si falta información para una sección, usa ESPECÍFICAMENTE: "Dato faltante" o "Falta dato".
+   - Si falta información para una sección, OMITE completamente esa sección en lugar de escribir "Dato faltante".
    - Usa terminología médica precisa y profesional.
 
-3. **IMPORTANTE:**
+3. **MANEJO DE DATOS FALTANTES:**
+   - NO escribas "Dato faltante" ni "Falta dato" en ninguna parte de la nota.
+   - Si falta información para completar una sección, simplemente omite esa sección.
+   - Al final de la nota, agrega una sección llamada "OBSERVACIONES:" que liste los campos o secciones que no pudieron ser completados por falta de información.
+   - Formato de la sección de observaciones: "OBSERVACIONES: Los siguientes datos no pudieron ser completados por falta de información: [lista de campos faltantes]"
+
+4. **IMPORTANTE:**
    - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
    - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
-   - Reemplaza todos los campos con información real del paciente o con "Dato faltante" si no hay datos.
+   - Reemplaza todos los campos con información real del paciente o omite la sección si no hay datos.
    - NUNCA copies ni reutilices los valores de ejemplo que vengan en la plantilla.
 
-4. **RESPUESTA:**
+5. **RESPUESTA:**
    - Responde SOLO con la nota médica completada.
    - No agregues comentarios, explicaciones, ni introducciones.
 
@@ -154,7 +160,7 @@ La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos 
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas."
+          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas y manejas los datos faltantes de manera profesional."
         },
         {
           role: "user",
@@ -303,7 +309,7 @@ export const updateClinicalNote = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
 
-  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información. Tu tarea es integrar de forma inteligente la nueva información en la nota clínica original manteniendo coherencia, estilo médico profesional y estructura adecuada.
+  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información de manera precisa y selectiva. Tu tarea es integrar ÚNICAMENTE la nueva información proporcionada sin reescribir o modificar las secciones que no requieren cambios.
 
 **NOTA CLÍNICA ORIGINAL:**
 ---
@@ -317,34 +323,37 @@ ${newInformation}
 
 **INSTRUCCIONES CRÍTICAS:**
 
-1. **Análisis e Integración Inteligente:**
-   - Analiza dónde debe ir la nueva información dentro de la estructura de la nota original.
-   - Identifica la sección más apropiada (evolución, tratamiento, diagnóstico, plan, etc.).
-   - Integra la información de forma natural sin alterar el resto del contenido.
-   - Si la nueva información proviene de una grabación de voz, primero conviértela a texto clínico coherente antes de integrarla.
+1. **PRESERVACIÓN ABSOLUTA:**
+   - Mantén EXACTAMENTE el mismo formato, estructura y estilo de la nota original.
+   - NO reescribas secciones que no requieren actualización.
+   - Conserva todos los encabezados, numeración, viñetas y sangrías tal como están.
+   - Preserva el orden y la estructura de las secciones existentes.
 
-2. **Preservación del Contenido Original:**
-   - Conserva EXACTAMENTE todo el contenido original que no requiere modificación.
-   - Mantén la estructura, formato, encabezados y estilo de la nota original.
-   - Solo reemplaza lo estrictamente pertinente según la nueva información; no modifiques otras secciones.
+2. **ACTUALIZACIÓN SELECTIVA:**
+   - Identifica específicamente qué sección(es) de la nota original deben actualizarse con la nueva información.
+   - Solo modifica o agrega contenido en las secciones directamente relacionadas con la nueva información.
+   - Si la nueva información es adicional (no contradictoria), agrégala a la sección correspondiente.
+   - Si la nueva información actualiza datos existentes, reemplaza solo esos datos específicos.
 
-3. **Coherencia y Estilo Médico:**
-   - Mantén el estilo de redacción médica profesional de la nota original.
-   - Asegura coherencia temporal y clínica en la información.
-   - Usa terminología médica apropiada y consistente.
+3. **ANÁLISIS INTELIGENTE:**
+   - Analiza la nueva información para determinar a qué sección(es) pertenece (evolución, examen físico, tratamiento, etc.).
+   - Respeta la lógica temporal y médica de la nota.
+   - Mantén la coherencia clínica entre la información original y la nueva.
 
-4. **Manejo de Contradicciones:**
-   - Si la nueva información contradice algo en la nota original, actualiza solo lo necesario.
-   - Mantén un registro cronológico lógico si es aplicable.
-   - Preserva la coherencia clínica general.
+4. **INTEGRACIÓN NATURAL:**
+   - Integra la nueva información de forma fluida y natural en el contexto existente.
+   - Usa el mismo estilo de redacción médica de la nota original.
+   - Mantén la terminología médica consistente con la nota original.
 
-5. **Formato de Respuesta:**
-   - Responde ÚNICAMENTE con la nota clínica completa y actualizada.
-   - No incluyas comentarios, explicaciones o texto adicional.
-   - La respuesta debe ser directamente la nota médica lista para usar.
+5. **FORMATO DE RESPUESTA:**
+   - Devuelve la nota clínica completa con solo las modificaciones necesarias.
+   - NO incluyas comentarios, explicaciones o notas adicionales.
+   - La respuesta debe ser directamente la nota médica actualizada.
 
-**EJEMPLO DE INTEGRACIÓN:**
-Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es sobre el estado actual del paciente, integra esa información en esa sección manteniendo el formato y estilo existente.`;
+**EJEMPLO DE ACTUALIZACIÓN:**
+Si la nueva información es sobre signos vitales actuales y la nota original ya tiene una sección de signos vitales, actualiza solo esa sección manteniendo todo lo demás idéntico.
+
+**IMPORTANTE:** Solo actualiza lo que realmente requiere cambio según la nueva información proporcionada.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -352,16 +361,16 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma inteligente y precisa. Integras nueva información preservando el contenido original y manteniendo coherencia médica profesional."
+          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. Preservas la estructura original y solo modificas lo estrictamente necesario basado en nueva información médica."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.2, // Temperatura muy baja para máxima precisión y conservación
+      temperature: 0.1, // Temperatura muy baja para máxima precisión y conservación
       max_tokens: 2500,
-      top_p: 0.9
+      top_p: 0.8
     });
 
     const generatedText = response.choices[0]?.message?.content || '';
@@ -370,7 +379,7 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
       groundingMetadata: undefined
     };
   } catch (error) {
-    throw handleOpenAIError(error, 'actualización de nota clínica');
+    throw handleOpenAIError(error, 'actualización selectiva de nota clínica');
   }
 }; 
 

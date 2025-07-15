@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 
 // Hooks
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,8 +68,6 @@ const AuthenticatedApp: React.FC = () => {
     resetState: resetTemplateState,
   } = useTemplateNotes();
 
-
-
   // Gestión del historial
   const {
     historicNotes,
@@ -77,6 +75,9 @@ const AuthenticatedApp: React.FC = () => {
     clearHistory,
     loadNoteFromHistory,
   } = useHistoryManager(user?.id || null);
+
+  // Estado para el actualizador de notas
+  const [noteForUpdater, setNoteForUpdater] = useState<string>('');
 
   // Reconocimiento de voz
   const { 
@@ -94,8 +95,6 @@ const AuthenticatedApp: React.FC = () => {
       console.error('Speech recognition error:', error);
     }
   });
-
-
 
   // Manejadores de eventos
   const handleToggleRecording = useCallback(() => {
@@ -169,6 +168,23 @@ const AuthenticatedApp: React.FC = () => {
         setActiveView={setActiveView}
         theme={theme}
         toggleTheme={toggleTheme}
+        historicNotes={historicNotes}
+        userTemplates={userTemplates}
+        onLoadNoteInEditor={(note) => {
+          loadNoteFromHistory(note, userTemplates, {
+            setActiveView,
+            setSelectedTemplate,
+            setPatientInfo,
+            setGeneratedNote: updateGeneratedTemplateNote,
+            setSuggestionInput: () => {},
+            setGeneratedSuggestion: () => {},
+            clearMetadata: () => {},
+          });
+        }}
+        onLoadNoteInUpdater={(note) => {
+          setNoteForUpdater(note.content);
+          setActiveView('note-updater');
+        }}
       />
       <div className="md:ml-64 flex flex-col">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
@@ -215,49 +231,22 @@ const AuthenticatedApp: React.FC = () => {
                 clearGlobalError();
                 clearTemplateError();
               }}
+              onNoteGenerated={(note) => {
+                addNoteToHistory({
+                  type: 'suggestion',
+                  originalInput: patientInfo,
+                  content: note,
+                });
+              }}
             />
-          )}
-
-
-
-          {activeView === 'escalas-clinicas' && (
-            <section aria-labelledby="escalas-clinicas-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
-              <h2 id="escalas-clinicas-heading" className="sr-only">Escalas Clínicas</h2>
-              <ClinicalScaleGenerator 
-                onScaleGenerated={(scaleText) => {
-                  addNoteToHistory({
-                    type: 'scale',
-                    originalInput: patientInfo,
-                    content: scaleText,
-                    scaleName: 'Escala Inteligente'
-                  });
-                }}
-                existingNoteContent={generatedTemplateNote || patientInfo}
-              />
-            </section>
-          )}
-
-          {activeView === 'consulta-evidencia' && (
-            <section aria-labelledby="consulta-evidencia-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
-              <h2 id="consulta-evidencia-heading" className="sr-only">Consulta Basada en Evidencia</h2>
-              <EvidenceBasedConsultation 
-                onConsultationGenerated={(consultationText) => {
-                  addNoteToHistory({
-                    type: 'suggestion',
-                    originalInput: patientInfo,
-                    content: consultationText
-                  });
-                }}
-                autoAnalyzeContent={generatedTemplateNote || patientInfo}
-                enableAutoAnalysis={Boolean(generatedTemplateNote || patientInfo)}
-              />
-            </section>
           )}
 
           {activeView === 'note-updater' && (
             <section aria-labelledby="note-updater-heading" className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
               <h2 id="note-updater-heading" className="sr-only">Actualizador de Notas</h2>
-              <NoteUpdater />
+              <NoteUpdater 
+                initialNote={noteForUpdater}
+              />
             </section>
           )}
 

@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface SessionExpiryConfig {
-  // Tiempo de expiración en milisegundos (por defecto 30 minutos)
+  // Tiempo de expiración en milisegundos (por defecto 60 minutos)
   sessionTimeoutMs?: number;
   // Tiempo de aviso antes de expirar (por defecto 5 minutos)
   warningTimeMs?: number;
@@ -20,7 +20,7 @@ interface SessionExpiryConfig {
 
 export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
   const {
-    sessionTimeoutMs = 30 * 60 * 1000, // 30 minutos
+    sessionTimeoutMs = 60 * 60 * 1000, // 60 minutos
     warningTimeMs = 5 * 60 * 1000, // 5 minutos
     enabled = true,
     onSessionWarning,
@@ -65,6 +65,31 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
     }
   }, []);
 
+  // Extender sesión automáticamente por 1 hora
+  const extendSessionAutomatically = useCallback(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.error('❌ No se puede extender sesión automáticamente:', error);
+        return false;
+      }
+
+      // Extender la sesión por 1 hora más
+      const newExpiryTime = Date.now() + (60 * 60 * 1000); // 1 hora
+      console.log('🔄 Sesión extendida automáticamente por 1 hora');
+      
+      // Reiniciar timer con nueva duración
+      resetSessionTimer();
+      registerActivity();
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error al extender sesión automáticamente:', error);
+      return false;
+    }
+  }, []);
+
   // Forzar recarga completa (como Ctrl+Shift+R)
   const forceHardRefresh = useCallback(() => {
     try {
@@ -88,43 +113,46 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
     }
   }, []);
 
-  // Manejar expiración de sesión
+  // Manejar expiración de sesión automáticamente
   const handleSessionExpiry = useCallback(async () => {
-    console.log('🔄 Sesión expirada, iniciando limpieza...');
+    console.log('🔄 Sesión expirada, extendiendo automáticamente y recargando...');
     
     try {
-      // Obtener datos del usuario antes de cerrar sesión
+      // Obtener datos del usuario antes de proceder
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
       
-      // Cerrar sesión en Supabase
-      await supabase.auth.signOut();
+      // Extender sesión automáticamente
+      const extended = await extendSessionAutomatically();
       
-      // Limpiar datos locales
-      clearUserLocalStorage(userId);
-      
-      // Llamar callbacks personalizados
-      onCleanupLocalData?.();
-      onSessionExpiry?.();
-      
-      // Forzar recarga después de un breve delay
-      setTimeout(() => {
-        onForceRefresh?.();
+      if (extended) {
+        // Limpiar datos locales
+        clearUserLocalStorage(userId);
+        
+        // Llamar callbacks personalizados
+        onCleanupLocalData?.();
+        onSessionExpiry?.();
+        
+        // Forzar recarga después de un breve delay
+        setTimeout(() => {
+          onForceRefresh?.();
+          forceHardRefresh();
+        }, 1000);
+      } else {
+        // Si no se pudo extender, cerrar sesión y recargar
+        await supabase.auth.signOut();
+        clearUserLocalStorage(userId);
+        onCleanupLocalData?.();
+        onSessionExpiry?.();
         forceHardRefresh();
-      }, 1000);
+      }
       
     } catch (error) {
-      console.error('❌ Error durante expiración de sesión:', error);
+      console.error('❌ Error durante expiración automática de sesión:', error);
       // Forzar recarga en caso de error
       forceHardRefresh();
     }
-  }, [clearUserLocalStorage, onCleanupLocalData, onSessionExpiry, onForceRefresh, forceHardRefresh]);
-
-  // Manejar aviso de expiración
-  const handleSessionWarning = useCallback(() => {
-    console.log('⚠️ Sesión próxima a expirar');
-    onSessionWarning?.();
-  }, [onSessionWarning]);
+  }, [extendSessionAutomatically, clearUserLocalStorage, onCleanupLocalData, onSessionExpiry, onForceRefresh, forceHardRefresh]);
 
   // Registrar actividad del usuario
   const registerActivity = useCallback(() => {
@@ -141,18 +169,13 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       clearTimeout(warningTimeoutRef.current);
     }
 
-    // Configurar nuevo timer de aviso
-    warningTimeoutRef.current = setTimeout(() => {
-      handleSessionWarning();
-    }, sessionTimeoutMs - warningTimeMs);
-
-    // Configurar nuevo timer de expiración
+    // Configurar nuevo timer de expiración (sin popup de aviso)
     sessionTimeoutRef.current = setTimeout(() => {
       handleSessionExpiry();
     }, sessionTimeoutMs);
 
     console.log(`🔄 Timer de sesión reiniciado: ${sessionTimeoutMs / 1000 / 60} minutos`);
-  }, [sessionTimeoutMs, warningTimeMs, handleSessionWarning, handleSessionExpiry]);
+  }, [sessionTimeoutMs, handleSessionExpiry]);
 
   // Verificar estado de la sesión
   const checkSessionHealth = useCallback(async () => {
@@ -182,20 +205,15 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
         return false;
       }
 
-      // Si queda menos de 5 minutos, mostrar aviso
-      if (timeUntilExpiry <= 300) { // 5 minutos
-        handleSessionWarning();
-      }
-
       return true;
     } catch (error) {
       console.error('❌ Error al verificar estado de sesión:', error);
       handleSessionExpiry();
       return false;
     }
-  }, [handleSessionExpiry, handleSessionWarning]);
+  }, [handleSessionExpiry]);
 
-  // Extender sesión
+  // Extender sesión manualmente (para compatibilidad)
   const extendSession = useCallback(async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -210,7 +228,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       resetSessionTimer();
       registerActivity();
       
-      console.log('✅ Sesión extendida');
+      console.log('✅ Sesión extendida manualmente');
       return true;
     } catch (error) {
       console.error('❌ Error al extender sesión:', error);
