@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SaveIcon, PlusIcon, TrashIcon, EditIcon } from '../ui/Icons';
+import { LoadingFallback } from '../ui/LoadingFallback';
 import { UserTemplate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserTemplates } from '@/hooks/useDatabase';
+import { useLoadingDetector } from '@/hooks/useLoadingDetector';
 
 interface SimpleTemplateEditorProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -17,9 +19,12 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
   const {
     userTemplates,
     isLoading,
+    error,
+    hasTimeout,
     createUserTemplate,
     updateUserTemplate,
-    deleteUserTemplate
+    deleteUserTemplate,
+    refetch
   } = useUserTemplates();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -28,6 +33,37 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
   const [templateContent, setTemplateContent] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  // Detector de carga excesiva
+  const { startLoadingTracking, stopLoadingTracking, forceEmergencyReload } = useLoadingDetector({
+    maxLoadingTime: 12000, // 12 segundos antes de mostrar advertencia
+    onExcessiveLoading: () => {
+      console.warn('Carga excesiva detectada en Editor de Plantillas');
+    },
+    onForceReload: () => {
+      window.location.reload();
+    }
+  });
+
+  // Controlar el detector de carga basado en el estado
+  useEffect(() => {
+    if (isLoading) {
+      startLoadingTracking();
+    } else {
+      stopLoadingTracking();
+    }
+  }, [isLoading, startLoadingTracking, stopLoadingTracking]);
+
+  // Función de retry inteligente
+  const handleRetry = () => {
+    if (hasTimeout) {
+      // Si hubo timeout, ofrecer recarga de emergencia
+      forceEmergencyReload();
+    } else {
+      // Retry normal
+      refetch();
+    }
+  };
 
   if (!user) return null;
 
@@ -119,11 +155,18 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
     return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   };
 
-  if (isLoading) {
+  // Mostrar LoadingFallback si hay carga, error o no hay plantillas
+  if (isLoading || error || userTemplates.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <LoadingFallback
+        isLoading={isLoading}
+        error={error}
+        hasTimeout={hasTimeout}
+        onRetry={handleRetry}
+        loadingMessage="Cargando plantillas..."
+        emptyMessage="No tienes plantillas creadas aún. Crea tu primera plantilla para comenzar."
+        className="min-h-[200px]"
+      />
     );
   }
 

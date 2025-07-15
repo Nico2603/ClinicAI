@@ -10,6 +10,12 @@ import {
   type Template, 
   type UserTemplate 
 } from '@/lib/services/databaseService';
+import { 
+  safeDatabaseCall, 
+  getFriendlyErrorMessage,
+  DatabaseTimeoutError,
+  DatabaseRetryError 
+} from '@/lib/utils/databaseUtils';
 
 // Hook para manejar notas
 export const useNotes = () => {
@@ -221,18 +227,40 @@ export const useUserTemplates = () => {
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasTimeout, setHasTimeout] = useState(false);
 
   const fetchUserTemplates = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
     
     try {
       setIsLoading(true);
-      const data = await userTemplatesService.getUserTemplates(user.id);
-      setUserTemplates(data);
       setError(null);
+      setHasTimeout(false);
+      
+      const data = await safeDatabaseCall(
+        () => userTemplatesService.getUserTemplates(user.id),
+        {
+          timeout: 15000, // 15 segundos de timeout
+          maxRetries: 2,  // Máximo 2 reintentos
+          retryDelay: 1500 // 1.5 segundos entre reintentos
+        }
+      );
+      
+      setUserTemplates(data);
     } catch (err) {
       console.error('Error al cargar plantillas del usuario:', err);
-      setError('Error al cargar las plantillas');
+      
+      if (err instanceof DatabaseTimeoutError) {
+        setHasTimeout(true);
+        setError('La carga está tardando demasiado. Haz clic en "Reintentar" para intentar nuevamente.');
+      } else if (err instanceof DatabaseRetryError) {
+        setError('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+      } else {
+        setError(getFriendlyErrorMessage(err as Error));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -244,48 +272,76 @@ export const useUserTemplates = () => {
 
   const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const newTemplate = await userTemplatesService.createUserTemplate(templateData);
+      const newTemplate = await safeDatabaseCall(
+        () => userTemplatesService.createUserTemplate(templateData),
+        {
+          timeout: 10000,
+          maxRetries: 1
+        }
+      );
       setUserTemplates(prev => [newTemplate, ...prev]);
       return newTemplate;
     } catch (err) {
       console.error('Error al crear plantilla:', err);
-      setError('Error al crear la plantilla');
-      throw err;
+      const friendlyMessage = getFriendlyErrorMessage(err as Error);
+      setError(friendlyMessage);
+      throw new Error(friendlyMessage);
     }
   }, []);
 
   const updateUserTemplate = useCallback(async (id: string, updates: Partial<Omit<UserTemplate, 'id' | 'created_at'>>) => {
     try {
-      const updatedTemplate = await userTemplatesService.updateUserTemplate(id, updates);
+      const updatedTemplate = await safeDatabaseCall(
+        () => userTemplatesService.updateUserTemplate(id, updates),
+        {
+          timeout: 10000,
+          maxRetries: 1
+        }
+      );
       setUserTemplates(prev => prev.map(template => template.id === id ? updatedTemplate : template));
       return updatedTemplate;
     } catch (err) {
       console.error('Error al actualizar plantilla:', err);
-      setError('Error al actualizar la plantilla');
-      throw err;
+      const friendlyMessage = getFriendlyErrorMessage(err as Error);
+      setError(friendlyMessage);
+      throw new Error(friendlyMessage);
     }
   }, []);
 
   const deleteUserTemplate = useCallback(async (id: string) => {
     try {
-      await userTemplatesService.deleteUserTemplate(id);
+      await safeDatabaseCall(
+        () => userTemplatesService.deleteUserTemplate(id),
+        {
+          timeout: 10000,
+          maxRetries: 1
+        }
+      );
       setUserTemplates(prev => prev.filter(template => template.id !== id));
     } catch (err) {
       console.error('Error al eliminar plantilla:', err);
-      setError('Error al eliminar la plantilla');
-      throw err;
+      const friendlyMessage = getFriendlyErrorMessage(err as Error);
+      setError(friendlyMessage);
+      throw new Error(friendlyMessage);
     }
   }, []);
 
   const renameUserTemplate = useCallback(async (id: string, newName: string) => {
     try {
-      const renamedTemplate = await userTemplatesService.renameUserTemplate(id, newName);
+      const renamedTemplate = await safeDatabaseCall(
+        () => userTemplatesService.renameUserTemplate(id, newName),
+        {
+          timeout: 10000,
+          maxRetries: 1
+        }
+      );
       setUserTemplates(prev => prev.map(template => template.id === id ? renamedTemplate : template));
       return renamedTemplate;
     } catch (err) {
       console.error('Error al renombrar plantilla:', err);
-      setError('Error al renombrar la plantilla');
-      throw err;
+      const friendlyMessage = getFriendlyErrorMessage(err as Error);
+      setError(friendlyMessage);
+      throw new Error(friendlyMessage);
     }
   }, []);
 
@@ -293,6 +349,7 @@ export const useUserTemplates = () => {
     userTemplates,
     isLoading,
     error,
+    hasTimeout,
     createUserTemplate,
     updateUserTemplate,
     deleteUserTemplate,

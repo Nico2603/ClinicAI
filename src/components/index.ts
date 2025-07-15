@@ -32,4 +32,5 @@ export * from './ui/button';
 export { Footer } from './ui/Footer';
 export { Header } from './ui/Header';
 export * from './ui/Icons';
+export * from './ui/LoadingFallback';
 export { default as Sidebar } from './ui/Sidebar'; 
