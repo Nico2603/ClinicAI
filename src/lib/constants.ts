@@ -186,6 +186,6 @@ PLAN:
 MÉDICO: [Nombre del médico]
 FECHA: [Fecha de la consulta]
 
-NOTA: Esta es una plantilla ESTRUCTURAL. Al generar notas, se llenará con datos reales del paciente y se marcará "Dato faltante" donde no haya información disponible.`
+NOTA: Esta es una plantilla ESTRUCTURAL que define únicamente el formato. Los marcadores entre corchetes deben reemplazarse con datos reales del paciente. Las secciones sin información serán omitidas.`
   }
 ] as const;

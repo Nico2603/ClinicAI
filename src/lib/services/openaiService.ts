@@ -107,48 +107,61 @@ export const generateNoteFromTemplate = async (
   validateApiKey();
   validateTemplateInput(templateContent, patientInfo);
   
-  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
+  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar ÚNICAMENTE la información del paciente proporcionada para generar una nota médica siguiendo el formato de la plantilla.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
 
-PLANTILLA A COMPLETAR:
+PLANTILLA (SOLO FORMATO - NO CONTIENE DATOS REALES):
 ---
 ${templateContent}
 ---
 
-INSTRUCCIONES CRÍTICAS:
+🚨 INSTRUCCIONES CRÍTICAS - CUMPLIMIENTO OBLIGATORIO:
 
-1. **FORMATO ES SAGRADO:**
-   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
-   - Si un encabezado está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
-   - Si usa viñetas (-), mantén las viñetas.
-   - Si usa numeración (1., 2.), mantén la numeración.
-   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
+1. **LA PLANTILLA ES SOLO UN FORMATO ESTRUCTURAL:**
+   - La plantilla contiene ÚNICAMENTE la estructura/formato que debes seguir
+   - TODOS los datos en la plantilla son EJEMPLOS FICTICIOS que DEBES IGNORAR COMPLETAMENTE
+   - Ejemplos como "[Nombre del paciente]", "Juan Pérez", "45 años", etc. son SOLO MARCADORES DE POSICIÓN
+   - NUNCA uses, copies o te bases en ningún dato específico de la plantilla
+   - La plantilla NO ES una fuente de información sobre el paciente real
 
-2. **CONTENIDO:**
-   - Usa ÚNICAMENTE la información del paciente proporcionada.
-   - NO inventes datos que no estén en la información del paciente.
-   - Si falta información para una sección, OMITE completamente esa sección en lugar de escribir "Dato faltante".
-   - Usa terminología médica precisa y profesional.
+2. **FORMATO ESTRUCTURAL SAGRADO:**
+   - Respeta EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, espacios
+   - Conserva la jerarquía visual y organización de secciones
+   - Mantén todos los elementos estructurales: dos puntos (:), guiones (-), números (1., 2.), etc.
 
-3. **MANEJO DE DATOS FALTANTES:**
-   - NO escribas "Dato faltante" ni "Falta dato" en ninguna parte de la nota.
-   - Si falta información para completar una sección, simplemente omite esa sección.
-   - Al final de la nota, agrega una sección llamada "OBSERVACIONES:" que liste los campos o secciones que no pudieron ser completados por falta de información.
-   - Formato de la sección de observaciones: "OBSERVACIONES: Los siguientes datos no pudieron ser completados por falta de información: [lista de campos faltantes]"
+3. **CONTENIDO EXCLUSIVAMENTE REAL:**
+   - Usa SOLO la información del paciente proporcionada en la sección "INFORMACIÓN DEL PACIENTE"
+   - NO inventes, asumas, deduzcas o completes datos faltantes
+   - NO agregues información que no esté explícitamente mencionada
+   - Si la información del paciente no menciona algo específico, NO lo incluyas
 
-4. **IMPORTANTE:**
-   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
-   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
-   - Reemplaza todos los campos con información real del paciente o omite la sección si no hay datos.
-   - NUNCA copies ni reutilices los valores de ejemplo que vengan en la plantilla.
+4. **MANEJO DE INFORMACIÓN FALTANTE:**
+   - Si una sección de la plantilla no tiene información correspondiente en los datos del paciente, OMITE completamente esa sección
+   - NO escribas: "Dato faltante", "No disponible", "A evaluar", "Pendiente", ni similares
+   - NO dejes espacios en blanco ni marcadores de posición
+   - Simplemente salta a la siguiente sección que sí tenga información
 
-5. **RESPUESTA:**
-   - Responde SOLO con la nota médica completada.
-   - No agregues comentarios, explicaciones, ni introducciones.
+5. **OBSERVACIONES PARA DATOS FALTANTES:**
+   - Al final de la nota, crea una sección "OBSERVACIONES:"
+   - Lista ÚNICAMENTE las secciones/campos que no pudieron completarse por falta de información
+   - Formato: "OBSERVACIONES: Secciones no completadas por falta de información: [lista específica]"
+   - Solo incluye esta sección si efectivamente hay datos faltantes
 
-La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.`;
+6. **EJEMPLOS DE LO QUE NO DEBES HACER:**
+   ❌ Usar "Juan Pérez" si aparece en la plantilla como ejemplo
+   ❌ Copiar "45 años" de la plantilla si no está en la información del paciente
+   ❌ Escribir "Dato faltante" en ninguna parte
+   ❌ Inventar signos vitales, medicamentos, o diagnósticos
+   ❌ Asumir información basada en síntomas mencionados
+
+7. **RESPUESTA FINAL:**
+   - Responde ÚNICAMENTE con la nota médica completada
+   - No agregues comentarios, explicaciones, introducciones ni despedidas
+   - La nota debe ser profesional y directamente utilizable
+
+RECUERDA: La plantilla es un MOLDE VACÍO que defines la forma, pero NUNCA el contenido. Los datos del paciente son la ÚNICA fuente de información válida.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -156,7 +169,7 @@ La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos 
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas y manejas los datos faltantes de manera profesional."
+          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes."
         },
         {
           role: "user",
@@ -193,22 +206,67 @@ export const generateMedicalScale = async (
   validateClinicalInput(clinicalInput);
   validateInput(scaleName, 2);
 
-  const prompt = `Contexto: Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas.
-Tarea: Basado en la siguiente "Información Clínica", evalúa y completa la escala "${scaleName}". Debes presentar el resultado en un formato claro y profesional, listo para ser copiado y pegado en una historia clínica.
+  const prompt = `Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. Tu tarea es evaluar la escala "${scaleName}" basándote ÚNICAMENTE en la información clínica proporcionada.
 
-Información Clínica Proporcionada:
+INFORMACIÓN CLÍNICA DISPONIBLE:
 "${clinicalInput}"
 
-Escala a Aplicar: ${scaleName}
+ESCALA A EVALUAR: ${scaleName}
 
-Instrucciones para la Generación:
-1. **Analiza la Información:** Lee detenidamente la información clínica para encontrar datos que correspondan a los ítems de la escala ${scaleName}.
-2. **Puntúa cada Ítem:** Asigna un puntaje a cada ítem de la escala basándote en la información. Si la información para un ítem es insuficiente, usa tu juicio clínico para inferir o indica "No se puede determinar". No inventes datos que no tengan base en el texto.
-3. **Calcula el Puntaje Total:** Suma los puntajes de los ítems para obtener el resultado total de la escala.
-4. **Proporciona una Interpretación:** Basado en el puntaje total, ofrece una interpretación clínica estandarizada (ej. "Riesgo bajo", "Síntomas depresivos moderados", "Ansiedad severa").
-5. **Formato de Respuesta:** La respuesta debe ser ÚNICAMENTE el resultado de la escala. No incluyas saludos ni comentarios introductorios.
+🚨 **INSTRUCCIONES CRÍTICAS PARA APLICACIÓN DE ESCALAS:**
 
-Proporciona un resultado preciso y basado en estándares clínicos reconocidos.`;
+1. **ANÁLISIS ESTRICTO DE INFORMACIÓN:**
+   - Lee detenidamente SOLO la información clínica proporcionada
+   - Identifica únicamente los datos que correspondan a los ítems de la escala ${scaleName}
+   - NO hagas inferencias o suposiciones más allá de lo explícitamente mencionado
+
+2. **PUNTUACIÓN BASADA EN DATOS REALES:**
+   - Asigna puntajes ÚNICAMENTE basándote en información específica disponible
+   - Si la información para un ítem es insuficiente o no está disponible, marca claramente "Información insuficiente"
+   - NO uses "juicio clínico" para inferir datos que no están presentes
+   - NO inventes o asumas información que no esté explícitamente mencionada
+
+3. **MANEJO DE INFORMACIÓN FALTANTE:**
+   - Si faltan datos para evaluar ítems específicos, NO los puntúes
+   - Indica claramente qué ítems no pudieron evaluarse y por qué
+   - NO asumas valores "normales" o "probables" para datos faltantes
+
+4. **CÁLCULO DE PUNTAJE TOTAL:**
+   - Solo incluye en el cálculo los ítems que pudieron evaluarse con información real
+   - Si faltan datos críticos para la escala, indica que el resultado puede ser incompleto
+   - Menciona qué porcentaje de la escala pudo completarse
+
+5. **INTERPRETACIÓN RESPONSABLE:**
+   - Solo proporciona interpretación si el puntaje está basado en información suficiente
+   - Si faltan datos importantes, indica las limitaciones de la interpretación
+   - No hagas conclusiones definitivas con información incompleta
+
+6. **FORMATO DE RESPUESTA CLARO:**
+   - Presenta cada ítem de la escala con su puntaje y justificación
+   - Indica claramente qué información se usó para cada puntuación
+   - Lista los ítems que no pudieron evaluarse por falta de información
+   - Proporciona puntaje total solo si es representativo
+
+7. **ESTRUCTURA SUGERIDA:**
+   
+   ESCALA ${scaleName}:
+   
+   Ítem 1: [Puntaje] - Justificación basada en: [dato específico]
+   Ítem 2: Información insuficiente - Falta: [dato específico necesario]
+   ...
+   
+   PUNTAJE TOTAL: [X/Y puntos] ([Z]% de la escala completada)
+   
+   INTERPRETACIÓN: [Solo si hay suficiente información]
+   
+   LIMITACIONES: [Mencionar datos faltantes que afectan la evaluación]
+
+8. **RESPUESTA FINAL:**
+   - Proporciona ÚNICAMENTE el resultado de la escala
+   - NO incluyas saludos, comentarios introductorios ni despedidas
+   - La respuesta debe ser profesional y directamente utilizable
+
+**REGLA FUNDAMENTAL:** Solo usa información explícitamente proporcionada. Si no hay suficiente información para evaluar la escala completa, sé transparente sobre las limitaciones.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -216,7 +274,7 @@ Proporciona un resultado preciso y basado en estándares clínicos reconocidos.`
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. Aplicas las escalas con precisión y proporcionas interpretaciones basadas en estándares clínicos reconocidos."
+          content: "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. SOLO usas información explícitamente proporcionada para puntuar escalas, NUNCA inventas datos. Eres transparente sobre limitaciones cuando falta información."
         },
         {
           role: "user",
@@ -253,23 +311,60 @@ export const generateTemplateFromClinicalNote = async (
   validateApiKey();
   validateClinicalInput(clinicalNote);
 
-  const prompt = `Eres un asistente experto en redacción de notas clínicas. Tu tarea es transformar la nota clínica que recibirás a continuación en una PLANTILLA.
+  const prompt = `Eres un experto en crear PLANTILLAS ESTRUCTURALES a partir de notas clínicas. Tu tarea es convertir la nota clínica en una plantilla que sirva como FORMATO PURO, eliminando TODOS los datos específicos del paciente.
 
-Instrucciones detalladas:
-1. Detecta automáticamente la especialidad o tipo de nota clínica recibida (ej. Ortopedia, Medicina Interna, Ginecología) y utiliza esta información para contextualizar las correcciones.
-2. Identifica todas las variables que deben ser reemplazadas (edad, fecha, diagnósticos, signos vitales, valores numéricos, etc.) y sustitúyelas por marcadores en MAYÚSCULAS entre corchetes, por ejemplo: [EDAD], [DX PRINCIPAL], [PRESIÓN ARTERIAL].
-3. Reemplaza TODOS los datos clínicos específicos por marcadores entre corchetes sin alterar la redacción ni la estructura original.
-4. No modifiques aquello que no requiera cambio y conserva los hallazgos que apliquen para la patología (p. ej., examen físico normal en un cuadro benigno).
-5. Corrige ortografía y redacción dentro del mismo tono clínico sin inventar información nueva para no alterar la coherencia.
-6. Si falta un dato importante, coloca el marcador [FALTA DATO POR PREGUNTAR] en el lugar correspondiente.
-7. Conserva mayúsculas, minúsculas, sangrías, tabulaciones, estilo clínico exacto y formato institucional del texto.
-8. Si la información proviene de una grabación de voz, conviértela a texto clínico coherente e intégrala en la sección correspondiente.
-9. Tu respuesta debe ser ÚNICAMENTE la plantilla resultante, lista para copiar y pegar; no añadas comentarios, títulos ni explicaciones adicionales.
+🎯 OBJETIVO: Crear una plantilla que sea un MOLDE ESTRUCTURAL VACÍO, sin ningún dato real del paciente.
 
-Nota clínica a convertir:
+NOTA CLÍNICA ORIGINAL:
 ---
 ${clinicalNote}
----`;
+---
+
+🚨 INSTRUCCIONES CRÍTICAS PARA CREAR PLANTILLA FORMATO:
+
+1. **PRESERVAR ESTRUCTURA EXACTA:**
+   - Mantén EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
+   - Conserva todos los elementos visuales: dos puntos (:), guiones (-), números, espacios
+   - Respeta la jerarquía y organización de secciones
+   - NO cambies el orden ni elimines secciones estructurales
+
+2. **ELIMINAR TODOS LOS DATOS ESPECÍFICOS:**
+   - Nombres de pacientes → [Nombre del paciente]
+   - Edades específicas → [Edad] años
+   - Fechas específicas → [Fecha]
+   - Números de documento → [Documento de identidad]
+   - Diagnósticos específicos → [Diagnóstico]
+   - Medicamentos específicos → [Medicamento]
+   - Valores de laboratorio → [Valor de laboratorio]
+   - Signos vitales → [Signos vitales]
+   - Síntomas específicos → [Síntoma]
+   - Nombres de médicos → [Nombre del médico]
+
+3. **MARCADORES DESCRIPTIVOS GENERALES:**
+   - Usa marcadores GENÉRICOS que describan el TIPO de dato, no el dato específico
+   - Ejemplos correctos: [Motivo de consulta], [Antecedentes familiares], [Hallazgos del examen]
+   - Ejemplos INCORRECTOS: [Dolor abdominal], [Diabetes], [Juan Pérez]
+   - NO preserves información específica en los marcadores
+
+4. **CONSERVAR ELEMENTOS ESTRUCTURALES NO ESPECÍFICOS:**
+   - Mantén frases estructurales como "Signos vitales:", "Antecedentes:", "Plan:"
+   - Conserva palabras de enlace y estructura médica general
+   - Mantén terminología médica general no específica al paciente
+
+5. **ELIMINAR INFORMACIÓN CONTEXTUAL ESPECÍFICA:**
+   - NO conserves hallazgos específicos de la patología original
+   - NO mantengas valores normales específicos si son del paciente particular
+   - Reemplaza TODO lo que sea específico del caso particular
+
+6. **AGREGAR NOTA EXPLICATIVA:**
+   - Al final, agrega: "NOTA: Esta es una plantilla ESTRUCTURAL. Los marcadores entre corchetes deben reemplazarse con datos reales del paciente."
+
+7. **RESPUESTA FINAL:**
+   - Responde ÚNICAMENTE con la plantilla resultante
+   - NO agregues comentarios, explicaciones adicionales, ni introducciones
+   - La plantilla debe ser directamente utilizable como formato
+
+RECUERDA: Estás creando un FORMATO REUTILIZABLE. Toda información específica del paciente original debe convertirse en marcadores genéricos. La plantilla resultante debe poder usarse para CUALQUIER paciente de cualquier edad, sexo o condición.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -277,7 +372,7 @@ ${clinicalNote}
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto en generar plantillas a partir de notas clínicas. Sigues estrictamente las instrucciones para reemplazar datos específicos por marcadores y mantienes el formato original."
+          content: "Eres un experto en crear plantillas estructurales médicas. Tu especialidad es convertir notas clínicas en formatos reutilizables eliminando TODA información específica del paciente y creando marcadores genéricos. Las plantillas resultantes son moldes vacíos sin datos reales."
         },
         {
           role: "user",
@@ -305,7 +400,7 @@ export const updateClinicalNote = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
 
-  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información de manera precisa y selectiva. Tu tarea es integrar ÚNICAMENTE la nueva información proporcionada sin reescribir o modificar las secciones que no requieren cambios.
+  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información de manera precisa y selectiva. Tu tarea es integrar ÚNICAMENTE la nueva información proporcionada sin reescribir, inventar o modificar secciones que no requieren cambios.
 
 **NOTA CLÍNICA ORIGINAL:**
 ---
@@ -317,39 +412,56 @@ ${originalNote}
 ${newInformation}
 ---
 
-**INSTRUCCIONES CRÍTICAS:**
+🚨 **INSTRUCCIONES CRÍTICAS PARA ACTUALIZACIÓN:**
 
-1. **PRESERVACIÓN ABSOLUTA:**
-   - Mantén EXACTAMENTE el mismo formato, estructura y estilo de la nota original.
-   - NO reescribas secciones que no requieren actualización.
-   - Conserva todos los encabezados, numeración, viñetas y sangrías tal como están.
-   - Preserva el orden y la estructura de las secciones existentes.
+1. **PRESERVACIÓN ABSOLUTA DE LO EXISTENTE:**
+   - Mantén EXACTAMENTE el mismo formato, estructura y estilo de la nota original
+   - NO reescribas secciones que no requieren actualización
+   - Conserva todos los encabezados, numeración, viñetas y sangrías tal como están
+   - Preserva el orden y la estructura de las secciones existentes
+   - NO modifiques el estilo de redacción original
 
-2. **ACTUALIZACIÓN SELECTIVA:**
-   - Identifica específicamente qué sección(es) de la nota original deben actualizarse con la nueva información.
-   - Solo modifica o agrega contenido en las secciones directamente relacionadas con la nueva información.
-   - Si la nueva información es adicional (no contradictoria), agrégala a la sección correspondiente.
-   - Si la nueva información actualiza datos existentes, reemplaza solo esos datos específicos.
+2. **INTEGRACIÓN SOLO DE INFORMACIÓN NUEVA:**
+   - Usa ÚNICAMENTE la nueva información proporcionada en la sección correspondiente
+   - NO inventes, asumas, deduzcas o agregues información que no esté explícitamente en la nueva información
+   - Si la nueva información no menciona algo específico, NO lo agregues
+   - NO hagas inferencias basadas en la nueva información
 
-3. **ANÁLISIS INTELIGENTE:**
-   - Analiza la nueva información para determinar a qué sección(es) pertenece (evolución, examen físico, tratamiento, etc.).
-   - Respeta la lógica temporal y médica de la nota.
-   - Mantén la coherencia clínica entre la información original y la nueva.
+3. **ACTUALIZACIÓN SELECTIVA PRECISA:**
+   - Identifica específicamente qué sección(es) deben actualizarse con la nueva información
+   - Solo modifica las partes exactas que la nueva información actualiza o complementa
+   - Si la nueva información es adicional, agrégala sin modificar lo existente
+   - Si la nueva información reemplaza datos existentes, reemplaza SOLO esos datos específicos
 
-4. **INTEGRACIÓN NATURAL:**
-   - Integra la nueva información de forma fluida y natural en el contexto existente.
-   - Usa el mismo estilo de redacción médica de la nota original.
-   - Mantén la terminología médica consistente con la nota original.
+4. **MANEJO DE INFORMACIÓN FALTANTE:**
+   - Si la nueva información no es suficiente para completar una sección, NO la completes
+   - NO agregues "pendiente", "a evaluar", "dato faltante" u observaciones similares
+   - Simplemente integra lo que está disponible y deja el resto sin modificar
 
-5. **FORMATO DE RESPUESTA:**
-   - Devuelve la nota clínica completa con solo las modificaciones necesarias.
-   - NO incluyas comentarios, explicaciones o notas adicionales.
-   - La respuesta debe ser directamente la nota médica actualizada.
+5. **ANÁLISIS INTELIGENTE DE UBICACIÓN:**
+   - Analiza dónde pertenece la nueva información (evolución, examen, tratamiento, etc.)
+   - Respeta la lógica temporal y médica de la nota
+   - Mantén la coherencia clínica entre la información original y la nueva
+   - Coloca la nueva información en la sección más apropiada
 
-**EJEMPLO DE ACTUALIZACIÓN:**
-Si la nueva información es sobre signos vitales actuales y la nota original ya tiene una sección de signos vitales, actualiza solo esa sección manteniendo todo lo demás idéntico.
+6. **INTEGRACIÓN NATURAL:**
+   - Integra la nueva información de forma fluida en el contexto existente
+   - Usa el mismo estilo de redacción médica de la nota original
+   - Mantén la terminología médica consistente
+   - Respeta el tono y formato profesional
 
-**IMPORTANTE:** Solo actualiza lo que realmente requiere cambio según la nueva información proporcionada.`;
+7. **FORMATO DE RESPUESTA:**
+   - Devuelve la nota clínica completa con SOLO las modificaciones necesarias
+   - NO incluyas comentarios, explicaciones o notas adicionales
+   - La respuesta debe ser directamente la nota médica actualizada
+   - NO agregues secciones de observaciones sobre los cambios
+
+8. **EJEMPLOS DE ACTUALIZACIÓN CORRECTA:**
+   - Nueva información: "Presión arterial: 140/90 mmHg" → Actualiza SOLO el valor en signos vitales
+   - Nueva información: "Inició tratamiento con losartán" → Agrega SOLO eso al plan de tratamiento
+   - Nueva información incompleta: NO inventes el resto de la información
+
+**REGLA FUNDAMENTAL:** Solo actualiza lo que está explícitamente mencionado en la nueva información. NUNCA inventes, completes o asumas datos adicionales.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -357,7 +469,7 @@ Si la nueva información es sobre signos vitales actuales y la nota original ya 
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. Preservas la estructura original y solo modificas lo estrictamente necesario basado en nueva información médica."
+          content: "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. SOLO usas información explícitamente proporcionada, NUNCA inventas datos adicionales. Preservas la estructura original y modificas únicamente lo estrictamente necesario."
         },
         {
           role: "user",
@@ -884,49 +996,67 @@ export const extractTemplateFormat = async (
     throw new Error('La plantilla es demasiado larga. Por favor, reduce el contenido a menos de 15,000 caracteres.');
   }
 
-  const prompt = `Eres un asistente médico experto en análisis de estructuras de documentos clínicos. Tu tarea es extraer el FORMATO/ESTRUCTURA de la plantilla de historia clínica proporcionada, eliminando todos los datos específicos del paciente.
+  const prompt = `Eres un experto en crear MOLDES ESTRUCTURALES de documentos médicos. Tu tarea es extraer ÚNICAMENTE la estructura/formato de la plantilla, convirtiendo todos los datos específicos en marcadores genéricos.
+
+🎯 OBJETIVO: Crear un FORMATO PURO reutilizable eliminando TODA información específica del paciente original.
 
 PLANTILLA ORIGINAL:
 ---
 ${trimmedContent}
 ---
 
-INSTRUCCIONES CRÍTICAS:
+🚨 INSTRUCCIONES CRÍTICAS PARA EXTRACCIÓN DE FORMATO:
 
-1. **EXTRAER SOLO EL FORMATO:**
-   - Mantén EXACTAMENTE la estructura: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, espacios en blanco.
-   - Preserva todos los signos de puntuación, dos puntos, guiones, etc.
-   - Mantén la jerarquía y organización visual.
+1. **PRESERVAR ESTRUCTURA VISUAL EXACTA:**
+   - Mantén EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
+   - Conserva espacios en blanco, saltos de línea, tabulaciones
+   - Preserva todos los elementos visuales: dos puntos (:), guiones (-), números, etc.
+   - NO cambies la jerarquía ni organización de secciones
 
-2. **ELIMINAR DATOS ESPECÍFICOS:**
-   - Reemplaza nombres de pacientes con: [Nombre del paciente]
-   - Reemplaza edades con: [Edad]
-   - Reemplaza fechas con: [Fecha]
-   - Reemplaza números de documento con: [Documento]
-   - Reemplaza síntomas específicos con: [Describir síntoma]
-   - Reemplaza medicamentos con: [Medicamento]
-   - Reemplaza diagnósticos con: [Diagnóstico]
-   - Reemplaza valores de laboratorio con: [Valor]
-   - Reemplaza signos vitales con: [Valor]
+2. **ELIMINAR TODA INFORMACIÓN ESPECÍFICA:**
+   - Nombres de pacientes → [Nombre del paciente]
+   - Edades específicas → [Edad] años
+   - Fechas específicas → [Fecha]
+   - Números de documento → [Documento de identidad]
+   - Síntomas específicos → [Describir síntoma]
+   - Diagnósticos específicos → [Diagnóstico]
+   - Medicamentos específicos → [Medicamento]
+   - Valores de laboratorio específicos → [Valor de laboratorio]
+   - Signos vitales específicos → [Signos vitales]
+   - Nombres de médicos → [Nombre del médico]
+   - Hallazgos específicos → [Hallazgos del examen]
 
-3. **MANTENER ELEMENTOS ESTRUCTURALES:**
-   - Todos los encabezados deben permanecer idénticos
-   - Todas las etiquetas y campos deben mantenerse
-   - Los formatos de lista (viñetas, números) deben preservarse
-   - Los espacios y saltos de línea deben mantenerse
+3. **CREAR MARCADORES GENÉRICOS:**
+   - Usa marcadores que describan el TIPO de información, no el contenido específico
+   - Ejemplos CORRECTOS: [Motivo de consulta], [Antecedentes familiares], [Plan de tratamiento]
+   - Ejemplos INCORRECTOS: [Dolor de cabeza], [Diabetes], [Paracetamol]
+   - Los marcadores deben ser aplicables a CUALQUIER paciente
 
-4. **EJEMPLO DE TRANSFORMACIÓN:**
-   - "Paciente: Juan Pérez" → "Paciente: [Nombre del paciente]"
-   - "Edad: 45 años" → "Edad: [Edad] años"
-   - "Presenta cefalea intensa" → "Presenta [Describir síntoma]"
-   - "Paracetamol 500mg" → "[Medicamento] [Dosis]"
+4. **CONSERVAR SOLO ELEMENTOS ESTRUCTURALES:**
+   - Mantén etiquetas como "Nombre:", "Edad:", "Diagnóstico:", etc.
+   - Conserva frases estructurales no específicas
+   - Preserva numeración y viñetas de listas
+   - Mantén encabezados de secciones
 
-5. **RESPUESTA:**
-   - Responde SOLO con el formato extraído
-   - No agregues comentarios ni explicaciones
-   - Mantén exactamente la misma estructura visual
+5. **ELIMINAR CONTEXTO ESPECÍFICO:**
+   - NO conserves hallazgos específicos de una patología particular
+   - NO mantengas valores específicos aunque sean "normales"
+   - Reemplaza TODO lo que sea específico del paciente original
+   - La plantilla debe ser universalmente aplicable
 
-El resultado debe ser una plantilla en blanco que preserve la estructura pero que pueda ser llenada con datos de cualquier paciente.`;
+6. **TRANSFORMACIONES EJEMPLO:**
+   - "Paciente: María González" → "Paciente: [Nombre del paciente]"
+   - "Edad: 35 años" → "Edad: [Edad] años"
+   - "Presenta dolor torácico opresivo" → "Presenta [Describir síntoma]"
+   - "Losartán 50mg cada 12 horas" → "[Medicamento] [Dosis y frecuencia]"
+   - "Presión arterial: 120/80 mmHg" → "Presión arterial: [Valor]"
+
+7. **RESPUESTA FINAL:**
+   - Responde ÚNICAMENTE con el formato extraído
+   - NO agregues comentarios, explicaciones, ni introducciones
+   - La plantilla debe ser un MOLDE VACÍO directamente utilizable
+
+RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visual exacta pero que pueda usarse para CUALQUIER paciente, sin datos específicos del caso original.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -934,7 +1064,7 @@ El resultado debe ser una plantilla en blanco que preserve la estructura pero qu
       messages: [
         {
           role: "system",
-          content: "Eres un asistente médico experto en análisis de estructuras de documentos clínicos. Tu especialidad es extraer formatos y estructuras de plantillas médicas manteniendo la organización visual exacta pero eliminando datos específicos del paciente."
+          content: "Eres un experto en crear moldes estructurales de documentos médicos. Tu especialidad es convertir plantillas con datos específicos en formatos puros reutilizables, eliminando TODA información del paciente original y creando marcadores genéricos universales."
         },
         {
           role: "user",
