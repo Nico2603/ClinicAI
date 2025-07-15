@@ -28,7 +28,7 @@ import {
   HistoryView
 } from './';
 import { NoteEditor } from './notes/NoteEditor';
-import { HistoricNote } from '../types';
+import { HistoricNote, UserTemplate } from '../types';
 
 const AuthenticatedApp: React.FC = React.memo(() => {
   const { user } = useAuth();
@@ -47,15 +47,14 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     getViewTitle,
   } = useAppState();
 
-  // Gestión de plantillas con useMemo para evitar re-creación innecesaria
-  const templateManagerDeps = useMemo(() => [selectedTemplate, handleSelectTemplate], [selectedTemplate, handleSelectTemplate]);
+  // Gestión de plantillas
   const {
     userTemplates,
     handleSaveTemplate,
     handleCreateTemplate,
     handleDeleteTemplate,
     handleRenameTemplate,
-  } = useTemplateManager(templateManagerDeps[0], templateManagerDeps[1]);
+  } = useTemplateManager(selectedTemplate as UserTemplate | null, handleSelectTemplate);
 
   // Gestión de notas de plantilla
   const {
@@ -90,7 +89,6 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   // Reconocimiento de voz
   const {
     isRecording,
-    transcript,
     interimTranscript,
     isSupported: isSpeechApiAvailable,
     error: transcriptError,
@@ -116,12 +114,12 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     try {
       clearGlobalError();
       clearTemplateError();
-      await generateNote(selectedTemplate.name, selectedTemplate.content, patientInfo);
+      await generateNote(selectedTemplate, user?.id || '');
     } catch (error) {
       console.error('Error generating template note:', error);
-      showError(error instanceof Error ? error.message : ERROR_MESSAGES.GENERATION_FAILED);
+      showError(error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_GENERATION_ERROR);
     }
-  }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError]);
+  }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError, user?.id]);
 
   // Callback memoizado para cargar nota en editor
   const handleLoadNoteInEditor = useCallback((note: HistoricNote) => {
@@ -168,13 +166,13 @@ const AuthenticatedApp: React.FC = React.memo(() => {
 
   // Efectos para transcript
   useEffect(() => {
-    if (transcript && activeView === 'nota-plantilla') {
+    if (interimTranscript && activeView === 'nota-plantilla') {
       setPatientInfo(prevInfo => {
-        const newInfo = prevInfo ? `${prevInfo} ${transcript}` : transcript;
+        const newInfo = prevInfo ? `${prevInfo} ${interimTranscript}` : interimTranscript;
         return newInfo.trim();
       });
     }
-  }, [transcript, activeView, setPatientInfo]);
+  }, [interimTranscript, activeView, setPatientInfo]);
 
   // Memoizar el título de la vista
   const viewTitle = useMemo(() => getViewTitle(activeView), [getViewTitle, activeView]);
@@ -234,15 +232,13 @@ const AuthenticatedApp: React.FC = React.memo(() => {
 
           {activeView === 'templates' && (
             <TemplatesView
+              selectedTemplate={selectedTemplate}
               userTemplates={userTemplates}
-              onSaveTemplate={handleSaveTemplate}
-              onCreateTemplate={handleCreateTemplate}
-              onDeleteTemplate={handleDeleteTemplate}
-              onRenameTemplate={handleRenameTemplate}
               onSelectTemplate={(template) => {
                 handleSelectTemplate(template);
                 setActiveView('nota-plantilla');
               }}
+              onSaveTemplate={(newContent: string) => selectedTemplate ? handleSaveTemplate(selectedTemplate.id, newContent) : Promise.resolve()}
             />
           )}
 
@@ -317,8 +313,8 @@ const AuthenticatedApp: React.FC = React.memo(() => {
             <NoteEditor
               note={noteForEditor}
               userTemplates={userTemplates}
-              onSaveAsNew={handleSaveAsNewNote}
-              onOverwrite={handleOverwriteNote}
+              onSaveAsNew={(editedNote) => handleSaveAsNewNote(editedNote.content)}
+              onOverwrite={(noteId, editedNote) => handleOverwriteNote(editedNote.content)}
               onCancel={handleCancelNoteEditor}
             />
           )}

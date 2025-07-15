@@ -6,6 +6,7 @@ interface TemplatesViewProps {
   selectedTemplate: UserTemplate | null;
   onSelectTemplate: (template: UserTemplate) => void;
   onSaveTemplate: (newContent: string) => Promise<void>;
+  userTemplates: UserTemplate[];
   userId?: string;
 }
 
@@ -13,6 +14,7 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
   selectedTemplate,
   onSelectTemplate,
   onSaveTemplate,
+  userTemplates,
   userId,
 }) => {
   return (
@@ -25,7 +27,12 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
       </h2>
       
       <SimpleTemplateEditor
-        onSelectTemplate={onSelectTemplate}
+        onSelectTemplate={(templateId: string) => {
+          const template = userTemplates.find(t => t.id === templateId);
+          if (template) {
+            onSelectTemplate(template);
+          }
+        }}
         selectedTemplateId={selectedTemplate?.id}
       />
     </section>
