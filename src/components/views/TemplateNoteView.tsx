@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
-import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, ClinicalScaleGenerator, EvidenceBasedConsultation } from '../';
+import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -65,7 +65,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   const tabs = [
     { id: 'note', label: 'Generación de Nota', icon: '📝' },
     { id: 'evidence', label: 'Evidencia Científica', icon: '🔬' },
-    { id: 'scales', label: 'Escalas Clínicas', icon: '📊' },
+    { id: 'scales', label: 'Escalas Clínicas Calculadas por IA', icon: '📊' },
   ];
 
   return (
@@ -77,14 +77,17 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
         <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
           Nota con Plantilla: <span className="font-bold">{selectedTemplate.name}</span>
         </h2>
-        <div className="lg:w-1/2 xl:w-1/3">
-          <button
-            onClick={onChangeTemplate}
-            className="text-sm text-primary hover:text-primary-dark underline"
-          >
-            Cambiar plantilla
-          </button>
-        </div>
+        {activeTab === 'note' && (
+          <div className="lg:w-1/2 xl:w-1/3">
+            <button
+              onClick={onChangeTemplate}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 hover:border-primary/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
+            >
+              <span className="mr-2">🔄</span>
+              Cambiar plantilla
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabs Navigation */}
@@ -222,23 +225,14 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 
       {activeTab === 'scales' && (
         <div className="space-y-6">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-              📊 Escalas Clínicas Inteligentes
-            </h3>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              Aplique escalas clínicas automatizadas que se calculan inteligentemente tomando los datos 
-              de la información del paciente o la nota generada.
-            </p>
-          </div>
-          
-          <ClinicalScaleGenerator 
-            onScaleGenerated={(scaleText) => {
+          <AIClinicalScales 
+            onScaleGenerated={(scaleText: string) => {
               if (onNoteGenerated) {
                 onNoteGenerated(scaleText);
               }
             }}
-            existingNoteContent={generatedNote || patientInfo}
+            autoAnalyzeContent={generatedNote || patientInfo}
+            enableAutoAnalysis={Boolean(generatedNote || patientInfo)}
           />
         </div>
       )}
