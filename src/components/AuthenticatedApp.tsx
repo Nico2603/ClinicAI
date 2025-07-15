@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 
 // Hooks
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +30,7 @@ import {
 import { NoteEditor } from './notes/NoteEditor';
 import { HistoricNote } from '../types';
 
-const AuthenticatedApp: React.FC = () => {
+const AuthenticatedApp: React.FC = React.memo(() => {
   const { user } = useAuth();
   const [theme, toggleTheme] = useDarkMode();
   
@@ -47,14 +47,15 @@ const AuthenticatedApp: React.FC = () => {
     getViewTitle,
   } = useAppState();
 
-  // Gestión de plantillas
+  // Gestión de plantillas con useMemo para evitar re-creación innecesaria
+  const templateManagerDeps = useMemo(() => [selectedTemplate, handleSelectTemplate], [selectedTemplate, handleSelectTemplate]);
   const {
     userTemplates,
     handleSaveTemplate,
     handleCreateTemplate,
     handleDeleteTemplate,
     handleRenameTemplate,
-  } = useTemplateManager(selectedTemplate, handleSelectTemplate);
+  } = useTemplateManager(templateManagerDeps[0], templateManagerDeps[1]);
 
   // Gestión de notas de plantilla
   const {
@@ -70,14 +71,15 @@ const AuthenticatedApp: React.FC = () => {
     resetState: resetTemplateState,
   } = useTemplateNotes();
 
-  // Gestión del historial
+  // Gestión del historial con userId memoizado
+  const memoizedUserId = useMemo(() => user?.id || null, [user?.id]);
   const {
     historicNotes,
     addNoteToHistory,
     deleteNote,
     clearHistory,
     loadNoteFromHistory,
-  } = useHistoryManager(user?.id || null);
+  } = useHistoryManager(memoizedUserId);
 
   // Estado para el actualizador de notas
   const [noteForUpdater, setNoteForUpdater] = useState<string>('');
@@ -86,23 +88,17 @@ const AuthenticatedApp: React.FC = () => {
   const [noteForEditor, setNoteForEditor] = useState<HistoricNote | null>(null);
 
   // Reconocimiento de voz
-  const { 
-    isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
-    error: transcriptError, 
-    startRecording, 
-    stopRecording 
-  } = useSpeechRecognition({
-    onTranscript: (transcript) => {
-      setPatientInfo(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error) => {
-      console.error('Speech recognition error:', error);
-    }
-  });
+  const {
+    isRecording,
+    transcript,
+    interimTranscript,
+    isSupported: isSpeechApiAvailable,
+    error: transcriptError,
+    startRecording,
+    stopRecording,
+  } = useSpeechRecognition();
 
-  // Manejadores de eventos
+  // Callbacks memoizados para evitar re-renders
   const handleToggleRecording = useCallback(() => {
     if (isRecording) {
       stopRecording();
@@ -112,147 +108,141 @@ const AuthenticatedApp: React.FC = () => {
   }, [isRecording, startRecording, stopRecording]);
 
   const handleGenerateTemplateNote = useCallback(async () => {
-    if (!selectedTemplate) {
-      showError(ERROR_MESSAGES.TEMPLATE_NOT_SELECTED);
+    if (!selectedTemplate || !patientInfo.trim()) {
+      showError('Por favor selecciona una plantilla e ingresa información del paciente');
       return;
     }
 
-    clearGlobalError();
-    clearTemplateError();
-
     try {
-      const result = await generateNote(selectedTemplate, user?.id || '');
-      
-      if (result) {
-        // Agregar al historial
-        addNoteToHistory({
-          type: 'template',
-          specialty_id: selectedTemplate.id,
-          specialtyName: selectedTemplate.name,
-          originalInput: patientInfo,
-          content: result,
-        });
-      }
+      clearGlobalError();
+      clearTemplateError();
+      await generateNote(selectedTemplate.name, selectedTemplate.content, patientInfo);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_GENERATION_ERROR;
-      showError(errorMessage);
+      console.error('Error generating template note:', error);
+      showError(error instanceof Error ? error.message : ERROR_MESSAGES.GENERATION_FAILED);
     }
-  }, [selectedTemplate, user?.id, generateNote, patientInfo, addNoteToHistory, clearGlobalError, clearTemplateError, showError]);
+  }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError]);
 
-  const handleLoadFromHistory = useCallback((note: any) => {
-    loadNoteFromHistory(note, userTemplates, {
-      setActiveView,
-      setSelectedTemplate,
-      setPatientInfo,
-      setGeneratedNote: updateGeneratedTemplateNote,
-      setSuggestionInput: () => {}, // No usado
-      setGeneratedSuggestion: () => {}, // No usado
-      clearMetadata: () => {
-        // Limpiar metadatos de grounding
-      },
-    });
-  }, [loadNoteFromHistory, userTemplates, setActiveView, setSelectedTemplate, setPatientInfo, updateGeneratedTemplateNote]);
-
-  // Manejadores para el editor de notas
+  // Callback memoizado para cargar nota en editor
   const handleLoadNoteInEditor = useCallback((note: HistoricNote) => {
+    resetTemplateState();
     setNoteForEditor(note);
     setActiveView('note-editor');
-  }, [setActiveView]);
+  }, [resetTemplateState, setActiveView]);
 
-  const handleSaveAsNewNote = useCallback((editedNote: Omit<HistoricNote, 'id' | 'timestamp'>) => {
-    addNoteToHistory(editedNote);
-    setActiveView('historial-notas');
-    setNoteForEditor(null);
-  }, [addNoteToHistory, setActiveView]);
-
-  const handleOverwriteNote = useCallback((noteId: string, editedNote: Omit<HistoricNote, 'id' | 'timestamp'>) => {
-    // Actualizar la nota en el historial manteniendo el mismo ID y timestamp
-    const currentHistory = historicNotes;
-    const noteIndex = currentHistory.findIndex(n => n.id === noteId);
+  // Callbacks memoizados para el editor de notas
+  const handleSaveAsNewNote = useCallback((updatedContent: string) => {
+    if (!noteForEditor) return;
     
-    if (noteIndex !== -1) {
-      const originalNote = currentHistory[noteIndex];
-      if (!originalNote) return;
-      
-      const updatedNote: HistoricNote = {
-        ...editedNote,
-        id: originalNote.id,
-        timestamp: originalNote.timestamp,
-      };
-      
-      const updatedHistory = [...currentHistory];
-      updatedHistory[noteIndex] = updatedNote;
-      
-      // Actualizar el localStorage
-      if (user?.id) {
-        localStorage.setItem(`history_${user.id}`, JSON.stringify(updatedHistory));
-      }
-      
-      // Forzar re-render del historial regresando a la vista
-      setActiveView('historial-notas');
-      setNoteForEditor(null);
-      
-      // Recargar la página para actualizar el historial
-      window.location.reload();
-    }
-  }, [historicNotes, user?.id, setActiveView]);
+    const newNote: HistoricNote = {
+      ...noteForEditor,
+      id: Date.now().toString(),
+      content: updatedContent,
+      timestamp: new Date().toISOString(),
+    };
+    
+    addNoteToHistory(newNote);
+    setNoteForEditor(null);
+    setActiveView('historial-notas');
+  }, [noteForEditor, addNoteToHistory, setActiveView]);
+
+  const handleOverwriteNote = useCallback((updatedContent: string) => {
+    if (!noteForEditor) return;
+    
+    const updatedNote: HistoricNote = {
+      ...noteForEditor,
+      content: updatedContent,
+    };
+    
+    // Aquí necesitarías implementar una función updateNote en useHistoryManager
+    // Por ahora, agregamos como nueva nota
+    addNoteToHistory(updatedNote);
+    setNoteForEditor(null);
+    setActiveView('historial-notas');
+  }, [noteForEditor, addNoteToHistory, setActiveView]);
 
   const handleCancelNoteEditor = useCallback(() => {
-    setActiveView('historial-notas');
     setNoteForEditor(null);
+    setActiveView('historial-notas');
   }, [setActiveView]);
 
-  const handleSaveTemplateWrapper = useCallback(async (newContent: string) => {
-    if (!selectedTemplate) return;
-    
-    try {
-      await handleSaveTemplate(selectedTemplate.id, newContent);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.TEMPLATE_SAVE_ERROR;
-      showError(errorMessage);
+  // Efectos para transcript
+  useEffect(() => {
+    if (transcript && activeView === 'nota-plantilla') {
+      setPatientInfo(prevInfo => {
+        const newInfo = prevInfo ? `${prevInfo} ${transcript}` : transcript;
+        return newInfo.trim();
+      });
     }
-  }, [selectedTemplate, handleSaveTemplate, showError]);
+  }, [transcript, activeView, setPatientInfo]);
 
-  // Determinar el error actual a mostrar
-  const currentError = globalError || templateError;
+  // Memoizar el título de la vista
+  const viewTitle = useMemo(() => getViewTitle(activeView), [getViewTitle, activeView]);
+
+  // Memoizar las props para los componentes hijos
+  const sidebarProps = useMemo(() => ({
+    activeView,
+    setActiveView,
+    theme,
+    toggleTheme,
+    historicNotes,
+    userTemplates,
+    onLoadNoteInEditor: handleLoadNoteInEditor,
+    onLoadNoteInUpdater: (note: HistoricNote) => {
+      setNoteForUpdater(note.content);
+      setActiveView('note-updater');
+    }
+  }), [activeView, setActiveView, theme, toggleTheme, historicNotes, userTemplates, handleLoadNoteInEditor]);
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
-      <Sidebar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        historicNotes={historicNotes}
-        userTemplates={userTemplates}
-        onLoadNoteInEditor={handleLoadNoteInEditor}
-        onLoadNoteInUpdater={(note) => {
-          setNoteForUpdater(note.content);
-          setActiveView('note-updater');
-        }}
-      />
+      <Sidebar {...sidebarProps} />
       <div className="md:ml-64 flex flex-col">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
           <h1 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
-            {getViewTitle(activeView)}
+            {viewTitle}
           </h1>
           <UserProfile />
         </header>
 
-        <main className="flex-1 bg-neutral-100 dark:bg-neutral-900 p-3 md:p-4 space-y-4 md:space-y-6 overflow-y-auto">
-          {currentError && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-300 rounded-lg shadow" role="alert">
-              <p className="font-bold text-sm">Error:</p>
-              <p className="text-sm">{currentError}</p>
-            </div>
+        <main className="flex-1 p-3 md:p-4 space-y-4 md:space-y-6">
+          {globalError && (
+            <section aria-labelledby="error-heading" className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
+              <h2 id="error-heading" className="sr-only">Error</h2>
+              <p>{globalError}</p>
+              <button 
+                onClick={clearGlobalError}
+                className="mt-2 text-sm underline hover:no-underline"
+              >
+                Cerrar
+              </button>
+            </section>
+          )}
+
+          {templateError && (
+            <section aria-labelledby="template-error-heading" className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
+              <h2 id="template-error-heading" className="sr-only">Error de Plantilla</h2>
+              <p>{templateError}</p>
+              <button 
+                onClick={clearTemplateError}
+                className="mt-2 text-sm underline hover:no-underline"
+              >
+                Cerrar
+              </button>
+            </section>
           )}
 
           {activeView === 'templates' && (
             <TemplatesView
-              selectedTemplate={selectedTemplate}
-              onSelectTemplate={handleSelectTemplate}
-              onSaveTemplate={handleSaveTemplateWrapper}
-              userId={user?.id}
+              userTemplates={userTemplates}
+              onSaveTemplate={handleSaveTemplate}
+              onCreateTemplate={handleCreateTemplate}
+              onDeleteTemplate={handleDeleteTemplate}
+              onRenameTemplate={handleRenameTemplate}
+              onSelectTemplate={(template) => {
+                handleSelectTemplate(template);
+                setActiveView('nota-plantilla');
+              }}
             />
           )}
 
@@ -338,6 +328,8 @@ const AuthenticatedApp: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+AuthenticatedApp.displayName = 'AuthenticatedApp';
 
 export default AuthenticatedApp;

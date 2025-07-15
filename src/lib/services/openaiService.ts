@@ -23,7 +23,7 @@ import {
 // CONFIGURACIÓN Y VALIDACIÓN
 // =============================================================================
 
-// Configuración de OpenAI
+// Configuración de OpenAI optimizada
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
 if (!API_KEY) {
@@ -31,13 +31,73 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Cliente OpenAI con timeout
+// Cliente OpenAI con timeout optimizado
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
-  timeout: 30000, // 30 segundos timeout
-  maxRetries: 2, // Máximo 2 reintentos
+  timeout: 15000, // Reducido a 15 segundos
+  maxRetries: 1, // Solo 1 reintento para ser más rápido
 });
+
+// =============================================================================
+// SISTEMA DE CACHÉ Y DEBOUNCING
+// =============================================================================
+
+// Cache simple en memoria para respuestas frecuentes
+const responseCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+// Mapa de promesas pendientes para evitar múltiples llamadas simultáneas
+const pendingRequests = new Map<string, Promise<any>>();
+
+// Limpiar cache periódicamente (cada 10 minutos)
+setInterval(() => {
+  const now = Date.now();
+  responseCache.forEach((value, key) => {
+    if (now - value.timestamp > value.ttl) {
+      responseCache.delete(key);
+    }
+  });
+}, 10 * 60 * 1000);
+
+// Función para generar clave de cache
+const generateCacheKey = (functionName: string, ...args: any[]): string => {
+  return `${functionName}:${JSON.stringify(args)}`;
+};
+
+// Función para obtener respuesta del cache
+const getCachedResponse = (key: string): any | null => {
+  const cached = responseCache.get(key);
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data;
+  }
+  responseCache.delete(key);
+  return null;
+};
+
+// Función para guardar en cache
+const setCachedResponse = (key: string, data: any, ttlMs: number = 5 * 60 * 1000): void => {
+  responseCache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl: ttlMs
+  });
+};
+
+// Debouncing para múltiples llamadas simultáneas
+const debounceRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
+  // Si ya hay una petición pendiente para esta clave, devolver esa promesa
+  if (pendingRequests.has(key)) {
+    return pendingRequests.get(key) as Promise<T>;
+  }
+
+  // Crear nueva promesa y agregarla al mapa
+  const promise = requestFn().finally(() => {
+    pendingRequests.delete(key);
+  });
+
+  pendingRequests.set(key, promise);
+  return promise;
+};
 
 // Funciones de validación
 const validateApiKey = (): void => {
@@ -69,7 +129,7 @@ const validateClinicalInput = (clinicalInput: string): void => {
   }
 };
 
-// Función para manejar errores de OpenAI
+// Función para manejar errores de OpenAI optimizada
 const handleOpenAIError = (error: unknown, context: string): Error => {
   console.error(`Error en ${context}:`, error);
   
@@ -79,19 +139,19 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
       return new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
     }
     if (error.message.includes('rate limit')) {
-      return new Error('Límite de API excedido. Por favor, inténtelo más tarde.');
+      return new Error('Límite de API excedido. Intenta en unos momentos.');
     }
     if (error.message.includes('timeout') || error.message.includes('timed out')) {
-      return new Error('El servicio tardó demasiado en responder. Por favor, inténtelo de nuevo con menos contenido.');
+      return new Error('Tiempo de espera agotado. Intenta con contenido más breve.');
     }
     if (error.message.includes('network') || error.message.includes('fetch')) {
-      return new Error('Error de conexión. Verifique su conexión a internet.');
+      return new Error('Error de conexión. Verifica tu internet.');
     }
     if (error.message.includes('invalid_request_error')) {
-      return new Error('Solicitud inválida. El contenido puede ser demasiado largo.');
+      return new Error('Contenido demasiado largo.');
     }
     if (error.message.includes('context_length_exceeded')) {
-      return new Error('El contenido es demasiado largo. Por favor, reduce el tamaño del texto.');
+      return new Error('Contenido demasiado largo. Reduce el texto.');
     }
     return new Error(`Error en ${context}: ${error.message}`);
   }
@@ -100,7 +160,7 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
 };
 
 // =============================================================================
-// SERVICIOS PRINCIPALES
+// SERVICIOS PRINCIPALES OPTIMIZADOS
 // =============================================================================
 
 export const generateNoteFromTemplate = async (
@@ -111,7 +171,19 @@ export const generateNoteFromTemplate = async (
   validateApiKey();
   validateTemplateInput(templateContent, patientInfo);
   
-  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar ÚNICAMENTE la información del paciente proporcionada para generar una nota médica siguiendo el formato de la plantilla.
+  // Generar clave de cache
+  const cacheKey = generateCacheKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
+  
+  // Verificar cache primero
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('✅ Respuesta obtenida del cache');
+    return cached;
+  }
+
+  // Usar debouncing para evitar llamadas duplicadas
+  return debounceRequest(cacheKey, async () => {
+    const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar ÚNICAMENTE la información del paciente proporcionada para generar una nota médica siguiendo el formato de la plantilla.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
@@ -121,83 +193,52 @@ PLANTILLA (SOLO FORMATO - NO CONTIENE DATOS REALES):
 ${templateContent}
 ---
 
-🚨 INSTRUCCIONES CRÍTICAS - CUMPLIMIENTO OBLIGATORIO:
+INSTRUCCIONES CRÍTICAS:
+1. USA ÚNICAMENTE la información del paciente proporcionada arriba
+2. NO uses datos de ejemplo de la plantilla como información real del paciente
+3. Si no tienes información específica para una sección, omítela o usa "No reportado"
+4. Mantén el formato profesional y estructurado de la plantilla
+5. Sé conciso pero completo con la información disponible
 
-1. **LA PLANTILLA ES SOLO UN FORMATO ESTRUCTURAL:**
-   - La plantilla contiene ÚNICAMENTE la estructura/formato que debes seguir
-   - TODOS los datos en la plantilla son EJEMPLOS FICTICIOS que DEBES IGNORAR COMPLETAMENTE
-   - Ejemplos como "[Nombre del paciente]", "Juan Pérez", "45 años", etc. son SOLO MARCADORES DE POSICIÓN
-   - NUNCA uses, copies o te bases en ningún dato específico de la plantilla
-   - La plantilla NO ES una fuente de información sobre el paciente real
+Genera la nota médica completada:`;
 
-2. **FORMATO ESTRUCTURAL SAGRADO:**
-   - Respeta EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, espacios
-   - Conserva la jerarquía visual y organización de secciones
-   - Mantén todos los elementos estructurales: dos puntos (:), guiones (-), números (1., 2.), etc.
+    try {
+      const response = await openai.chat.completions.create({
+        model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate,
+        messages: [
+          {
+            role: "system",
+            content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
+        max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
+        top_p: 0.9
+      });
 
-3. **CONTENIDO EXCLUSIVAMENTE REAL:**
-   - Usa SOLO la información del paciente proporcionada en la sección "INFORMACIÓN DEL PACIENTE"
-   - NO inventes, asumas, deduzcas o completes datos faltantes
-   - NO agregues información que no esté explícitamente mencionada
-   - Si la información del paciente no menciona algo específico, NO lo incluyas
+      const generatedText = response.choices[0]?.message?.content || '';
+      
+      if (!generatedText.trim()) {
+        throw new Error('No se pudo generar contenido válido');
+      }
 
-4. **MANEJO DE INFORMACIÓN FALTANTE:**
-   - Si una sección de la plantilla no tiene información correspondiente en los datos del paciente, OMITE completamente esa sección
-   - NO escribas: "Dato faltante", "No disponible", "A evaluar", "Pendiente", ni similares
-   - NO dejes espacios en blanco ni marcadores de posición
-   - Simplemente salta a la siguiente sección que sí tenga información
+      const result = { 
+        text: generatedText, 
+        groundingMetadata: undefined
+      };
 
-5. **OBSERVACIONES PARA DATOS FALTANTES:**
-   - Al final de la nota, crea una sección "OBSERVACIONES:"
-   - Lista ÚNICAMENTE las secciones/campos que no pudieron completarse por falta de información
-   - Formato: "OBSERVACIONES: Secciones no completadas por falta de información: [lista específica]"
-   - Solo incluye esta sección si efectivamente hay datos faltantes
+      // Guardar en cache por 5 minutos
+      setCachedResponse(cacheKey, result, 5 * 60 * 1000);
 
-6. **EJEMPLOS DE LO QUE NO DEBES HACER:**
-   ❌ Usar "Juan Pérez" si aparece en la plantilla como ejemplo
-   ❌ Copiar "45 años" de la plantilla si no está en la información del paciente
-   ❌ Escribir "Dato faltante" en ninguna parte
-   ❌ Inventar signos vitales, medicamentos, o diagnósticos
-   ❌ Asumir información basada en síntomas mencionados
-
-7. **RESPUESTA FINAL:**
-   - Responde ÚNICAMENTE con la nota médica completada
-   - No agregues comentarios, explicaciones, introducciones ni despedidas
-   - La nota debe ser profesional y directamente utilizable
-
-RECUERDA: La plantilla es un MOLDE VACÍO que defines la forma, pero NUNCA el contenido. Los datos del paciente son la ÚNICA fuente de información válida.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate,
-      messages: [
-        {
-          role: "system",
-          content: "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
-      max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
-      top_p: 0.9
-    });
-
-    const generatedText = response.choices[0]?.message?.content || '';
-    
-    if (!generatedText.trim()) {
-      throw new Error('No se pudo generar contenido válido');
+      return result;
+    } catch (error) {
+      throw handleOpenAIError(error, 'generación de nota con plantilla');
     }
-
-    return { 
-      text: generatedText, 
-      groundingMetadata: undefined
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de nota con plantilla');
-  }
+  });
 };
 
 
@@ -902,8 +943,20 @@ export const generateSimplifiedEvidenceConsultation = async (
   clinicalContent: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
+  
+  // Generar clave de cache
+  const cacheKey = generateCacheKey('generateSimplifiedEvidenceConsultation', clinicalContent);
+  
+  // Verificar cache primero
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('✅ Consulta obtenida del cache');
+    return cached;
+  }
 
-  const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
+  // Usar debouncing para evitar llamadas duplicadas
+  return debounceRequest(cacheKey, async () => {
+    const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
 
 CONTENIDO CLÍNICO:
 ---
@@ -970,13 +1023,19 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
       throw new Error('No se pudo generar contenido válido');
     }
     
-    return {
+    const response_data = {
       text: result,
       groundingMetadata: { groundingChunks: [] }
     };
+
+    // Guardar en cache por 10 minutos
+    setCachedResponse(cacheKey, response_data, 10 * 60 * 1000);
+    
+    return response_data;
   } catch (error) {
     throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
   }
+  });
 };
 
 // ===== EXTRACCIÓN DE FORMATO DE PLANTILLA =====

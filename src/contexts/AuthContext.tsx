@@ -4,9 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { auth, supabase, type AuthUser } from '@/lib/supabase';
 import { cleanAuthUrl, handleAuthError, delay, isClient } from '@/lib/utils';
 import { useSessionExpiry } from '@/hooks/useSessionExpiry';
-import { useLoadingDetector } from '@/hooks/useLoadingDetector';
 import { performCompleteCleanup } from '@/lib/services/storageService';
-import { forceCompleteRefresh } from '@/lib/utils/refreshUtils';
 import type { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -18,14 +16,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   error: string | null;
   mounted: boolean;
-  // Nuevas funciones para manejo de sesiones
   extendSession: () => Promise<boolean>;
-  forceRefresh: () => Promise<void>;
-  sessionStatus: {
-    isExpired: boolean;
-    isStuck: boolean;
-    timeRemaining: number;
-  };
 }
 
 interface AuthProviderProps {
@@ -40,11 +31,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [sessionStatus, setSessionStatus] = useState({
-    isExpired: false,
-    isStuck: false,
-    timeRemaining: 0
-  });
 
   const isAuthenticated = user !== null && session !== null;
 
@@ -89,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [ensureUserExists]);
 
   // Función para obtener sesión con retry
-  const getSessionWithRetry = useCallback(async (maxRetries = 3, delayMs = 1000): Promise<Session | null> => {
+  const getSessionWithRetry = useCallback(async (maxRetries = 2, delayMs = 1000): Promise<Session | null> => {
     for (let i = 0; i < maxRetries; i++) {
       try {
         const { session, error } = await auth.getSession();
@@ -111,6 +97,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     return null;
   }, []);
+
+  // Configurar control de sesiones simplificado
+  const sessionExpiry = useSessionExpiry({
+    sessionTimeoutMs: 55 * 60 * 1000, // 55 minutos
+    enabled: isAuthenticated && !isLoading,
+    onSessionExpiry: () => {
+      console.log('🔄 Sesión expirada, procesando automáticamente');
+      // La sesión ya fue manejada por el hook, no necesitamos hacer nada más
+    },
+    onCleanupLocalData: () => {
+      if (user?.id) {
+        performCompleteCleanup(user.id);
+      }
+    }
+  });
+
+  // Función de inicio de sesión
+  const signIn = useCallback(async () => {
+    try {
+      setError(null);
+      await auth.signInWithGoogle();
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+      setError(handleAuthError(err));
+    }
+  }, []);
+
+  // Función de cierre de sesión
+  const signOut = useCallback(async () => {
+    try {
+      setError(null);
+      
+      // Limpiar datos locales antes de cerrar sesión
+      if (user?.id) {
+        performCompleteCleanup(user.id);
+      }
+      
+      await auth.signOut();
+      
+      // Limpiar estado local
+      setUser(null);
+      setSession(null);
+      
+      // Limpiar URL
+      cleanAuthUrl();
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      setError(handleAuthError(err));
+    }
+  }, [user?.id]);
+
+  // Extender sesión manualmente
+  const extendSession = useCallback(async (): Promise<boolean> => {
+    try {
+      return await sessionExpiry.extendSession();
+    } catch (error) {
+      console.error('Error al extender sesión:', error);
+      return false;
+    }
+  }, [sessionExpiry]);
 
   useEffect(() => {
     // Verificar que estamos en el cliente
@@ -168,137 +214,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [updateUserState, getSessionWithRetry]);
 
-  const signIn = async (): Promise<void> => {
-    if (!isClient()) {
-      throw new Error('Sign in solo disponible en el cliente');
-    }
-
-    try {
-      setError(null);
-      setIsLoading(true);
-      
-      const { error } = await auth.signInWithGoogle();
-      
-      if (error) {
-        console.error('Error durante el sign in:', error);
-        const errorMessage = handleAuthError(error);
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-    } catch (err) {
-      console.error('Error en signIn:', err);
-      const errorMessage = handleAuthError(err);
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async (): Promise<void> => {
-    if (!isClient()) {
-      throw new Error('Sign out solo disponible en el cliente');
-    }
-
-    try {
-      setError(null);
-      setIsLoading(true);
-      
-      const { error } = await auth.signOut();
-      
-      if (error) {
-        console.error('Error durante el sign out:', error);
-        const errorMessage = handleAuthError(error);
-        setError(errorMessage);
-      }
-    } catch (err) {
-      console.error('Error en signOut:', err);
-      const errorMessage = handleAuthError(err);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Configurar hooks de manejo de sesiones solo cuando hay usuario autenticado
-  const sessionExpiry = useSessionExpiry({
-    sessionTimeoutMs: 60 * 60 * 1000, // 60 minutos
-    warningTimeMs: 5 * 60 * 1000, // 5 minutos (no se usa)
-    enabled: isAuthenticated && !isLoading, // Solo activar cuando hay usuario autenticado
-    onSessionWarning: () => {
-      // No mostrar avisos al usuario
-      console.log('⚠️ Sesión próxima a expirar (sin notificación)');
-    },
-    onSessionExpiry: () => {
-      console.log('🔄 Sesión expirada, procesando automáticamente');
-    },
-    onCleanupLocalData: () => {
-      if (user?.id) {
-        performCompleteCleanup(user.id);
-      }
-    },
-    onForceRefresh: () => {
-      forceCompleteRefresh();
-    }
-  });
-
-  const loadingDetector = useLoadingDetector({
-    maxLoadingTime: 15000, // 15 segundos
-    enabled: isAuthenticated && !isLoading, // Solo activar cuando hay usuario autenticado
-    onExcessiveLoading: () => {
-      console.log('⚠️ Carga excesiva detectada');
-      setSessionStatus(prev => ({ ...prev, isStuck: true }));
-    },
-    onInactivityDetected: () => {
-      console.log('⚠️ Inactividad detectada');
-    },
-    onForceReload: () => {
-      forceCompleteRefresh();
-    }
-  });
-
-  // Funciones para el contexto
-  const extendSession = useCallback(async (): Promise<boolean> => {
-    try {
-      const result = await sessionExpiry.extendSession();
-      if (result) {
-        setSessionStatus(prev => ({ ...prev, isExpired: false }));
-      }
-      return result;
-    } catch (error) {
-      console.error('Error al extender sesión:', error);
-      return false;
-    }
-  }, [sessionExpiry]);
-
-  const forceRefresh = useCallback(async (): Promise<void> => {
-    try {
-      console.log('🔄 Forzando refresco completo...');
-      if (user?.id) {
-        performCompleteCleanup(user.id);
-      }
-      await forceCompleteRefresh();
-    } catch (error) {
-      console.error('Error al forzar refresco:', error);
-      window.location.reload();
-    }
-  }, [user?.id]);
-
-  // Actualizar estado de sesión basado en la sesión actual
-  useEffect(() => {
-    if (session) {
-      const now = Math.floor(Date.now() / 1000);
-      const expiresAt = session.expires_at || 0;
-      const timeRemaining = Math.max(0, expiresAt - now);
-      
-      setSessionStatus(prev => ({
-        ...prev,
-        timeRemaining,
-        isExpired: timeRemaining <= 0
-      }));
-    }
-  }, [session]);
-
   const value: AuthContextType = {
     user,
     session,
@@ -309,8 +224,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error,
     mounted,
     extendSession,
-    forceRefresh,
-    sessionStatus,
   };
 
   return (
@@ -326,6 +239,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export default AuthContext; 
+}; 
