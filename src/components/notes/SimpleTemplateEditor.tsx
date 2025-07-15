@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SaveIcon, PlusIcon, TrashIcon, EditIcon } from '../ui/Icons';
 import { LoadingFallback } from '../ui/LoadingFallback';
 import { UserTemplate } from '@/types';
@@ -46,21 +46,25 @@ export const SimpleTemplateEditor: React.FC<SimpleTemplateEditorProps> = ({
     }
   });
 
+  // Ref para rastrear el estado anterior y evitar bucles
+  const prevIsLoadingRef = useRef<boolean>(false);
+
   // Controlar el detector de carga basado en el estado
   useEffect(() => {
-    if (isLoading) {
-      startLoadingTracking();
-    } else {
-      stopLoadingTracking();
-    }
-    
-    // Cleanup al cambiar el estado o al desmontar
-    return () => {
-      if (!isLoading) {
+    // Solo actuar si el estado de carga cambió realmente
+    if (prevIsLoadingRef.current !== isLoading) {
+      if (isLoading && !prevIsLoadingRef.current) {
+        // Comenzó a cargar
+        startLoadingTracking();
+      } else if (!isLoading && prevIsLoadingRef.current) {
+        // Terminó de cargar
         stopLoadingTracking();
       }
-    };
-  }, [isLoading]); // Remover las funciones de las dependencias para evitar re-ejecuciones
+      
+      // Actualizar el estado anterior
+      prevIsLoadingRef.current = isLoading;
+    }
+  }, [isLoading, startLoadingTracking, stopLoadingTracking]);
 
   // Función de retry inteligente
   const handleRetry = () => {

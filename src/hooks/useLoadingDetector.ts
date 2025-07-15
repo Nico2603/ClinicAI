@@ -1,21 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-interface LoadingDetectorConfig {
-  // Tiempo máximo de carga en milisegundos (por defecto 15 segundos)
+export interface LoadingDetectorConfig {
   maxLoadingTime?: number;
-  // Tiempo de verificación de inactividad (por defecto 30 segundos)
   inactivityTimeout?: number;
-  // Habilitar o deshabilitar el hook (por defecto true)
   enabled?: boolean;
-  // Callback cuando se detecta carga excesiva
   onExcessiveLoading?: () => void;
-  // Callback cuando se detecta inactividad
   onInactivityDetected?: () => void;
-  // Callback para forzar recarga
   onForceReload?: () => void;
 }
 
-interface LoadingState {
+export interface LoadingState {
   isLoading: boolean;
   isStuck: boolean;
   isInactive: boolean;
@@ -23,16 +17,14 @@ interface LoadingState {
   lastActivity: number;
 }
 
-export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
-  const {
-    maxLoadingTime = 15000, // 15 segundos
-    inactivityTimeout = 30000, // 30 segundos
-    enabled = true,
-    onExcessiveLoading,
-    onInactivityDetected,
-    onForceReload
-  } = config;
-
+export const useLoadingDetector = ({
+  maxLoadingTime = 10000, // 10 segundos por defecto
+  inactivityTimeout = 30000, // 30 segundos por defecto
+  enabled = true,
+  onExcessiveLoading,
+  onInactivityDetected,
+  onForceReload
+}: LoadingDetectorConfig) => {
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: false,
     isStuck: false,
@@ -41,31 +33,46 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
     lastActivity: Date.now()
   });
 
-  const loadingStartRef = useRef<number | null>(null);
+  // Referencias para evitar closures obsoletos
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isTrackingRef = useRef(false);
+  const loadingStartRef = useRef<number | null>(null);
+  const isTrackingRef = useRef<boolean>(false);
 
-  // Detectar si la página está realmente cargando
-  const isPageReallyLoading = useCallback(() => {
-    // Verificar si hay requests pendientes
-    if (typeof window !== 'undefined') {
-      // Verificar si hay elementos con indicadores de carga
-      const loadingElements = document.querySelectorAll('[data-loading="true"], .loading, .spinner');
-      
-      // Verificar si hay requests de red pendientes (aproximación)
-      const hasActiveRequests = (window as any).performance?.getEntriesByType?.('navigation')?.some(
-        (entry: any) => entry.loadEventEnd === 0
-      );
-      
-      return loadingElements.length > 0 || hasActiveRequests;
-    }
-    return false;
+  // Referencias estables para los callbacks
+  const callbacksRef = useRef({
+    onExcessiveLoading,
+    onInactivityDetected,
+    onForceReload
+  });
+
+  // Actualizar referencias de callbacks
+  useEffect(() => {
+    callbacksRef.current = {
+      onExcessiveLoading,
+      onInactivityDetected,
+      onForceReload
+    };
+  }, [onExcessiveLoading, onInactivityDetected, onForceReload]);
+
+  // Limpiar timers al desmontar
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      if (activityCheckIntervalRef.current) {
+        clearInterval(activityCheckIntervalRef.current);
+      }
+    };
   }, []);
 
-  // Registrar actividad del usuario
-  const registerActivity = useCallback(() => {
+  // Actualizar actividad
+  const updateActivity = useCallback(() => {
     const now = Date.now();
     setLoadingState(prev => ({
       ...prev,
@@ -74,7 +81,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
     }));
   }, []);
 
-  // Iniciar seguimiento de carga
+  // Iniciar seguimiento de carga - Memoizado sin dependencias que cambien
   const startLoadingTracking = useCallback(() => {
     // Evitar iniciar tracking múltiple
     if (isTrackingRef.current) {
@@ -107,14 +114,14 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
         }));
         
         console.warn('⚠️ Estado de carga excesivo detectado');
-        onExcessiveLoading?.();
+        callbacksRef.current.onExcessiveLoading?.();
       }
     }, maxLoadingTime);
 
     console.log('🔄 Iniciando seguimiento de carga');
-  }, [maxLoadingTime, onExcessiveLoading]);
+  }, [maxLoadingTime]); // Solo maxLoadingTime como dependencia
 
-  // Detener seguimiento de carga
+  // Detener seguimiento de carga - Memoizado de forma estable
   const stopLoadingTracking = useCallback(() => {
     // Solo detener si está tracking
     if (!isTrackingRef.current) {
@@ -138,10 +145,28 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
 
     loadingStartRef.current = null;
     isTrackingRef.current = false;
+
     console.log(`✅ Carga completada en ${duration}ms`);
+  }, []); // Sin dependencias que cambien
+
+  // Verificar si la página realmente está cargando
+  const isPageReallyLoading = useCallback(() => {
+    // Verificar indicadores de carga del navegador
+    const hasActiveRequests = 
+      (window as any).fetch?.activeRequests > 0 ||
+      document.readyState === 'loading' ||
+      (performance.getEntriesByType('navigation')[0] as any)?.loadEventEnd === 0;
+    
+    // Verificar elementos de carga en el DOM
+    const hasLoadingElements = 
+      document.querySelector('.loading') !== null ||
+      document.querySelector('[data-loading="true"]') !== null ||
+      document.querySelector('.spinner') !== null;
+    
+    return hasActiveRequests || hasLoadingElements;
   }, []);
 
-  // Forzar recarga de emergencia
+  // Forzar recarga de emergencia - Memoizado de forma estable
   const forceEmergencyReload = useCallback(() => {
     console.log('🚨 Forzando recarga de emergencia');
     
@@ -160,7 +185,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       isTrackingRef.current = false;
       
       // Callback personalizado
-      onForceReload?.();
+      callbacksRef.current.onForceReload?.();
       
       // Forzar recarga con limpieza de cache
       window.location.reload();
@@ -169,7 +194,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       // Fallback básico
       window.location.href = window.location.href;
     }
-  }, [onForceReload]);
+  }, []); // Sin dependencias que cambien
 
   // Verificar estado de la aplicación
   const checkApplicationHealth = useCallback(() => {
@@ -184,7 +209,7 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       }));
       
       console.warn('⚠️ Inactividad detectada');
-      onInactivityDetected?.();
+      callbacksRef.current.onInactivityDetected?.();
     }
     
     // Verificar si la carga está atascada solo si estamos tracking
@@ -192,128 +217,97 @@ export const useLoadingDetector = (config: LoadingDetectorConfig = {}) => {
       console.warn('⚠️ Carga fantasma detectada');
       stopLoadingTracking();
     }
-  }, [loadingState.lastActivity, loadingState.isLoading, inactivityTimeout, onInactivityDetected, isPageReallyLoading, stopLoadingTracking]);
+  }, [loadingState.lastActivity, loadingState.isLoading, inactivityTimeout, isPageReallyLoading, stopLoadingTracking]);
 
-  // Recuperar de estado problemático
-  const recoverFromStuckState = useCallback(() => {
-    console.log('🔄 Intentando recuperar de estado problemático');
-    
-    // Detener seguimiento actual
-    stopLoadingTracking();
-    
-    // Limpiar estados
-    setLoadingState(prev => ({
-      ...prev,
-      isLoading: false,
-      isStuck: false,
-      isInactive: false
-    }));
-    
-    // Registrar actividad
-    registerActivity();
-    
-    // Si sigue atascado después de 3 segundos, forzar recarga
-    setTimeout(() => {
-      if (loadingState.isStuck || isPageReallyLoading()) {
-        forceEmergencyReload();
-      }
-    }, 3000);
-  }, [stopLoadingTracking, registerActivity, loadingState.isStuck, isPageReallyLoading, forceEmergencyReload]);
-
-  // Configurar eventos de actividad
+  // Inicializar monitoreo de actividad si está habilitado
   useEffect(() => {
     if (!enabled) return;
-    
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    const handleActivity = () => {
-      registerActivity();
-    };
 
-    // Agregar listeners
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity, true);
-    });
-
-    return () => {
-      // Limpiar listeners
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity, true);
-      });
-    };
-  }, [registerActivity, enabled]);
-
-  // Configurar verificación periódica de salud (reducida frecuencia)
-  useEffect(() => {
-    if (!enabled) return;
-    
+    // Configurar verificación periódica de salud de la aplicación
     activityCheckIntervalRef.current = setInterval(() => {
       checkApplicationHealth();
-    }, 10000); // Verificar cada 10 segundos en lugar de 5
+    }, 5000); // Verificar cada 5 segundos
 
+    // Configurar listeners de actividad del usuario
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    activityEvents.forEach(event => {
+      document.addEventListener(event, updateActivity, { passive: true });
+    });
+
+    // Limpiar al desmontar o deshabilitar
     return () => {
       if (activityCheckIntervalRef.current) {
         clearInterval(activityCheckIntervalRef.current);
       }
+      
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
     };
-  }, [checkApplicationHealth, enabled]);
+  }, [enabled, checkApplicationHealth, updateActivity]);
 
-  // Detectar cambios en el estado de carga del navegador
+  // Detectar cambios de visibilidad de la página
   useEffect(() => {
     if (!enabled) return;
-    
-    const handleBeforeUnload = () => {
-      stopLoadingTracking();
-    };
-
-    const handleLoad = () => {
-      stopLoadingTracking();
-    };
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Página oculta, pausar seguimiento
-        stopLoadingTracking();
+        // Página oculta - pausar tracking si es necesario
+        console.log('📱 Página oculta - pausando monitoreo');
       } else {
-        // Página visible, registrar actividad
-        registerActivity();
+        // Página visible - reanudar tracking
+        console.log('📱 Página visible - reanudando monitoreo');
+        updateActivity();
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('load', handleLoad);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('load', handleLoad);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [stopLoadingTracking, registerActivity, enabled]);
+  }, [enabled, updateActivity]);
 
-  // Limpiar timers al desmontar
+  // Detectar errores no manejados
   useEffect(() => {
-    return () => {
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
+    if (!enabled) return;
+
+    const handleUnhandledError = (event: ErrorEvent) => {
+      console.error('❌ Error no manejado detectado:', event.error);
+      
+      // Si hay carga atascada durante un error, forzar recarga
+      if (isTrackingRef.current && loadingState.isStuck) {
+        console.warn('🚨 Error durante carga atascada - considerando recarga de emergencia');
+        forceEmergencyReload();
       }
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      if (activityCheckIntervalRef.current) {
-        clearInterval(activityCheckIntervalRef.current);
-      }
-      isTrackingRef.current = false;
     };
-  }, []);
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('❌ Promesa rechazada no manejada:', event.reason);
+      
+      // Si hay carga atascada durante un error, forzar recarga
+      if (isTrackingRef.current && loadingState.isStuck) {
+        console.warn('🚨 Promesa rechazada durante carga atascada - considerando recarga de emergencia');
+        forceEmergencyReload();
+      }
+    };
+
+    window.addEventListener('error', handleUnhandledError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleUnhandledError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [enabled, loadingState.isStuck, forceEmergencyReload]);
 
   return {
-    loadingState,
+    ...loadingState,
     startLoadingTracking,
     stopLoadingTracking,
-    registerActivity,
-    recoverFromStuckState,
     forceEmergencyReload,
+    updateActivity,
     checkApplicationHealth,
     isPageReallyLoading
   };

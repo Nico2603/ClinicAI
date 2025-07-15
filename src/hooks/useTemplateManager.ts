@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { UserTemplate } from '../types';
 import { useUserTemplates } from './useDatabase';
 import { ERROR_MESSAGES } from '../lib/constants';
@@ -15,13 +15,34 @@ export const useTemplateManager = (
     renameUserTemplate 
   } = useUserTemplates();
 
+  // Refs para controlar la selección automática
+  const hasAutoSelectedRef = useRef<boolean>(false);
+  const lastTemplatesLengthRef = useRef<number>(0);
+
   // Seleccionar la primera plantilla cuando se cargan las plantillas
   useEffect(() => {
-    if (userTemplates.length > 0 && !selectedTemplate) {
+    // Solo auto-seleccionar si:
+    // 1. Hay plantillas disponibles
+    // 2. No hay plantilla seleccionada actualmente
+    // 3. No se ha auto-seleccionado antes O el número de plantillas cambió
+    const shouldAutoSelect = 
+      userTemplates.length > 0 && 
+      !selectedTemplate && 
+      (!hasAutoSelectedRef.current || lastTemplatesLengthRef.current !== userTemplates.length);
+
+    if (shouldAutoSelect) {
       const firstTemplate = userTemplates[0];
       if (firstTemplate) {
         onTemplateSelect(firstTemplate);
+        hasAutoSelectedRef.current = true;
+        lastTemplatesLengthRef.current = userTemplates.length;
       }
+    }
+
+    // Si no hay plantillas, resetear el flag
+    if (userTemplates.length === 0) {
+      hasAutoSelectedRef.current = false;
+      lastTemplatesLengthRef.current = 0;
     }
   }, [userTemplates, selectedTemplate, onTemplateSelect]);
 
@@ -38,6 +59,9 @@ export const useTemplateManager = (
     try {
       const newTemplate = await createUserTemplate(templateData);
       onTemplateSelect(newTemplate);
+      // Actualizar refs después de crear
+      hasAutoSelectedRef.current = true;
+      lastTemplatesLengthRef.current = lastTemplatesLengthRef.current + 1;
       return newTemplate;
     } catch (error) {
       console.error('Error al crear plantilla:', error);
@@ -48,32 +72,27 @@ export const useTemplateManager = (
   const handleDeleteTemplate = useCallback(async (templateId: string) => {
     try {
       await deleteUserTemplate(templateId);
-      // Si la plantilla eliminada era la seleccionada, seleccionar la primera disponible
-      if (selectedTemplate?.id === templateId && userTemplates.length > 1) {
-        const remainingTemplates = userTemplates.filter(t => t.id !== templateId);
-        if (remainingTemplates.length > 0 && remainingTemplates[0]) {
-          onTemplateSelect(remainingTemplates[0]);
-        }
+      // Actualizar refs después de eliminar
+      lastTemplatesLengthRef.current = Math.max(0, lastTemplatesLengthRef.current - 1);
+      
+      // Si se eliminó la última plantilla, resetear flags
+      if (lastTemplatesLengthRef.current === 0) {
+        hasAutoSelectedRef.current = false;
       }
     } catch (error) {
       console.error('Error al eliminar plantilla:', error);
       throw new Error(ERROR_MESSAGES.TEMPLATE_DELETE_ERROR);
     }
-  }, [deleteUserTemplate, selectedTemplate, userTemplates, onTemplateSelect]);
+  }, [deleteUserTemplate]);
 
   const handleRenameTemplate = useCallback(async (templateId: string, newName: string) => {
     try {
-      const updatedTemplate = await renameUserTemplate(templateId, newName);
-      // Actualizar la plantilla seleccionada si es la misma
-      if (selectedTemplate?.id === templateId) {
-        onTemplateSelect(updatedTemplate);
-      }
-      return updatedTemplate;
+      await renameUserTemplate(templateId, newName);
     } catch (error) {
       console.error('Error al renombrar plantilla:', error);
       throw new Error(ERROR_MESSAGES.TEMPLATE_RENAME_ERROR);
     }
-  }, [renameUserTemplate, selectedTemplate, onTemplateSelect]);
+  }, [renameUserTemplate]);
 
   return {
     userTemplates,

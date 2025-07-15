@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   notesService, 
@@ -229,9 +229,18 @@ export const useUserTemplates = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasTimeout, setHasTimeout] = useState(false);
 
+  // Ref para evitar re-ejecuciones innecesarias
+  const userIdRef = useRef<string | null>(null);
+  const hasFetchedRef = useRef<boolean>(false);
+
   const fetchUserTemplates = useCallback(async () => {
     if (!user?.id) {
       setIsLoading(false);
+      return;
+    }
+    
+    // Evitar re-ejecuciones si el user.id no cambió y ya se ejecutó
+    if (userIdRef.current === user.id && hasFetchedRef.current) {
       return;
     }
     
@@ -250,6 +259,8 @@ export const useUserTemplates = () => {
       );
       
       setUserTemplates(data);
+      userIdRef.current = user.id;
+      hasFetchedRef.current = true;
     } catch (err) {
       console.error('Error al cargar plantillas del usuario:', err);
       
@@ -264,11 +275,23 @@ export const useUserTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, []); // Sin dependencias para evitar re-creaciones
 
+  // Efecto separado para manejar cambios de usuario
   useEffect(() => {
-    fetchUserTemplates();
-  }, [fetchUserTemplates]);
+    // Solo ejecutar si el usuario cambió o es la primera vez
+    if (user?.id && userIdRef.current !== user.id) {
+      hasFetchedRef.current = false; // Reset flag cuando cambia el usuario
+      fetchUserTemplates();
+    } else if (!user?.id) {
+      // Si no hay usuario, limpiar estado
+      setUserTemplates([]);
+      setIsLoading(false);
+      setError(null);
+      userIdRef.current = null;
+      hasFetchedRef.current = false;
+    }
+  }, [user?.id, fetchUserTemplates]);
 
   const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     try {
@@ -345,6 +368,12 @@ export const useUserTemplates = () => {
     }
   }, []);
 
+  // Función de refetch manual que fuerza una nueva carga
+  const refetch = useCallback(() => {
+    hasFetchedRef.current = false;
+    fetchUserTemplates();
+  }, [fetchUserTemplates]);
+
   return {
     userTemplates,
     isLoading,
@@ -354,6 +383,6 @@ export const useUserTemplates = () => {
     updateUserTemplate,
     deleteUserTemplate,
     renameUserTemplate,
-    refetch: fetchUserTemplates
+    refetch
   };
 }; 
