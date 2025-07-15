@@ -37,10 +37,7 @@ export const validateClinicalInput = (clinicalInput: string): void => {
   validateStringLength(clinicalInput, VALIDATION_RULES.MAX_CLINICAL_INFO_LENGTH, 'La información clínica');
 };
 
-export const validateScaleInput = (clinicalInput: string, scaleName: string): void => {
-  validateClinicalInput(clinicalInput);
-  validateInput(scaleName, 2);
-};
+
 
 // =============================================================================
 // VALIDACIÓN DE RESPUESTAS

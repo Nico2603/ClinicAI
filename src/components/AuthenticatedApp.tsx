@@ -27,6 +27,8 @@ import {
   TemplateNoteView,
   HistoryView
 } from './';
+import { NoteEditor } from './notes/NoteEditor';
+import { HistoricNote } from '../types';
 
 const AuthenticatedApp: React.FC = () => {
   const { user } = useAuth();
@@ -79,6 +81,9 @@ const AuthenticatedApp: React.FC = () => {
 
   // Estado para el actualizador de notas
   const [noteForUpdater, setNoteForUpdater] = useState<string>('');
+  
+  // Estado para el editor de notas
+  const [noteForEditor, setNoteForEditor] = useState<HistoricNote | null>(null);
 
   // Reconocimiento de voz
   const { 
@@ -148,6 +153,55 @@ const AuthenticatedApp: React.FC = () => {
     });
   }, [loadNoteFromHistory, userTemplates, setActiveView, setSelectedTemplate, setPatientInfo, updateGeneratedTemplateNote]);
 
+  // Manejadores para el editor de notas
+  const handleLoadNoteInEditor = useCallback((note: HistoricNote) => {
+    setNoteForEditor(note);
+    setActiveView('note-editor');
+  }, [setActiveView]);
+
+  const handleSaveAsNewNote = useCallback((editedNote: Omit<HistoricNote, 'id' | 'timestamp'>) => {
+    addNoteToHistory(editedNote);
+    setActiveView('historial-notas');
+    setNoteForEditor(null);
+  }, [addNoteToHistory, setActiveView]);
+
+  const handleOverwriteNote = useCallback((noteId: string, editedNote: Omit<HistoricNote, 'id' | 'timestamp'>) => {
+    // Actualizar la nota en el historial manteniendo el mismo ID y timestamp
+    const currentHistory = historicNotes;
+    const noteIndex = currentHistory.findIndex(n => n.id === noteId);
+    
+    if (noteIndex !== -1) {
+      const originalNote = currentHistory[noteIndex];
+      if (!originalNote) return;
+      
+      const updatedNote: HistoricNote = {
+        ...editedNote,
+        id: originalNote.id,
+        timestamp: originalNote.timestamp,
+      };
+      
+      const updatedHistory = [...currentHistory];
+      updatedHistory[noteIndex] = updatedNote;
+      
+      // Actualizar el localStorage
+      if (user?.id) {
+        localStorage.setItem(`history_${user.id}`, JSON.stringify(updatedHistory));
+      }
+      
+      // Forzar re-render del historial regresando a la vista
+      setActiveView('historial-notas');
+      setNoteForEditor(null);
+      
+      // Recargar la página para actualizar el historial
+      window.location.reload();
+    }
+  }, [historicNotes, user?.id, setActiveView]);
+
+  const handleCancelNoteEditor = useCallback(() => {
+    setActiveView('historial-notas');
+    setNoteForEditor(null);
+  }, [setActiveView]);
+
   const handleSaveTemplateWrapper = useCallback(async (newContent: string) => {
     if (!selectedTemplate) return;
     
@@ -171,17 +225,7 @@ const AuthenticatedApp: React.FC = () => {
         toggleTheme={toggleTheme}
         historicNotes={historicNotes}
         userTemplates={userTemplates}
-        onLoadNoteInEditor={(note) => {
-          loadNoteFromHistory(note, userTemplates, {
-            setActiveView,
-            setSelectedTemplate,
-            setPatientInfo,
-            setGeneratedNote: updateGeneratedTemplateNote,
-            setSuggestionInput: () => {},
-            setGeneratedSuggestion: () => {},
-            clearMetadata: () => {},
-          });
-        }}
+        onLoadNoteInEditor={handleLoadNoteInEditor}
         onLoadNoteInUpdater={(note) => {
           setNoteForUpdater(note.content);
           setActiveView('note-updater');
@@ -246,17 +290,7 @@ const AuthenticatedApp: React.FC = () => {
             <HistoryView
               historicNotes={historicNotes}
               userTemplates={userTemplates}
-              onLoadNoteInEditor={(note) => {
-                loadNoteFromHistory(note, userTemplates, {
-                  setActiveView,
-                  setSelectedTemplate,
-                  setPatientInfo,
-                  setGeneratedNote: updateGeneratedTemplateNote,
-                  setSuggestionInput: () => {},
-                  setGeneratedSuggestion: () => {},
-                  clearMetadata: () => {},
-                });
-              }}
+              onLoadNoteInEditor={handleLoadNoteInEditor}
               onLoadNoteInUpdater={(note) => {
                 setNoteForUpdater(note.content);
                 setActiveView('note-updater');
@@ -273,6 +307,16 @@ const AuthenticatedApp: React.FC = () => {
                 initialNote={noteForUpdater}
               />
             </section>
+          )}
+
+          {activeView === 'note-editor' && noteForEditor && (
+            <NoteEditor
+              note={noteForEditor}
+              userTemplates={userTemplates}
+              onSaveAsNew={handleSaveAsNewNote}
+              onOverwrite={handleOverwriteNote}
+              onCancel={handleCancelNoteEditor}
+            />
           )}
 
         </main>

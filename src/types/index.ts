@@ -12,7 +12,8 @@ export type ActiveView =
   | 'nota-plantilla' 
   | 'historial-notas' 
   | 'templates' 
-  | 'note-updater';
+  | 'note-updater'
+  | 'note-editor';
 
 // Tipo para colección de plantillas
 export interface Templates {
@@ -111,68 +112,7 @@ export interface Candidate {
   groundingMetadata?: GroundingMetadata;
 }
 
-// =============================================================================
-// TIPOS PARA ESCALAS CLÍNICAS
-// =============================================================================
 
-export interface ClinicalScale {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  items: ScaleItem[];
-  scoring: ScoreInterpretation[];
-  reference?: string;
-  lastUpdated?: string;
-}
-
-export interface ScaleItem {
-  id: string;
-  text: string;
-  type: 'number' | 'select' | 'checkbox' | 'text';
-  options?: string[];
-  range?: { min: number; max: number };
-  value?: any;
-  weight?: number;
-  required?: boolean;
-}
-
-export interface ScoreInterpretation {
-  range: { min: number; max: number };
-  level: string;
-  description: string;
-  recommendations?: string[];
-}
-
-export interface ScaleSearchResult {
-  name: string;
-  description: string;
-  category: string;
-  confidence: number;
-  isStandardized: boolean;
-  rationale?: string; // Razón específica por la que se sugiere esta escala
-}
-
-export interface GeneratedScaleResult {
-  scale: ClinicalScale;
-  autocompletedItems: string[];
-  missingFields: string[];
-  totalScore?: number;
-  interpretation?: string;
-  confidence: number;
-}
-
-export interface ScaleGenerationRequest {
-  scaleName: string;
-  clinicalData: string;
-  existingNoteContent?: string;
-}
-
-export interface ClinicalAnalysisForScalesResult {
-  scales: ScaleSearchResult[];
-  clinicalSummary: string;
-  recommendations: string[];
-}
 
 // =============================================================================
 // TIPOS PARA CONSULTA CLÍNICA BASADA EN EVIDENCIA

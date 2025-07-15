@@ -75,7 +75,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     >
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 md:mb-4">
         <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
-          Nota con Plantilla: <span className="font-bold">{selectedTemplate.name}</span>
+          Generador de Nota: <span className="font-bold">{selectedTemplate.name}</span>
         </h2>
         {activeTab === 'note' && (
           <div className="lg:w-1/2 xl:w-1/3">

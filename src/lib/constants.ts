@@ -48,29 +48,16 @@ export const SPEECH_CONFIG = {
 } as const;
 
 // =============================================================================
-// ESCALAS MÉDICAS
-// =============================================================================
-
-export const MEDICAL_SCALES = [
-  { id: 'none', name: 'Seleccione una escala...' },
-  { id: 'phq-9', name: 'PHQ-9 (Cuestionario de Salud del Paciente-9 para Depresión)' },
-  { id: 'gad-7', name: 'GAD-7 (Trastorno de Ansiedad Generalizada-7)' },
-  { id: 'gcs', name: 'Escala de Coma de Glasgow (GCS)' },
-  { id: 'cha2ds2-vasc', name: 'CHA₂DS₂-VASc (Riesgo de ACV en Fibrilación Auricular)' },
-  { id: 'moca', name: 'MoCA (Evaluación Cognitiva de Montreal)' },
-  { id: 'audit-c', name: 'AUDIT-C (Identificación de Trastornos por Consumo de Alcohol)' },
-] as const;
-
-// =============================================================================
 // CONFIGURACIÓN DE UI
 // =============================================================================
 
 // Títulos de vistas
 export const VIEW_TITLES = {
-  'nota-plantilla': 'Nota con Plantilla',
+  'nota-plantilla': 'Generador de Nota',
   'historial-notas': 'Historial de Notas',
   templates: 'Editor de Plantillas',
   'note-updater': 'Actualizador de Notas',
+  'note-editor': 'Editor de Nota',
 } as const;
 
 // Colores del tema
@@ -98,7 +85,7 @@ export const ERROR_MESSAGES = {
   TEMPLATE_NOT_SELECTED: 'Por favor, seleccione una plantilla válida.',
   PATIENT_INFO_REQUIRED: 'Por favor, ingrese la información del paciente para la plantilla.',
   CLINICAL_INFO_REQUIRED: 'Por favor, ingrese la información clínica para generar sugerencias.',
-  SCALE_INPUT_REQUIRED: 'Por favor, ingrese información clínica para la escala.',
+
   TEMPLATE_SAVE_ERROR: 'Error al guardar la plantilla',
   TEMPLATE_CREATE_ERROR: 'Error al crear la plantilla',
   TEMPLATE_DELETE_ERROR: 'Error al eliminar la plantilla',
