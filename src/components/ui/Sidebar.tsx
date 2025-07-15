@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'nota-plantilla', label: 'Nota con Plantilla', icon: <PencilSquareIcon className="h-5 w-5" /> },
-    { id: 'history', label: 'Historial de Notas', icon: <ClockIcon className="h-5 w-5" /> },
+    { id: 'historial-notas', label: 'Historial de Notas', icon: <ClockIcon className="h-5 w-5" /> },
     { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
     { id: 'note-updater', label: 'Actualizador de Notas', icon: <EditIcon className="h-5 w-5" /> },
   ];

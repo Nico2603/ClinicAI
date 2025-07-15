@@ -33,6 +33,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const handleSessionExpiryRef = useRef<(() => Promise<void>) | null>(null);
 
   // Limpiar datos locales específicos del usuario
   const clearUserLocalStorage = useCallback((userId?: string) => {
@@ -109,7 +110,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
 
     // Configurar nuevo timer de expiración (sin popup de aviso)
     sessionTimeoutRef.current = setTimeout(() => {
-      handleSessionExpiry();
+      handleSessionExpiryRef.current?.();
     }, sessionTimeoutMs);
 
     console.log(`🔄 Timer de sesión reiniciado: ${sessionTimeoutMs / 1000 / 60} minutos`);
@@ -181,6 +182,11 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
     }
   }, [extendSessionAutomatically, clearUserLocalStorage, onCleanupLocalData, onSessionExpiry, onForceRefresh, forceHardRefresh]);
 
+  // Actualizar la referencia cuando handleSessionExpiry cambie
+  useEffect(() => {
+    handleSessionExpiryRef.current = handleSessionExpiry;
+  }, [handleSessionExpiry]);
+
   // Verificar estado de la sesión
   const checkSessionHealth = useCallback(async () => {
     try {
@@ -188,13 +194,13 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       
       if (error) {
         console.error('❌ Error al verificar sesión:', error);
-        handleSessionExpiry();
+        handleSessionExpiryRef.current?.();
         return false;
       }
 
       if (!session) {
         console.log('❌ No hay sesión activa');
-        handleSessionExpiry();
+        handleSessionExpiryRef.current?.();
         return false;
       }
 
@@ -205,17 +211,17 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
 
       if (timeUntilExpiry <= 0) {
         console.log('❌ Token de sesión expirado');
-        handleSessionExpiry();
+        handleSessionExpiryRef.current?.();
         return false;
       }
 
       return true;
     } catch (error) {
       console.error('❌ Error al verificar estado de sesión:', error);
-      handleSessionExpiry();
+      handleSessionExpiryRef.current?.();
       return false;
     }
-  }, [handleSessionExpiry]);
+  }, []);
 
   // Extender sesión manualmente (para compatibilidad)
   const extendSession = useCallback(async () => {
@@ -224,7 +230,7 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       
       if (error || !session) {
         console.error('❌ No se puede extender sesión:', error);
-        handleSessionExpiry();
+        handleSessionExpiryRef.current?.();
         return false;
       }
 
@@ -236,10 +242,10 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       return true;
     } catch (error) {
       console.error('❌ Error al extender sesión:', error);
-      handleSessionExpiry();
+      handleSessionExpiryRef.current?.();
       return false;
     }
-  }, [handleSessionExpiry, resetSessionTimer, registerActivity]);
+  }, [resetSessionTimer, registerActivity]);
 
   // Limpiar todos los timers
   const clearAllTimers = useCallback(() => {

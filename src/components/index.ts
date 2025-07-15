@@ -14,7 +14,6 @@ export { default as LoginPage } from './auth/LoginPage';
 export { default as UserProfile } from './auth/UserProfile';
 
 // Componentes de notas
-export { default as ClinicalScaleGenerator } from './notes/ClinicalScaleGenerator';
 export { default as AIClinicalScales } from './notes/AIClinicalScales';
 export { default as CustomTemplateManager } from './notes/CustomTemplateManager';
 export { default as EvidenceBasedConsultation } from './notes/EvidenceBasedConsultation';

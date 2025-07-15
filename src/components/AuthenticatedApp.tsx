@@ -20,7 +20,6 @@ import { ERROR_MESSAGES } from '../lib/constants';
 import { 
   Sidebar,
   NoteUpdater,
-  ClinicalScaleGenerator,
   EvidenceBasedConsultation,
   UserProfile,
   Footer,
@@ -243,7 +242,7 @@ const AuthenticatedApp: React.FC = () => {
             />
           )}
 
-          {activeView === 'history' && (
+          {activeView === 'historial-notas' && (
             <HistoryView
               historicNotes={historicNotes}
               userTemplates={userTemplates}
