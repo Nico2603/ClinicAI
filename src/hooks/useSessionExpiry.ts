@@ -38,39 +38,6 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
     }
   }, []);
 
-  // Manejar expiración de sesión de forma más simple
-  const handleSessionExpiry = useCallback(async () => {
-    if (!isActiveRef.current) return;
-    
-    console.log('🔄 Sesión expirada, renovando automáticamente...');
-    
-    try {
-      // Intentar refrescar la sesión
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error || !data.session) {
-        // Si no se puede refrescar, cerrar sesión
-        console.log('❌ No se pudo renovar la sesión, cerrando...');
-        const { data: { user } } = await supabase.auth.getUser();
-        clearUserLocalStorage(user?.id);
-        onCleanupLocalData?.();
-        await supabase.auth.signOut();
-        onSessionExpiry?.();
-        return;
-      }
-
-      // Sesión renovada exitosamente
-      console.log('✅ Sesión renovada automáticamente');
-      resetSessionTimer();
-      
-    } catch (error) {
-      console.error('❌ Error durante renovación de sesión:', error);
-      // En caso de error, simplemente cerrar sesión
-      await supabase.auth.signOut();
-      onSessionExpiry?.();
-    }
-  }, [clearUserLocalStorage, onCleanupLocalData, onSessionExpiry]);
-
   // Reiniciar el timer de sesión
   const resetSessionTimer = useCallback(() => {
     if (!enabled) return;
@@ -80,9 +47,45 @@ export const useSessionExpiry = (config: SessionExpiryConfig = {}) => {
       clearTimeout(sessionTimeoutRef.current);
     }
 
-    // Configurar nuevo timer
-    sessionTimeoutRef.current = setTimeout(handleSessionExpiry, sessionTimeoutMs);
-  }, [enabled, sessionTimeoutMs, handleSessionExpiry]);
+    // Configurar nuevo timer - usar una función inline para evitar dependencia circular
+    sessionTimeoutRef.current = setTimeout(async () => {
+      if (!isActiveRef.current) return;
+      
+      console.log('🔄 Sesión expirada, renovando automáticamente...');
+      
+      try {
+        // Intentar refrescar la sesión
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error || !data.session) {
+          // Si no se puede refrescar, cerrar sesión
+          console.log('❌ No se pudo renovar la sesión, cerrando...');
+          const { data: { user } } = await supabase.auth.getUser();
+          clearUserLocalStorage(user?.id);
+          onCleanupLocalData?.();
+          await supabase.auth.signOut();
+          onSessionExpiry?.();
+          return;
+        }
+
+        // Sesión renovada exitosamente
+        console.log('✅ Sesión renovada automáticamente');
+        // Llamar recursivamente para reiniciar el timer
+        resetSessionTimer();
+        
+      } catch (error) {
+        console.error('❌ Error durante renovación de sesión:', error);
+        // En caso de error, simplemente cerrar sesión
+        await supabase.auth.signOut();
+        onSessionExpiry?.();
+      }
+    }, sessionTimeoutMs);
+  }, [enabled, sessionTimeoutMs, clearUserLocalStorage, onCleanupLocalData, onSessionExpiry]);
+
+  // Manejar expiración de sesión de forma más simple
+  const handleSessionExpiry = useCallback(async () => {
+    resetSessionTimer();
+  }, [resetSessionTimer]);
 
   // Registrar actividad del usuario (simplificado)
   const registerActivity = useCallback(() => {

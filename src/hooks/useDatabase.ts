@@ -275,7 +275,7 @@ export const useUserTemplates = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Sin dependencias para evitar re-creaciones
+  }, [user?.id]); // Usar optional chaining para manejar user null
 
   // Efecto separado para manejar cambios de usuario
   useEffect(() => {

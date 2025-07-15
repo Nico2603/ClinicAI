@@ -58,15 +58,20 @@ export const useLoadingDetector = ({
 
   // Limpiar timers al desmontar
   useEffect(() => {
+    // Capturar las referencias actuales al momento del efecto
+    const loadingTimer = loadingTimerRef.current;
+    const inactivityTimer = inactivityTimerRef.current;
+    const activityCheckInterval = activityCheckIntervalRef.current;
+    
     return () => {
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
+      if (loadingTimer) {
+        clearTimeout(loadingTimer);
       }
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
       }
-      if (activityCheckIntervalRef.current) {
-        clearInterval(activityCheckIntervalRef.current);
+      if (activityCheckInterval) {
+        clearInterval(activityCheckInterval);
       }
     };
   }, []);
