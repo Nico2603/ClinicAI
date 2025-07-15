@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -12,11 +13,6 @@ interface TemplateNoteViewProps {
   isGenerating: boolean;
   groundingMetadata?: GroundingMetadata;
   onChangeTemplate: () => void;
-  onToggleRecording: () => void;
-  isRecording: boolean;
-  isSpeechApiAvailable: boolean;
-  interimTranscript: string;
-  transcriptError: string | null;
   onClearError: () => void;
   onNoteGenerated?: (note: string) => void;
   onEvidenceGenerated?: (evidence: string) => void;
@@ -33,17 +29,37 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   isGenerating,
   groundingMetadata,
   onChangeTemplate,
-  onToggleRecording,
-  isRecording,
-  isSpeechApiAvailable,
-  interimTranscript,
-  transcriptError,
   onClearError,
   onNoteGenerated,
   onEvidenceGenerated,
   onScaleGenerated,
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
+
+  // Hook de reconocimiento de voz
+  const { 
+    isRecording, 
+    isSupported: isSpeechApiAvailable, 
+    interimTranscript, 
+    error: transcriptError, 
+    startRecording, 
+    stopRecording 
+  } = useSpeechRecognition({
+    onTranscript: (transcript) => {
+      onPatientInfoChange(patientInfo + (patientInfo.endsWith(' ') || patientInfo === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error) => {
+      console.error('Speech recognition error:', error);
+    }
+  });
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   if (!selectedTemplate) {
     return (
@@ -139,7 +155,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
               
               {isSpeechApiAvailable && (
                 <button
-                  onClick={onToggleRecording}
+                  onClick={handleToggleRecording}
                   className={`absolute bottom-3 right-3 p-2 rounded-full transition-all ${
                     isRecording
                       ? 'bg-red-500 text-white hover:bg-red-600'

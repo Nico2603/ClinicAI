@@ -86,38 +86,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   // Estado para el editor de notas
   const [noteForEditor, setNoteForEditor] = useState<HistoricNote | null>(null);
 
-  // Callback para el reconocimiento de voz
-  const handleTranscript = useCallback((transcript: string) => {
-    if (activeView === 'nota-plantilla') {
-      setPatientInfo(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    }
-  }, [activeView, setPatientInfo]);
-
-  const handleSpeechError = useCallback((error: string) => {
-    console.error('Speech recognition error:', error);
-  }, []);
-
-  // Reconocimiento de voz
-  const {
-    isRecording,
-    interimTranscript,
-    isSupported: isSpeechApiAvailable,
-    error: transcriptError,
-    startRecording,
-    stopRecording,
-  } = useSpeechRecognition({
-    onTranscript: handleTranscript,
-    onError: handleSpeechError
-  });
-
   // Callbacks memoizados para evitar re-renders
-  const handleToggleRecording = useCallback(() => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  }, [isRecording, startRecording, stopRecording]);
 
   const handleGenerateTemplateNote = useCallback(async () => {
     if (!selectedTemplate || !patientInfo.trim()) {
@@ -259,11 +228,6 @@ const AuthenticatedApp: React.FC = React.memo(() => {
               isGenerating={isGeneratingTemplateNote}
               groundingMetadata={templateNoteGrounding}
               onChangeTemplate={() => setActiveView('templates')}
-              onToggleRecording={handleToggleRecording}
-              isRecording={isRecording}
-              isSpeechApiAvailable={isSpeechApiAvailable}
-              interimTranscript={interimTranscript}
-              transcriptError={transcriptError}
               onClearError={() => {
                 clearGlobalError();
                 clearTemplateError();
