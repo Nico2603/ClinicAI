@@ -7,6 +7,13 @@ export const useAppState = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<UserTemplate | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
+  // Callback memoizado para cambiar vista y evitar re-renders innecesarios
+  const handleSetActiveView = useCallback((view: ActiveView) => {
+    if (view !== activeView) {
+      setActiveView(view);
+    }
+  }, [activeView]);
+
   const handleSelectTemplate = useCallback((template: UserTemplate) => {
     setSelectedTemplate(template);
     setGlobalError(null);
@@ -26,7 +33,7 @@ export const useAppState = () => {
 
   return {
     activeView,
-    setActiveView,
+    setActiveView: handleSetActiveView,
     selectedTemplate,
     setSelectedTemplate,
     globalError,

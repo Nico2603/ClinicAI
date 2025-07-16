@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   notesService, 
@@ -16,10 +16,14 @@ export const useSimpleNotes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Flag para evitar múltiples llamadas concurrentes
+  const isLoadingRef = useRef(false);
 
   const fetchNotes = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || isLoadingRef.current) return;
     
+    isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
     
@@ -31,6 +35,7 @@ export const useSimpleNotes = () => {
       setError(getSimpleErrorMessage(err));
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   }, [user?.id]);
 
@@ -41,7 +46,7 @@ export const useSimpleNotes = () => {
       setNotes([]);
       setError(null);
     }
-  }, [user?.id, fetchNotes]);
+  }, [user?.id]); // Removed fetchNotes dependency to prevent infinite loops
 
   const createNote = useCallback(async (noteData: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) throw new Error('Usuario no autenticado');
@@ -130,10 +135,14 @@ export const useSimpleUserTemplates = () => {
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Flag para evitar múltiples llamadas concurrentes
+  const isLoadingRef = useRef(false);
 
   const fetchUserTemplates = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || isLoadingRef.current) return;
     
+    isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
     
@@ -145,6 +154,7 @@ export const useSimpleUserTemplates = () => {
       setError(getSimpleErrorMessage(err));
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   }, [user?.id]);
 
@@ -155,7 +165,7 @@ export const useSimpleUserTemplates = () => {
       setUserTemplates([]);
       setError(null);
     }
-  }, [user?.id, fetchUserTemplates]);
+  }, [user?.id]); // Removed fetchUserTemplates dependency to prevent infinite loops
 
   const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (!user?.id) throw new Error('Usuario no autenticado');

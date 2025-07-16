@@ -121,6 +121,21 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     setActiveView('note-editor');
   }, [resetTemplateState, setActiveView]);
 
+  // Limpiar estados cuando cambia la vista activa para evitar cargas innecesarias
+  useEffect(() => {
+    // Limpiar errores cuando cambia de vista
+    clearGlobalError();
+    clearTemplateError();
+    
+    // Limpiar estados específicos según la vista
+    if (activeView !== 'note-editor') {
+      setNoteForEditor(null);
+    }
+    if (activeView !== 'note-updater') {
+      setNoteForUpdater('');
+    }
+  }, [activeView, clearGlobalError, clearTemplateError]);
+
   // Callbacks memoizados para el editor de notas
   const handleSaveAsNewNote = useCallback((updatedContent: string) => {
     if (!noteForEditor) return;

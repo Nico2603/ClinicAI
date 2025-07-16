@@ -17,6 +17,12 @@ export const useTemplateManager = (
   // Refs para controlar la selección automática
   const hasAutoSelectedRef = useRef<boolean>(false);
   const lastTemplatesLengthRef = useRef<number>(0);
+  const onTemplateSelectRef = useRef(onTemplateSelect);
+  
+  // Mantener la referencia actualizada
+  useEffect(() => {
+    onTemplateSelectRef.current = onTemplateSelect;
+  }, [onTemplateSelect]);
 
   // Seleccionar la primera plantilla cuando se cargan las plantillas
   useEffect(() => {
@@ -32,7 +38,7 @@ export const useTemplateManager = (
     if (shouldAutoSelect) {
       const firstTemplate = userTemplates[0];
       if (firstTemplate) {
-        onTemplateSelect(firstTemplate);
+        onTemplateSelectRef.current(firstTemplate);
         hasAutoSelectedRef.current = true;
         lastTemplatesLengthRef.current = userTemplates.length;
       }
@@ -43,7 +49,7 @@ export const useTemplateManager = (
       hasAutoSelectedRef.current = false;
       lastTemplatesLengthRef.current = 0;
     }
-  }, [userTemplates, selectedTemplate, onTemplateSelect]);
+  }, [userTemplates, selectedTemplate]);
 
   const handleSaveTemplate = useCallback(async (templateId: string, newContent: string) => {
     try {
@@ -57,7 +63,7 @@ export const useTemplateManager = (
   const handleCreateTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const newTemplate = await createUserTemplate(templateData);
-      onTemplateSelect(newTemplate);
+      onTemplateSelectRef.current(newTemplate);
       // Actualizar refs después de crear
       hasAutoSelectedRef.current = true;
       lastTemplatesLengthRef.current = lastTemplatesLengthRef.current + 1;
@@ -66,7 +72,7 @@ export const useTemplateManager = (
       console.error('Error al crear plantilla:', error);
       throw new Error(ERROR_MESSAGES.TEMPLATE_ERROR);
     }
-  }, [createUserTemplate, onTemplateSelect]);
+  }, [createUserTemplate]);
 
   const handleDeleteTemplate = useCallback(async (templateId: string) => {
     try {

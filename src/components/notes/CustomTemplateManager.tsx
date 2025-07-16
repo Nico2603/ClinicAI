@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useMemo } from 'react';
 import { useSimpleUserTemplates } from '../../hooks/useSimpleDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
@@ -192,8 +192,19 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     setIsCreating(true);
   }, [getNextTemplateName]);
 
+  // Memoizar las plantillas filtradas para evitar re-renderizados
+  const activeTemplates = useMemo(() => {
+    return userTemplates.filter(template => template.is_active);
+  }, [userTemplates]);
+
+  // Memoizar el estado vacío para evitar re-renderizados
+  const isEmpty = useMemo(() => {
+    return activeTemplates.length === 0 && !isCreating;
+  }, [activeTemplates.length, isCreating]);
+
   if (!user) return null;
 
+  // Mostrar estado de carga solo si realmente no tenemos datos
   if (isLoading && userTemplates.length === 0) {
     return <LoadingState />;
   }
@@ -206,16 +217,17 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
           <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
             Mis Plantillas Personalizadas
           </h2>
-          {isLoading && userTemplates.length > 0 && (
+          {isLoading && userTemplates.length > 0 && !isProcessing && (
             <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-              <span className="text-xs text-blue-600 dark:text-blue-400">Actualizando...</span>
+              <span className="text-xs text-blue-600 dark:text-blue-400">Cargando plantillas...</span>
             </div>
           )}
         </div>
         <button
           onClick={handleStartCreating}
-          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+          disabled={isProcessing || isLoading}
+          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
           Nueva Plantilla
@@ -302,11 +314,16 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       )}
 
       {/* Lista de plantillas */}
-      {userTemplates.length === 0 && !isCreating ? (
+      {isEmpty ? (
         <EmptyState />
+      ) : isLoading && activeTemplates.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-neutral-600 dark:text-neutral-400">Cargando tus plantillas...</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {userTemplates.map((template) => (
+          {activeTemplates.map((template) => (
             <TemplateItem
               key={template.id}
               template={template}
