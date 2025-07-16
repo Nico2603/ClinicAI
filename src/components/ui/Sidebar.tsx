@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Theme, ActiveView, HistoricNote, UserTemplate } from '../../types';
-import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, SparklesIcon, ClockIcon, EditIcon, LightBulbIcon, CalculatorIcon, SearchIcon } from './Icons';
+import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, ClockIcon, EditIcon, LightBulbIcon, CalculatorIcon, SearchIcon, Logo } from './Icons';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -122,11 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <aside className={sidebarClasses}>
         {/* Header */}
         <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
-          <div className="flex items-center">
-            <SparklesIcon className="h-7 w-7 mr-2 text-primary" />
-            <h1 className="text-lg font-bold text-primary">
-              ClinicAI
-            </h1>
+          <div className="flex items-center justify-center w-full">
+            <Logo size="md" className="h-8" />
           </div>
           {isMobile && (
             <button

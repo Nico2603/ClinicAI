@@ -11,6 +11,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ClinicAI - Asistente de IA para Notas Clínicas',
   description: 'Genera notas clínicas profesionales con IA',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+    shortcut: '/logo.png',
+  },
 }
 
 export const viewport: Viewport = {
@@ -34,6 +39,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ClinicAI" />
         <meta name="theme-color" content="#3b82f6" />
+        <link rel="icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body className={`${inter.className} min-h-screen flex flex-col`}>
         <ClientOnly fallback={

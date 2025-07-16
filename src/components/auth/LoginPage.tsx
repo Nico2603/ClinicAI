@@ -1,31 +1,20 @@
 import React from 'react';
 import LoginButton from './LoginButton';
+import { Logo } from '../ui/Icons';
 
 const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          {/* Logo/Icon */}
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-6">
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+          {/* Logo */}
+          <div className="mx-auto mb-6 flex justify-center">
+            <Logo size="xl" className="h-20" />
           </div>
           
           {/* Title */}
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Notas AI
+            ClinicAI
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
             Asistente inteligente para notas clínicas

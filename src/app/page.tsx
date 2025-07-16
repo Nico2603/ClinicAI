@@ -3,7 +3,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
 import { Button } from '@/components/ui/button';
-import { FaGoogle, FaStethoscope, FaShieldAlt, FaBrain, FaUsers, FaClock } from 'react-icons/fa';
+import { Logo } from '@/components/ui/Icons';
+import { FaGoogle, FaShieldAlt, FaBrain, FaUsers, FaClock } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -89,8 +90,8 @@ export default function HomePage() {
             <div className="text-center lg:text-left space-y-8 w-full max-w-2xl">
               {/* Logo y título principal */}
               <div>
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl mb-6 mx-auto lg:mx-0">
-                  <FaStethoscope className="h-10 w-10 text-white" />
+                <div className="inline-flex items-center justify-center mb-6 mx-auto lg:mx-0">
+                  <Logo size="xl" className="h-20" />
                 </div>
                 <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">

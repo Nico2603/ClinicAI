@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from './button';
-import { SunIcon, MoonIcon, DocumentTextIcon, ChevronLeftIcon } from './Icons';
+import { SunIcon, MoonIcon, ChevronLeftIcon, Logo } from './Icons';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { Theme } from '@/types';
 
@@ -22,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
           <ChevronLeftIcon className="w-6 h-6" />
         </Button>
         <div className="flex items-center gap-2">
-          <DocumentTextIcon className="w-6 h-6" />
+          <Logo size="sm" className="h-6" />
           <h1 className="text-xl font-bold">{title}</h1>
         </div>
       </div>

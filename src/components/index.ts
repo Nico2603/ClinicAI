@@ -13,6 +13,9 @@ export { default as LoginButton } from './auth/LoginButton';
 export { default as LoginPage } from './auth/LoginPage';
 export { default as UserProfile } from './auth/UserProfile';
 
+// Componentes UI
+export { default as Logo } from './ui/Logo';
+
 // Componentes de notas
 export { default as AIClinicalScales } from './notes/AIClinicalScales';
 export { default as CustomTemplateManager } from './notes/CustomTemplateManager';
