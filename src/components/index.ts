@@ -17,7 +17,6 @@ export { default as UserProfile } from './auth/UserProfile';
 export { default as AIClinicalScales } from './notes/AIClinicalScales';
 export { default as CustomTemplateManager } from './notes/CustomTemplateManager';
 export { default as EvidenceBasedConsultation } from './notes/EvidenceBasedConsultation';
-export { default as FormatExtractor } from './notes/FormatExtractor';
 export { default as NoteDisplay } from './notes/NoteDisplay';
 export { default as NoteUpdater } from './notes/NoteUpdater';
 export { default as SpecialtySelector } from './notes/SpecialtySelector';

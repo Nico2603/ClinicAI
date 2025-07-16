@@ -41,7 +41,7 @@ export const MEDICAL_AI_MODELS = {
   },
   
   AUXILIARY_FUNCTIONS: {
-    extractTemplateFormat: 'gpt-4o-mini',              // Extracción de formato
+    // No auxiliary functions currently needed
   }
 } as const;
 
@@ -60,7 +60,7 @@ export const TEMPERATURE_CONFIG = {
   CONSULTATION: 0.15,                 // Reducido de 0.2 - respuestas más directas
   
   // Funciones auxiliares - optimizadas para velocidad
-  FORMAT_EXTRACTION: 0.05,            // Reducido de 0.1 - extracción más rápida y precisa
+  // No auxiliary functions currently needed
 } as const;
 
 // =============================================================================
@@ -79,7 +79,7 @@ export const TOKEN_LIMITS = {
   CONSULTATION: 2000,                  // Reducido de 3500 - consultas más directas
   
   // Funciones auxiliares - tokens mínimos necesarios
-  FORMAT_EXTRACTION: 2000,             // Mantenido para asegurar calidad en extracción
+  // No auxiliary functions currently needed
 } as const;
 
 // =============================================================================

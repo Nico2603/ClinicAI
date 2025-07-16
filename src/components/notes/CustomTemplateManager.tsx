@@ -3,7 +3,6 @@ import { useUserTemplates } from '../../hooks/useDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
-import { extractTemplateFormat } from '../../lib/services/openaiService';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { Button } from '../ui/button';
 
@@ -198,7 +197,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     }
   }, [isRecordingEdit, stopRecordingEdit, startRecordingEdit]);
 
-  // Función optimizada para crear plantilla con mejor manejo de errores
+  // Función optimizada para crear plantilla - guardado directo sin IA
   const handleCreateTemplate = useCallback(async () => {
     if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
 
@@ -210,22 +209,11 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
     try {
       setIsProcessing(true);
-
-      // Verificar si la plantilla es muy grande
-      const isLargeTemplate = newTemplateContent.length > 10000;
       
-      if (isLargeTemplate) {
-        console.log('📏 Plantilla grande detectada. El procesamiento puede tardar más...');
-      }
-      
-      // Procesamiento optimizado con timeout reducido
-      console.log('🤖 Procesando con IA para extraer formato...');
-      const cleanFormat = await extractTemplateFormat(newTemplateContent);
-      
-      console.log('💾 Guardando plantilla en base de datos...');
+      console.log('💾 Guardando plantilla directamente en base de datos...');
       const newTemplate = await createUserTemplate({
         name: newTemplateName,
-        content: cleanFormat,
+        content: newTemplateContent, // Guardar contenido directamente sin procesamiento de IA
         user_id: user?.id || '',
         is_active: true
       });
@@ -239,13 +227,6 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       onSelectTemplate(newTemplate);
     } catch (err) {
       console.error('Error al crear plantilla:', err);
-      
-      // Manejo mejorado de errores
-      if (err instanceof Error) {
-        if (err.message.includes('timeout') || err.message.includes('Timeout')) {
-          console.warn('⏱️ Timeout detectado. La plantilla puede ser muy larga o hay alta carga del servidor.');
-        }
-      }
     } finally {
       setIsProcessing(false);
     }
