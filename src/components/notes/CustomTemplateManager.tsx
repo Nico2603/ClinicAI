@@ -111,6 +111,14 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
       onSelectTemplate(newTemplate);
     } catch (err) {
       console.error('Error al crear plantilla:', err);
+      
+      // El error ya se muestra através del hook useUserTemplates
+      // Solo agregamos logging adicional para debugging
+      if (err instanceof Error) {
+        if (err.message.includes('timeout') || err.message.includes('Timeout')) {
+          console.warn('Timeout detectado al crear plantilla. Sugerencia: reducir contenido o verificar conexión.');
+        }
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -266,18 +274,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
                   onChange={(e) => setNewTemplateContent(e.target.value)}
                   rows={12}
                   className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                  placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente. Por ejemplo:
-
-CONSULTA MEDICINA INTERNA
-
-Paciente: Juan Pérez
-Edad: 45 años
-Documento: 12345678
-
-MOTIVO DE CONSULTA:
-Dolor abdominal desde hace 3 días...
-
-El sistema extraerá automáticamente la estructura y creará marcadores genéricos."
+                  placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente."
                   disabled={isProcessing}
                 />
                 {isRecording && (
@@ -325,10 +322,19 @@ El sistema extraerá automáticamente la estructura y creará marcadores genéri
               </button>
             </div>
             {isProcessing && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <p className="text-blue-600 dark:text-blue-400 text-sm">
-                  ⚡ Procesando contenido para extraer la estructura de plantilla...
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                  <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">
+                    Procesando plantilla con IA...
+                  </p>
+                </div>
+                <p className="text-blue-500 dark:text-blue-300 text-xs">
+                  ⚡ Extrayendo estructura del contenido y creando formato reutilizable. Esto puede tomar hasta 30 segundos.
                 </p>
+                <div className="mt-2 bg-blue-100 dark:bg-blue-800/30 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                </div>
               </div>
             )}
           </div>

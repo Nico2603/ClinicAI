@@ -35,7 +35,7 @@ if (!API_KEY) {
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
-  timeout: 60000, // Aumentado a 60 segundos para operaciones complejas
+  timeout: 20000, // 20 segundos para operaciones (balanceado para UX)
   maxRetries: 2, // 2 reintentos para mayor confiabilidad
 });
 

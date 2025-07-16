@@ -109,11 +109,15 @@ export const safeDatabaseCall = async <T>(
  */
 export const getFriendlyErrorMessage = (error: Error): string => {
   if (error instanceof DatabaseTimeoutError) {
-    return 'La conexión está tardando demasiado. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+    // Mejorar mensaje específico para plantillas que involucran procesamiento IA
+    if (error.message.includes('30000ms')) {
+      return 'La creación de la plantilla está tardando más de lo normal. Esto puede deberse al procesamiento con IA. Por favor, verifica tu conexión e intenta con una plantilla más corta.';
+    }
+    return 'La operación está tardando demasiado. Por favor, verifica tu conexión a internet e intenta nuevamente.';
   }
   
   if (error instanceof DatabaseRetryError) {
-    return 'No se pudo conectar con el servidor después de varios intentos. Por favor, intenta más tarde.';
+    return 'No se pudo completar la operación después de varios intentos. Por favor, verifica tu conexión e intenta más tarde.';
   }
   
   // Errores específicos de Supabase

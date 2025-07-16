@@ -358,8 +358,8 @@ export const useUserTemplates = () => {
       const newTemplate = await safeDatabaseCall(
         () => userTemplatesService.createUserTemplate(templateData),
         {
-          timeout: 5000, // 5 segundos para crear
-          maxRetries: 1
+          timeout: 30000, // 30 segundos para crear (incluye procesamiento OpenAI)
+          maxRetries: 2
         }
       );
       
@@ -386,8 +386,8 @@ export const useUserTemplates = () => {
       const updatedTemplate = await safeDatabaseCall(
         () => userTemplatesService.updateUserTemplate(id, updates),
         {
-          timeout: 5000,
-          maxRetries: 1
+          timeout: 15000, // 15 segundos para actualizar (menos que crear pero más que lo original)
+          maxRetries: 2
         }
       );
       
