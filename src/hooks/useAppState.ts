@@ -21,7 +21,7 @@ export const useAppState = () => {
   }, []);
 
   const getViewTitle = useCallback((view: ActiveView): string => {
-    return VIEW_TITLES[view] || 'NotasAI';
+    return VIEW_TITLES[view] || 'ClinicAI';
   }, []);
 
   return {

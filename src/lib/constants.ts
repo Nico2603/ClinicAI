@@ -113,10 +113,10 @@ export const SPEECH_CONFIG = {
 
 // Títulos de vistas
 export const VIEW_TITLES = {
-  'nota-plantilla': 'Generador de Nota',
+  'nota-plantilla': 'Nueva nota',
   'historial-notas': 'Historial',
-  templates: 'Editor de Plantillas',
-  'note-updater': 'Actualizador de Notas',
+  templates: 'Plantillas',
+  'note-updater': 'Actualizar nota',
   'note-editor': 'Editor de Nota',
 } as const;
 

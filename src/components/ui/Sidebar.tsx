@@ -38,10 +38,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const navItems = [
-    { id: 'nota-plantilla', label: 'Generador de Nota', icon: <PencilSquareIcon className="h-5 w-5" /> },
+    { id: 'templates', label: 'Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
+    { id: 'nota-plantilla', label: 'Nueva nota', icon: <PencilSquareIcon className="h-5 w-5" /> },
+    { id: 'note-updater', label: 'Actualizar nota', icon: <EditIcon className="h-5 w-5" /> },
     { id: 'historial-notas', label: 'Historial', icon: <ClockIcon className="h-5 w-5" /> },
-    { id: 'templates', label: 'Editor de Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
-    { id: 'note-updater', label: 'Actualizador de Notas', icon: <EditIcon className="h-5 w-5" /> },
   ];
 
   const handleNavClick = (view: ActiveView) => {
@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center">
             <SparklesIcon className="h-7 w-7 mr-2 text-primary" />
             <h1 className="text-lg font-bold text-primary">
-              NOTASAI
+              ClinicAI
             </h1>
           </div>
           {isMobile && (
