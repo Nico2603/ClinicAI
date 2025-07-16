@@ -42,6 +42,7 @@ export const useSpeechRecognition = (
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isInitializedRef = useRef(false);
+  const sessionTranscriptRef = useRef(''); // Acumular texto de toda la sesión
 
   // Inicializar el reconocimiento de voz
   useEffect(() => {
@@ -69,19 +70,21 @@ export const useSpeechRecognition = (
         setIsRecording(true);
         setError(null);
         setInterimTranscript('');
+        sessionTranscriptRef.current = ''; // Resetear el acumulador de sesión
         onStart?.();
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
+        let sessionFinalTranscript = '';
         let currentInterim = '';
         
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Procesar TODOS los resultados desde el inicio
+        for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i];
           if (result && result[0]) {
             const transcript = result[0].transcript;
             if (result.isFinal) {
-              finalTranscript += transcript;
+              sessionFinalTranscript += transcript;
             } else {
               currentInterim += transcript;
             }
@@ -90,9 +93,13 @@ export const useSpeechRecognition = (
         
         setInterimTranscript(currentInterim);
         
-        if (finalTranscript.trim()) {
-          onTranscript?.(finalTranscript);
-          setInterimTranscript('');
+        // Solo enviar texto nuevo si hay diferencia con lo acumulado anteriormente
+        if (sessionFinalTranscript.trim() && sessionFinalTranscript !== sessionTranscriptRef.current) {
+          const newText = sessionFinalTranscript.substring(sessionTranscriptRef.current.length);
+          if (newText.trim()) {
+            onTranscript?.(newText.trim());
+            sessionTranscriptRef.current = sessionFinalTranscript;
+          }
         }
       };
 
@@ -133,6 +140,7 @@ export const useSpeechRecognition = (
       recognition.onend = () => {
         setIsRecording(false);
         setInterimTranscript('');
+        sessionTranscriptRef.current = ''; // Limpiar el acumulador cuando termina
         onEnd?.();
       };
 
@@ -197,6 +205,7 @@ export const useSpeechRecognition = (
   const resetTranscript = useCallback(() => {
     setInterimTranscript('');
     setError(null);
+    sessionTranscriptRef.current = '';
   }, []);
 
   return {

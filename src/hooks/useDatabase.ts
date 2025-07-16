@@ -359,7 +359,7 @@ export const useSpecialties = () => {
   // Solo cargar una vez al montar
   useEffect(() => {
     fetchSpecialties();
-  }, []); // Dependencias vacías - solo cargar una vez
+  }, [fetchSpecialties]); // Incluir fetchSpecialties para satisfacer ESLint
 
   const createSpecialty = useCallback(async (specialtyData: Omit<Specialty, 'id' | 'created_at' | 'updated_at'>) => {
     try {
@@ -465,7 +465,7 @@ export const useTemplates = () => {
   // Solo cargar una vez al montar
   useEffect(() => {
     fetchTemplates();
-  }, []); // Dependencias vacías
+  }, [fetchTemplates]); // Incluir fetchTemplates para satisfacer ESLint
 
   const getTemplatesBySpecialty = useCallback(async (specialtyId: string) => {
     try {
