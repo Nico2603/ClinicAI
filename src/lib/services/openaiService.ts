@@ -46,6 +46,7 @@ const openai = new OpenAI({
 // Función para verificar si un modelo soporta mensajes de sistema
 const supportsSystemMessages = (model: string): boolean => {
   // Los modelos o1 no soportan mensajes de sistema
+  // GPT-4.1-mini-2025-04-14 SÍ soporta mensajes de sistema (serie GPT-4.1)
   return !model.startsWith('o1');
 };
 
@@ -74,6 +75,35 @@ const adaptParametersForModel = (model: string, baseParams: any) => {
     };
   } else {
     return baseParams;
+  }
+};
+
+// Función de validación específica para GPT-4.1-mini-2025-04-14
+const validateGPT41MiniConfiguration = (params: any): void => {
+  const model = params.model;
+  
+  if (model === 'gpt-4.1-mini-2025-04-14') {
+    // Validar que no exceda los límites del modelo
+    if (params.max_tokens && params.max_tokens > 32000) {
+      console.warn('⚠️ GPT-4.1-mini-2025-04-14: max_tokens reducido a 32000 (límite del modelo)');
+      params.max_tokens = 32000;
+    }
+    
+    // Validar temperatura está en rango óptimo
+    if (params.temperature && params.temperature > 1) {
+      console.warn('⚠️ GPT-4.1-mini-2025-04-14: temperature ajustada a 1.0 (máximo)');
+      params.temperature = 1.0;
+    }
+    
+    // Log de configuración optimizada
+    console.log('✅ GPT-4.1-mini-2025-04-14 configurado:', {
+      model: params.model,
+      temperature: params.temperature,
+      max_tokens: params.max_tokens,
+      supportsSystem: supportsSystemMessages(model),
+      contextWindow: '1M tokens',
+      maxOutput: '32K tokens'
+    });
   }
 };
 
@@ -167,7 +197,7 @@ const validateClinicalInput = (clinicalInput: string): void => {
   }
 };
 
-// Función para manejar errores de OpenAI optimizada
+// Función para manejar errores de OpenAI optimizada para GPT-4.1-mini-2025-04-14
 const handleOpenAIError = (error: unknown, context: string): Error => {
   console.error(`Error en ${context}:`, error);
   
@@ -189,13 +219,16 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
       return new Error('Contenido demasiado largo.');
     }
     if (error.message.includes('context_length_exceeded')) {
-      return new Error('Contenido demasiado largo. Reduce el texto.');
+      return new Error('Contenido excede el límite de contexto (1M tokens para GPT-4.1-mini).');
     }
     if (error.message.includes('Unsupported value') && error.message.includes('system')) {
       return new Error('Error en configuración del modelo. El modelo no soporta mensajes de sistema.');
     }
     if (error.message.includes('Unsupported parameter')) {
       return new Error('Error en configuración del modelo. Parámetros no soportados.');
+    }
+    if (error.message.includes('model_not_found') || error.message.includes('gpt-4.1-mini-2025-04-14')) {
+      return new Error('El modelo GPT-4.1-mini-2025-04-14 no está disponible en tu cuenta. Verifica tu plan de OpenAI.');
     }
     return new Error(`Error en ${context}: ${error.message}`);
   }
@@ -371,6 +404,10 @@ ESCALA A EVALUAR: ${scaleName}
     };
     
     const adaptedParams = adaptParametersForModel(model, baseParams);
+    
+    // Validación específica para GPT-4.1-mini-2025-04-14
+    validateGPT41MiniConfiguration(adaptedParams);
+    
     const response = await openai.chat.completions.create(adaptedParams);
 
     const result = response.choices[0]?.message?.content || '';

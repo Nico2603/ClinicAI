@@ -20,71 +20,80 @@ export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
 export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
 
-// Modelos OpenAI Nuevos (2025)
-export const OPENAI_MODEL_LATEST = 'o4-mini-2025-04-16';          // Modelo principal o4-mini específico
-export const OPENAI_MODEL_REASONING = 'o1-preview';               // Especializado en razonamiento (con limitaciones)
-export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';             // Razonamiento económico (con limitaciones)
+// Modelos OpenAI Nuevos (2025) - Específicamente configurado
+// GPT-4.1-mini-2025-04-14 - Características del modelo:
+// ✅ Contexto: 1M tokens (masivo para análisis extensos)
+// ✅ Salida máxima: 32K tokens (ideal para notas largas)
+// ✅ Conocimiento: Hasta junio 2024 (actualizado)
+// ✅ Costo: $0.40/$1.60 por millón de tokens (muy económico)
+// ✅ Rendimiento: 87.5% MMLU, 65% GPQA (excelente)
+// ✅ Soporte: Mensajes system, parámetros completos
+// ✅ Capacidades: Texto + Imágenes, 50% más rápido que GPT-4o
+export const OPENAI_MODEL_LATEST = 'gpt-4.1-mini-2025-04-14';       // Modelo específico GPT-4.1 Mini
+export const OPENAI_MODEL_REASONING = 'o1-preview';                  // Especializado en razonamiento (con limitaciones)
+export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';               // Razonamiento económico (con limitaciones)
 
 // =============================================================================
 // CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA
 // =============================================================================
 
 export const MEDICAL_AI_MODELS = {
-  // Funciones CRÍTICAS - Usando el modelo o4-mini-2025-04-16 específicamente solicitado
+  // Funciones CRÍTICAS - Usando específicamente gpt-4.1-mini-2025-04-14
   CRITICAL_MEDICAL_FUNCTIONS: {
-    generateNoteFromTemplate: 'o4-mini-2025-04-16',               // Generación de notas médicas - CRÍTICO
-    updateClinicalNote: 'o4-mini-2025-04-16',                     // Actualización de notas - CRÍTICO  
-    generateMedicalScale: 'o4-mini-2025-04-16',                   // Escalas médicas - Modelo específico solicitado
-    analyzeClinicalContent: 'o4-mini-2025-04-16',                 // Análisis clínico complejo - Modelo específico solicitado
+    generateNoteFromTemplate: 'gpt-4.1-mini-2025-04-14',           // Generación de notas médicas - CRÍTICO
+    updateClinicalNote: 'gpt-4.1-mini-2025-04-14',                 // Actualización de notas - CRÍTICO  
+    generateMedicalScale: 'gpt-4.1-mini-2025-04-14',               // Escalas médicas - Modelo específico
+    analyzeClinicalContent: 'gpt-4.1-mini-2025-04-14',             // Análisis clínico complejo - Modelo específico
   },
   
-  // Funciones IMPORTANTES - Usando el modelo o4-mini-2025-04-16 para consistencia
+  // Funciones IMPORTANTES - Usando gpt-4.1-mini-2025-04-14 para consistencia
   IMPORTANT_MEDICAL_FUNCTIONS: {
-    searchEvidenceBasedRecommendations: 'o4-mini-2025-04-16',     // Búsqueda de evidencia médica
-    generateSimplifiedEvidenceConsultation: 'o4-mini-2025-04-16', // Consultas de evidencia
+    searchEvidenceBasedRecommendations: 'gpt-4.1-mini-2025-04-14', // Búsqueda de evidencia médica
+    generateSimplifiedEvidenceConsultation: 'gpt-4.1-mini-2025-04-14', // Consultas de evidencia
   },
   
   // Funciones AUXILIARES - Pueden usar modelos económicos
   AUXILIARY_FUNCTIONS: {
-    extractTemplateFormat: 'gpt-4o-mini',                         // Extracción de formato - tarea simple
+    extractTemplateFormat: 'gpt-4o-mini',                          // Extracción de formato - tarea simple
   }
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA POR FUNCIÓN
+// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA PARA GPT-4.1-MINI-2025-04-14
 // =============================================================================
 
 export const TEMPERATURE_CONFIG = {
-  // Funciones críticas - máxima precisión
-  CRITICAL_MEDICAL: 0.1,              // Para notas médicas y escalas
-  CLINICAL_REASONING: 0.2,             // Para análisis clínico complejo
+  // Funciones críticas - máxima precisión para GPT-4.1-mini
+  CRITICAL_MEDICAL: 0.1,              // Para notas médicas y escalas - precisión máxima
+  CLINICAL_REASONING: 0.15,            // Para análisis clínico complejo - optimizado para GPT-4.1-mini
   
-  // Funciones importantes - buena precisión
-  TEMPLATE_GENERATION: 0.3,
-  EVIDENCE_SUGGESTIONS: 0.2,
-  CONSULTATION: 0.2,
+  // Funciones importantes - balance entre precisión y creatividad
+  TEMPLATE_GENERATION: 0.25,           // Optimizado para GPT-4.1-mini
+  EVIDENCE_SUGGESTIONS: 0.2,           // Búsqueda de evidencia precisa
+  CONSULTATION: 0.2,                   // Consultas clínicas profesionales
   
   // Funciones auxiliares - pueden ser más creativas
-  FORMAT_EXTRACTION: 0.1,
+  FORMAT_EXTRACTION: 0.1,              // Extracción precisa de formatos
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TOKENS OPTIMIZADA
+// CONFIGURACIÓN DE TOKENS OPTIMIZADA PARA GPT-4.1-MINI-2025-04-14
+// (Aprovechando 1M contexto y 32K salida máxima)
 // =============================================================================
 
 export const TOKEN_LIMITS = {
-  // Funciones críticas - más tokens para mejor análisis
-  CRITICAL_MEDICAL_NOTE: 3000,        // Notas médicas pueden ser extensas
-  CLINICAL_ANALYSIS: 4000,             // Análisis clínico complejo
-  MEDICAL_SCALE: 2000,                 // Escalas médicas detalladas
+  // Funciones críticas - aprovechando la capacidad del modelo
+  CRITICAL_MEDICAL_NOTE: 4000,        // Aumentado para notas médicas extensas
+  CLINICAL_ANALYSIS: 6000,             // Aumentado para análisis clínico complejo
+  MEDICAL_SCALE: 3000,                 // Aumentado para escalas médicas detalladas
   
-  // Funciones importantes - tokens moderados
-  TEMPLATE_NOTE: 2000,
-  EVIDENCE_SUGGESTIONS: 2500,          // Aumentado para mejor evidencia
-  CONSULTATION: 2000,
+  // Funciones importantes - tokens moderados-altos
+  TEMPLATE_NOTE: 3000,                 // Aumentado para plantillas complejas
+  EVIDENCE_SUGGESTIONS: 4000,          // Aumentado para mejor evidencia científica
+  CONSULTATION: 3500,                  // Aumentado para consultas detalladas
   
-  // Funciones auxiliares - tokens básicos  
-  FORMAT_EXTRACTION: 1500,
+  // Funciones auxiliares - tokens básicos optimizados
+  FORMAT_EXTRACTION: 2000,             // Aumentado ligeramente para mejor extracción
 } as const;
 
 // =============================================================================
