@@ -131,7 +131,7 @@ export const useHistoryManager = (userId: string | null) => {
   const clearHistory = useCallback(async () => {
     if (!userId) return;
     
-    if (!window.confirm(CONFIRMATION_MESSAGES.CLEAR_HISTORY)) return;
+    if (!window.confirm(CONFIRMATION_MESSAGES.CLEAR_ALL)) return;
     
     setError(null);
     
