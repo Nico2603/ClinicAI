@@ -212,7 +212,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     try {
       setIsProcessing(true);
       
-      console.log('💾 Guardando plantilla directamente en base de datos...');
+      console.log('💾 Guardando plantilla con función RPC optimizada...');
       const newTemplate = await createUserTemplate({
         name: newTemplateName.trim(),
         content: newTemplateContent.trim(),
@@ -229,9 +229,15 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       onSelectTemplate(newTemplate);
     } catch (err) {
       console.error('❌ Error al crear plantilla:', err);
-      // El error ya es manejado por el hook useSimpleUserTemplates
-      // No necesitamos mostrar mensajes adicionales aquí
+      
+      // Mostrar error al usuario pero no bloquear la interfaz
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al crear plantilla';
+      
+      // Aquí podrías mostrar un toast o notificación al usuario
+      // Por ahora solo logueamos el error
+      console.error('Error detallado:', errorMessage);
     } finally {
+      // Siempre resetear el estado de procesamiento
       setIsProcessing(false);
     }
   }, [newTemplateName, newTemplateContent, isProcessing, createUserTemplate, user?.id, onSelectTemplate]);

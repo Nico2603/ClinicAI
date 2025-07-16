@@ -161,13 +161,14 @@ export const useSimpleUserTemplates = () => {
     if (!user?.id) throw new Error('Usuario no autenticado');
 
     try {
-      console.log('🔄 Iniciando creación de plantilla...');
+      console.log('🔄 Iniciando creación de plantilla con RPC optimizada...');
       const startTime = Date.now();
       
+      // Usar timeout por defecto (60s) que es más apropiado
       const newTemplate = await simpleDbCall(() => userTemplatesService.createUserTemplate({
         ...templateData,
         user_id: user.id
-      }), { timeout: 45000 }); // Timeout más largo para creación de plantillas
+      })); 
       
       const duration = Date.now() - startTime;
       console.log(`✅ Plantilla creada exitosamente en ${duration}ms`);

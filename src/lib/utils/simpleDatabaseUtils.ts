@@ -10,7 +10,7 @@ export const simpleDbCall = async <T>(
   operation: () => Promise<T>,
   options: SimpleCallOptions = {}
 ): Promise<T> => {
-  const { timeout = 30000, retries = 2 } = options; // Aumentar timeout a 30 segundos y reintentos
+  const { timeout = 60000, retries = 1 } = options; // Aumentar timeout a 60 segundos y reducir reintentos
 
   // Crear promesa con timeout simple
   const callWithTimeout = async (): Promise<T> => {
@@ -25,13 +25,23 @@ export const simpleDbCall = async <T>(
   // Intentar la operación con reintento simple
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await callWithTimeout();
+      console.log(`🔄 Intento ${attempt + 1}/${retries + 1} de operación de base de datos`);
+      const startTime = Date.now();
+      const result = await callWithTimeout();
+      const duration = Date.now() - startTime;
+      console.log(`✅ Operación completada en ${duration}ms`);
+      return result;
     } catch (error) {
-      if (attempt === retries) {
+      const isLastAttempt = attempt === retries;
+      console.log(`❌ Error en intento ${attempt + 1}:`, error);
+      
+      if (isLastAttempt) {
         throw error;
       }
-      // Esperar 1 segundo antes del reintento
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Esperar 2 segundos antes del reintento
+      console.log('⏳ Esperando antes del reintento...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 

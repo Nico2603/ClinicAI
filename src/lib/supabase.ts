@@ -16,6 +16,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'implicit'
+  },
+  db: {
+    schema: 'public',
+  },
+  global: {
+    headers: {
+      'x-client-info': 'notas-ai@1.0.0'
+    },
+  },
+  realtime: {
+    timeout: 20000,
   }
 });
 

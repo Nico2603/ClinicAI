@@ -140,28 +140,36 @@ export const userTemplatesService = {
 
   // Crear una nueva plantilla personalizada
   createUserTemplate: async (userTemplate: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<UserTemplate> => {
-    // Asegurarse de que el usuario exista en la tabla `users` para evitar errores de clave foránea
-    // Usar la función RPC que tiene los permisos necesarios
-    const { error: ensureError } = await supabase
-      .rpc('ensure_user_exists');
-    
-    if (ensureError) {
-      console.error('Error al asegurar que el usuario existe:', ensureError);
-      throw ensureError;
+    try {
+      // Usar la función RPC optimizada que maneja todo internamente
+      const { data: templateId, error: rpcError } = await supabase
+        .rpc('create_user_template', {
+          template_name: userTemplate.name,
+          template_content: userTemplate.content
+        });
+
+      if (rpcError) {
+        console.error('Error en create_user_template RPC:', rpcError);
+        throw rpcError;
+      }
+
+      // Obtener la plantilla creada
+      const { data: newTemplate, error: selectError } = await supabase
+        .from('user_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+
+      if (selectError) {
+        console.error('Error al obtener plantilla creada:', selectError);
+        throw selectError;
+      }
+
+      return newTemplate;
+    } catch (error) {
+      console.error('Error en createUserTemplate:', error);
+      throw error;
     }
-
-    const { data, error } = await supabase
-      .from('user_templates')
-      .insert({
-        ...userTemplate,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
   },
 
   // Actualizar una plantilla personalizada
