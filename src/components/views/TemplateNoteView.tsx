@@ -14,7 +14,6 @@ interface TemplateNoteViewProps {
   groundingMetadata?: GroundingMetadata;
   onChangeTemplate: () => void;
   onClearError: () => void;
-  onNoteGenerated?: (note: string) => void;
   onEvidenceGenerated?: (evidence: string) => void;
   onScaleGenerated?: (scale: string) => void;
 }
@@ -30,7 +29,6 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   groundingMetadata,
   onChangeTemplate,
   onClearError,
-  onNoteGenerated,
   onEvidenceGenerated,
   onScaleGenerated,
 }) => {

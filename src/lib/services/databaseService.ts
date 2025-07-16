@@ -47,6 +47,22 @@ export interface Template {
   updated_at: string;
 }
 
+export interface HistoryEntry {
+  id: string;
+  user_id: string;
+  type: 'template' | 'suggestion' | 'evidence' | 'scale';
+  title: string;
+  content: string;
+  original_input?: string;
+  specialty_id?: string;
+  specialty_name?: string;
+  scale_id?: string;
+  scale_name?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
 // Servicios para Notas
 export const notesService = {
   // Obtener todas las notas del usuario
@@ -324,5 +340,113 @@ export const templatesService = {
       .eq('id', id);
 
     if (error) throw error;
+  }
+};
+
+// Servicios para Historial
+export const historyService = {
+  // Crear entrada de historial
+  createHistoryEntry: async (entryData: {
+    type: 'template' | 'suggestion' | 'evidence' | 'scale';
+    title: string;
+    content: string;
+    original_input?: string;
+    specialty_id?: string;
+    specialty_name?: string;
+    scale_id?: string;
+    scale_name?: string;
+    metadata?: Record<string, any>;
+  }): Promise<HistoryEntry> => {
+    const { data, error } = await supabase
+      .rpc('create_history_entry', {
+        entry_type: entryData.type,
+        entry_title: entryData.title,
+        entry_content: entryData.content,
+        entry_original_input: entryData.original_input,
+        entry_specialty_id: entryData.specialty_id,
+        entry_specialty_name: entryData.specialty_name,
+        entry_scale_id: entryData.scale_id,
+        entry_scale_name: entryData.scale_name,
+        entry_metadata: entryData.metadata || {}
+      });
+
+    if (error) throw error;
+    
+    // Obtener la entrada creada
+    const { data: newEntry, error: fetchError } = await supabase
+      .from('history_entries')
+      .select('*')
+      .eq('id', data)
+      .single();
+
+    if (fetchError) throw fetchError;
+    return newEntry;
+  },
+
+  // Obtener historial por tipo
+  getHistoryByType: async (type?: 'template' | 'suggestion' | 'evidence' | 'scale', limit: number = 50): Promise<HistoryEntry[]> => {
+    const { data, error } = await supabase
+      .rpc('get_history_by_type', {
+        entry_type: type,
+        limit_count: limit
+      });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Obtener todo el historial agrupado
+  getAllHistoryGrouped: async (): Promise<HistoryEntry[]> => {
+    const { data, error } = await supabase
+      .rpc('get_all_history_grouped');
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Eliminar entrada de historial
+  deleteHistoryEntry: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('history_entries')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Limpiar historial por tipo
+  clearHistoryByType: async (type?: 'template' | 'suggestion' | 'evidence' | 'scale'): Promise<number> => {
+    const { data, error } = await supabase
+      .rpc('clear_history_by_type', {
+        entry_type: type
+      });
+
+    if (error) throw error;
+    return data || 0;
+  },
+
+  // Obtener conteos por tipo
+  getHistoryCountsByType: async (): Promise<Record<string, number>> => {
+    const { data, error } = await supabase
+      .from('history_entries')
+      .select('type')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+    if (error) throw error;
+    
+    const counts = {
+      template: 0,
+      suggestion: 0,
+      evidence: 0,
+      scale: 0
+    };
+
+    data?.forEach(entry => {
+      if (entry.type in counts) {
+        counts[entry.type as keyof typeof counts]++;
+      }
+    });
+
+    return counts;
   }
 }; 

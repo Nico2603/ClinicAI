@@ -97,12 +97,23 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     try {
       clearGlobalError();
       clearTemplateError();
-      await generateNote(selectedTemplate, user?.id || '');
+      const generatedNote = await generateNote(selectedTemplate, user?.id || '');
+      
+      // Guardar en historial cuando se genera exitosamente
+      if (generatedNote) {
+        addNoteToHistory({
+          type: 'template',
+          originalInput: patientInfo,
+          content: generatedNote,
+          specialty_id: selectedTemplate.id,
+          specialtyName: selectedTemplate.name,
+        });
+      }
     } catch (error) {
       console.error('Error generating template note:', error);
       showError(error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_GENERATION_ERROR);
     }
-  }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError, user?.id]);
+  }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError, user?.id, addNoteToHistory]);
 
   // Callback memoizado para cargar nota en editor
   const handleLoadNoteInEditor = useCallback((note: HistoricNote) => {
@@ -231,13 +242,6 @@ const AuthenticatedApp: React.FC = React.memo(() => {
               onClearError={() => {
                 clearGlobalError();
                 clearTemplateError();
-              }}
-              onNoteGenerated={(note) => {
-                addNoteToHistory({
-                  type: 'suggestion',
-                  originalInput: patientInfo,
-                  content: note,
-                });
               }}
               onEvidenceGenerated={(evidence) => {
                 addNoteToHistory({

@@ -82,13 +82,22 @@ export interface GeneratedNote {
 export interface HistoricNote {
   id: string;
   type: 'template' | 'suggestion' | 'scale' | 'evidence';
-  timestamp: string;
-  originalInput: string;
+  timestamp: string; // Para compatibilidad con código existente
+  originalInput: string; // Para compatibilidad con código existente
   content: string;
   specialty_id?: string;
   specialtyName?: string;
   scaleId?: string;
   scaleName?: string;
+  // Nuevos campos para compatibilidad con la base de datos
+  title?: string;
+  original_input?: string;
+  specialty_name?: string;
+  scale_id?: string;
+  scale_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  metadata?: Record<string, any>;
 }
 
 // =============================================================================
