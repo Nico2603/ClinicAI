@@ -13,7 +13,7 @@ export const useTemplateNotes = () => {
 
   const generateNote = useCallback(async (template: UserTemplate, userId: string) => {
     if (!patientInfo.trim()) {
-      setError(ERROR_MESSAGES.PATIENT_INFO_REQUIRED);
+      setError(ERROR_MESSAGES.REQUIRED_FIELD);
       return null;
     }
 
