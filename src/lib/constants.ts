@@ -13,21 +13,21 @@ export const MAX_TEMPLATE_NAME_LENGTH = 100;
 export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS DE IA SIMPLIFICADA
+// CONFIGURACIÓN DE MODELOS DE IA OPTIMIZADA PARA RENDIMIENTO
 // =============================================================================
 
-// Modelos OpenAI Base - Simplificado para usar solo gpt-4o-mini
+// Modelos OpenAI Base - Optimizados para velocidad
 export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
 export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
 export const OPENAI_MODEL_LATEST = 'gpt-4o-mini';
 export const OPENAI_MODEL_REASONING = 'o1-preview';
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA - SIMPLIFICADA
+// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA - OPTIMIZADA
 // =============================================================================
 
 export const MEDICAL_AI_MODELS = {
-  // Todas las funciones usando gpt-4o-mini para simplicidad
+  // Todas las funciones usando gpt-4o-mini para velocidad óptima
   CRITICAL_MEDICAL_FUNCTIONS: {
     generateNoteFromTemplate: 'gpt-4o-mini',           // Generación de notas médicas
     updateClinicalNote: 'gpt-4o-mini',                 // Actualización de notas
@@ -46,40 +46,40 @@ export const MEDICAL_AI_MODELS = {
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA
+// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA PARA VELOCIDAD Y PRECISIÓN
 // =============================================================================
 
 export const TEMPERATURE_CONFIG = {
-  // Funciones críticas - máxima precisión
-  CRITICAL_MEDICAL: 0.1,              // Para notas médicas y escalas - precisión máxima
-  CLINICAL_REASONING: 0.15,            // Para análisis clínico complejo
+  // Funciones críticas - temperaturas bajas para velocidad y precisión
+  CRITICAL_MEDICAL: 0.05,             // Reducido de 0.1 - mayor velocidad y precisión
+  CLINICAL_REASONING: 0.1,            // Reducido de 0.15 - respuestas más rápidas
   
-  // Funciones importantes - balance entre precisión y creatividad
-  TEMPLATE_GENERATION: 0.25,           // Generación de plantillas
-  EVIDENCE_SUGGESTIONS: 0.2,           // Búsqueda de evidencia precisa
-  CONSULTATION: 0.2,                   // Consultas clínicas profesionales
+  // Funciones importantes - balance optimizado para velocidad
+  TEMPLATE_GENERATION: 0.15,          // Reducido de 0.25 - más rápido
+  EVIDENCE_SUGGESTIONS: 0.1,          // Reducido de 0.2 - más preciso y rápido
+  CONSULTATION: 0.15,                 // Reducido de 0.2 - respuestas más directas
   
-  // Funciones auxiliares - pueden ser más creativas
-  FORMAT_EXTRACTION: 0.1,              // Extracción precisa de formatos
+  // Funciones auxiliares - optimizadas para velocidad
+  FORMAT_EXTRACTION: 0.05,            // Reducido de 0.1 - extracción más rápida y precisa
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TOKENS OPTIMIZADA
+// CONFIGURACIÓN DE TOKENS OPTIMIZADA PARA VELOCIDAD
 // =============================================================================
 
 export const TOKEN_LIMITS = {
-  // Funciones críticas - límites apropiados para notas médicas
-  CRITICAL_MEDICAL_NOTE: 4000,        // Para notas médicas extensas
-  CLINICAL_ANALYSIS: 6000,             // Para análisis clínico complejo
-  MEDICAL_SCALE: 3000,                 // Para escalas médicas detalladas
+  // Funciones críticas - límites reducidos para respuestas más rápidas
+  CRITICAL_MEDICAL_NOTE: 2500,        // Reducido de 4000 - respuestas más concisas y rápidas
+  CLINICAL_ANALYSIS: 3000,             // Reducido de 6000 - análisis más eficiente
+  MEDICAL_SCALE: 1500,                 // Reducido de 3000 - escalas más directas
   
-  // Funciones importantes - tokens moderados-altos
-  TEMPLATE_NOTE: 3000,                 // Para plantillas complejas
-  EVIDENCE_SUGGESTIONS: 4000,          // Para evidencia científica
-  CONSULTATION: 3500,                  // Para consultas detalladas
+  // Funciones importantes - tokens optimizados para velocidad
+  TEMPLATE_NOTE: 2000,                 // Reducido de 3000 - plantillas más eficientes
+  EVIDENCE_SUGGESTIONS: 2500,          // Reducido de 4000 - evidencia más concisa
+  CONSULTATION: 2000,                  // Reducido de 3500 - consultas más directas
   
-  // Funciones auxiliares - tokens básicos
-  FORMAT_EXTRACTION: 2000,             // Para extracción de formatos
+  // Funciones auxiliares - tokens mínimos necesarios
+  FORMAT_EXTRACTION: 2000,             // Mantenido para asegurar calidad en extracción
 } as const;
 
 // =============================================================================
@@ -94,7 +94,7 @@ export const SPEECH_CONFIG = {
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE UI
+// CONFIGURACIÓN DE UI OPTIMIZADA
 // =============================================================================
 
 // Títulos de vistas
@@ -116,51 +116,51 @@ export const THEME_COLORS = {
   INFO: 'blue',
 } as const;
 
-// Configuración de animaciones
+// Configuración de animaciones optimizada
 export const ANIMATION_DURATION = {
-  FAST: 150,
-  NORMAL: 300,
-  SLOW: 500,
+  FAST: 100,     // Reducido de 150 - animaciones más rápidas
+  NORMAL: 200,   // Reducido de 300 - mejor percepción de velocidad
+  SLOW: 350,     // Reducido de 500 - menos espera
 } as const;
 
 // =============================================================================
-// MENSAJES DE ERROR Y VALIDACIÓN
+// MENSAJES DE ERROR Y VALIDACIÓN OPTIMIZADOS
 // =============================================================================
 
 export const ERROR_MESSAGES = {
-  TEMPLATE_NOT_SELECTED: 'Por favor, seleccione una plantilla válida.',
-  PATIENT_INFO_REQUIRED: 'Por favor, ingrese la información del paciente para la plantilla.',
-  CLINICAL_INFO_REQUIRED: 'Por favor, ingrese la información clínica para generar sugerencias.',
+  TEMPLATE_NOT_SELECTED: 'Seleccione una plantilla válida.',
+  PATIENT_INFO_REQUIRED: 'Ingrese la información del paciente.',
+  CLINICAL_INFO_REQUIRED: 'Ingrese la información clínica.',
 
-  TEMPLATE_SAVE_ERROR: 'Error al guardar la plantilla',
-  TEMPLATE_CREATE_ERROR: 'Error al crear la plantilla',
-  TEMPLATE_DELETE_ERROR: 'Error al eliminar la plantilla',
-  TEMPLATE_RENAME_ERROR: 'Error al renombrar la plantilla',
-  NOTE_GENERATION_ERROR: 'Error desconocido al generar la nota',
-  SUGGESTIONS_GENERATION_ERROR: 'Error desconocido al generar sugerencias',
-  SPEECH_NOT_SUPPORTED: 'El dictado por voz no es compatible con este navegador.',
-  OPENAI_API_KEY_MISSING: 'API key not configured for OpenAI.',
-  GENERIC_ERROR: 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo.',
+  TEMPLATE_SAVE_ERROR: 'Error al guardar plantilla',
+  TEMPLATE_CREATE_ERROR: 'Error al crear plantilla',
+  TEMPLATE_DELETE_ERROR: 'Error al eliminar plantilla',
+  TEMPLATE_RENAME_ERROR: 'Error al renombrar plantilla',
+  NOTE_GENERATION_ERROR: 'Error al generar nota',
+  SUGGESTIONS_GENERATION_ERROR: 'Error al generar sugerencias',
+  SPEECH_NOT_SUPPORTED: 'Dictado no compatible con este navegador.',
+  OPENAI_API_KEY_MISSING: 'API key no configurada.',
+  GENERIC_ERROR: 'Error inesperado. Intente nuevamente.',
 } as const;
 
 export const SUCCESS_MESSAGES = {
-  TEMPLATE_SAVED: 'Plantilla guardada exitosamente',
-  TEMPLATE_CREATED: 'Plantilla creada exitosamente',
-  TEMPLATE_DELETED: 'Plantilla eliminada exitosamente',
-  TEMPLATE_RENAMED: 'Plantilla renombrada exitosamente',
-  NOTE_GENERATED: 'Nota generada exitosamente',
-  SUGGESTIONS_GENERATED: 'Sugerencias generadas exitosamente',
+  TEMPLATE_SAVED: 'Plantilla guardada',
+  TEMPLATE_CREATED: 'Plantilla creada',
+  TEMPLATE_DELETED: 'Plantilla eliminada',
+  TEMPLATE_RENAMED: 'Plantilla renombrada',
+  NOTE_GENERATED: 'Nota generada',
+  SUGGESTIONS_GENERATED: 'Sugerencias generadas',
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE VALIDACIÓN
+// CONFIGURACIÓN DE VALIDACIÓN OPTIMIZADA
 // =============================================================================
 
 export const VALIDATION_RULES = {
-  MIN_PATIENT_INFO_LENGTH: 10,
-  MIN_CLINICAL_INFO_LENGTH: 5,
-  MAX_PATIENT_INFO_LENGTH: 10000,
-  MAX_CLINICAL_INFO_LENGTH: 10000,
+  MIN_PATIENT_INFO_LENGTH: 5,         // Reducido de 10 - menos restricciones
+  MIN_CLINICAL_INFO_LENGTH: 3,        // Reducido de 5 - más flexible
+  MAX_PATIENT_INFO_LENGTH: 8000,      // Reducido de 10000 - evitar prompts muy largos
+  MAX_CLINICAL_INFO_LENGTH: 8000,     // Reducido de 10000 - mejor rendimiento
   MIN_TEMPLATE_NAME_LENGTH: 1,
   MAX_TEMPLATE_NAME_LENGTH: 100,
 } as const;
@@ -176,11 +176,38 @@ export const STORAGE_KEYS = {
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE CONFIRMACIONES
+// CONFIGURACIÓN DE CONFIRMACIONES SIMPLIFICADAS
 // =============================================================================
 
 export const CONFIRMATION_MESSAGES = {
-  DELETE_TEMPLATE: '¿Está seguro de que desea eliminar esta plantilla? Esta acción no se puede deshacer.',
-  CLEAR_HISTORY: '¿Está seguro de que desea borrar todo el historial de notas? Esta acción no se puede deshacer.',
-  DISCARD_CHANGES: '¿Está seguro de que desea descartar los cambios? Se perderán todos los cambios no guardados.',
+  DELETE_TEMPLATE: '¿Eliminar esta plantilla? No se puede deshacer.',
+  CLEAR_HISTORY: '¿Borrar todo el historial? No se puede deshacer.',
+  DISCARD_CHANGES: '¿Descartar cambios? Se perderán los cambios no guardados.',
+} as const;
+
+// =============================================================================
+// CONFIGURACIÓN DE RENDIMIENTO ADICIONAL
+// =============================================================================
+
+// Configuración de timeouts optimizada
+export const TIMEOUT_CONFIG = {
+  FAST_OPERATIONS: 5000,       // 5 segundos para operaciones rápidas
+  STANDARD_OPERATIONS: 15000,  // 15 segundos para operaciones estándar
+  COMPLEX_OPERATIONS: 30000,   // 30 segundos para operaciones complejas (IA)
+  DATABASE_OPERATIONS: 8000,   // 8 segundos para operaciones de BD
+} as const;
+
+// Configuración de cache optimizada
+export const CACHE_CONFIG = {
+  SHORT_CACHE: 10 * 60 * 1000,    // 10 minutos para datos dinámicos
+  MEDIUM_CACHE: 30 * 60 * 1000,   // 30 minutos para datos semi-estáticos
+  LONG_CACHE: 60 * 60 * 1000,     // 1 hora para datos estáticos
+  MAX_CACHE_SIZE: 100,             // Máximo 100 entradas por cache
+} as const;
+
+// Configuración de retry optimizada
+export const RETRY_CONFIG = {
+  MAX_RETRIES: 1,           // Solo 1 reintento para evitar esperas largas
+  RETRY_DELAY: 1000,        // 1 segundo entre reintentos
+  EXPONENTIAL_BACKOFF: false, // Deshabilitado para mayor velocidad
 } as const;

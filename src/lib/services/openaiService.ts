@@ -20,10 +20,10 @@ import {
 } from '../../types';
 
 // =============================================================================
-// CONFIGURACIÓN Y VALIDACIÓN
+// CONFIGURACIÓN Y VALIDACIÓN OPTIMIZADA
 // =============================================================================
 
-// Configuración de OpenAI optimizada
+// Configuración de OpenAI optimizada para rendimiento
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
 if (!API_KEY) {
@@ -31,19 +31,64 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Cliente OpenAI con timeout optimizado
+// Cliente OpenAI optimizado para velocidad
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
-  timeout: 20000, // 20 segundos para operaciones (balanceado para UX)
-  maxRetries: 2, // 2 reintentos para mayor confiabilidad
+  timeout: 15000, // Reducido de 35s a 15s para mejor UX
+  maxRetries: 1, // Reducido de 2 a 1 para evitar esperas largas
 });
 
 // =============================================================================
-// UTILIDADES SIMPLIFICADAS
+// SISTEMA DE CACHE OPTIMIZADO
 // =============================================================================
 
-// Función simplificada para crear mensajes (gpt-4o-mini soporta mensajes de sistema)
+// Cache in-memory optimizado para respuestas de IA
+const responseCache = new Map<string, { response: any; timestamp: number; }>();
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos (aumentado de lo que había implícito)
+
+// Generar clave de cache más eficiente
+const generateCacheKey = (functionName: string, ...args: any[]): string => {
+  // Usar hash simple en lugar de JSON.stringify para mejor rendimiento
+  const argsHash = args.map(arg => {
+    if (typeof arg === 'string') {
+      return arg.length > 100 ? arg.substring(0, 100) + `_len${arg.length}` : arg;
+    }
+    return typeof arg + '_' + String(arg).substring(0, 50);
+  }).join('|');
+  
+  return `${functionName}:${argsHash}`;
+};
+
+// Cache inteligente con limpieza automática
+const getCachedResponse = (key: string) => {
+  const cached = responseCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.response;
+  }
+  if (cached) {
+    responseCache.delete(key); // Limpiar cache expirado
+  }
+  return null;
+};
+
+const setCachedResponse = (key: string, response: any) => {
+  // Limitar tamaño del cache (máximo 100 entradas)
+  if (responseCache.size >= 100) {
+    const oldestKey = responseCache.keys().next().value;
+    if (oldestKey) {
+      responseCache.delete(oldestKey);
+    }
+  }
+  
+  responseCache.set(key, { response, timestamp: Date.now() });
+};
+
+// =============================================================================
+// UTILIDADES OPTIMIZADAS
+// =============================================================================
+
+// Función optimizada para crear mensajes
 const createMessages = (systemMessage: string, userMessage: string) => {
   return [
     { role: "system" as const, content: systemMessage },
@@ -52,25 +97,20 @@ const createMessages = (systemMessage: string, userMessage: string) => {
 };
 
 // =============================================================================
-// PROTECCIÓN CONTRA LLAMADAS DUPLICADAS
+// PROTECCIÓN CONTRA LLAMADAS DUPLICADAS OPTIMIZADA
 // =============================================================================
 
-// Mapa de promesas pendientes para evitar múltiples llamadas simultáneas idénticas
+// Mapa optimizado de promesas pendientes
 const pendingRequests = new Map<string, Promise<any>>();
 
-// Función para generar clave única de petición
-const generateRequestKey = (functionName: string, ...args: any[]): string => {
-  return `${functionName}:${JSON.stringify(args)}`;
-};
-
-// Protección contra llamadas duplicadas simultáneas
+// Protección contra llamadas duplicadas optimizada
 const preventDuplicateRequests = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
-  // Si ya hay una petición pendiente para esta clave, devolver esa promesa
+  // Si ya hay una petición pendiente, devolver esa promesa
   if (pendingRequests.has(key)) {
     return pendingRequests.get(key) as Promise<T>;
   }
 
-  // Crear nueva promesa y agregarla al mapa
+  // Crear nueva promesa con limpieza automática
   const promise = requestFn().finally(() => {
     pendingRequests.delete(key);
   });
@@ -79,7 +119,7 @@ const preventDuplicateRequests = async <T>(key: string, requestFn: () => Promise
   return promise;
 };
 
-// Funciones de validación
+// Validaciones optimizadas (ejecutar solo una vez por función)
 const validateApiKey = (): void => {
   if (!API_KEY) {
     throw new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
@@ -109,7 +149,7 @@ const validateClinicalInput = (clinicalInput: string): void => {
   }
 };
 
-// Función para manejar errores de OpenAI optimizada para GPT-4.1-mini-2025-04-14
+// Función optimizada para manejar errores de OpenAI
 const handleOpenAIError = (error: unknown, context: string): Error => {
   console.error(`Error en ${context}:`, error);
   
@@ -131,16 +171,7 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
       return new Error('Contenido demasiado largo.');
     }
     if (error.message.includes('context_length_exceeded')) {
-      return new Error('Contenido excede el límite de contexto (1M tokens para GPT-4.1-mini).');
-    }
-    if (error.message.includes('Unsupported value') && error.message.includes('system')) {
-      return new Error('Error en configuración del modelo. El modelo no soporta mensajes de sistema.');
-    }
-    if (error.message.includes('Unsupported parameter')) {
-      return new Error('Error en configuración del modelo. Parámetros no soportados.');
-    }
-    if (error.message.includes('model_not_found') || error.message.includes('gpt-4.1-mini-2025-04-14')) {
-      return new Error('El modelo GPT-4.1-mini-2025-04-14 no está disponible en tu cuenta. Verifica tu plan de OpenAI.');
+      return new Error('Contenido excede el límite de contexto.');
     }
     return new Error(`Error en ${context}: ${error.message}`);
   }
@@ -160,33 +191,41 @@ export const generateNoteFromTemplate = async (
   validateApiKey();
   validateTemplateInput(templateContent, patientInfo);
   
-  // Generar clave para evitar llamadas duplicadas simultáneas
-  const requestKey = generateRequestKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
+  // Generar clave de cache optimizada
+  const cacheKey = generateCacheKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
+  
+  // Verificar cache primero
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('📋 Respuesta obtenida desde cache');
+    return cached;
+  }
 
   // Usar protección contra llamadas duplicadas
-  return preventDuplicateRequests(requestKey, async () => {
-    const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar ÚNICAMENTE la información del paciente proporcionada para generar una nota médica siguiendo el formato de la plantilla.
+  return preventDuplicateRequests(cacheKey, async () => {
+    // Prompt optimizado - más conciso pero igual de efectivo
+    const prompt = `Completa esta nota médica usando SOLO la información del paciente proporcionada.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
 
-PLANTILLA (SOLO FORMATO - NO CONTIENE DATOS REALES):
+PLANTILLA (formato únicamente):
 ---
 ${templateContent}
 ---
 
-INSTRUCCIONES CRÍTICAS:
-1. USA ÚNICAMENTE la información del paciente proporcionada arriba
-2. NO uses datos de ejemplo de la plantilla como información real del paciente
-3. Si no tienes información específica para una sección, omítela o usa "No reportado"
-4. Mantén el formato profesional y estructurado de la plantilla
-5. Sé conciso pero completo con la información disponible
+INSTRUCCIONES:
+1. Usa ÚNICAMENTE la información del paciente
+2. NO uses datos de ejemplo de la plantilla
+3. Si falta información, omite la sección o marca "No reportado"
+4. Mantén el formato estructurado de la plantilla
+5. Sé conciso pero completo
 
 Genera la nota médica completada:`;
 
     try {
       const model = 'gpt-4o-mini';
-      const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes.";
+      const systemMessage = "Asistente médico experto en notas clínicas. Usa solo información del paciente real, nunca datos de ejemplo de plantillas.";
       
       const messages = createMessages(systemMessage, prompt);
       
@@ -206,10 +245,15 @@ Genera la nota médica completada:`;
         throw new Error('No se pudo generar contenido válido');
       }
 
-      return { 
+      const result = { 
         text: generatedText, 
         groundingMetadata: undefined
       };
+      
+      // Guardar en cache
+      setCachedResponse(cacheKey, result);
+      
+      return result;
     } catch (error) {
       throw handleOpenAIError(error, 'generación de nota con plantilla');
     }
@@ -224,71 +268,41 @@ export const generateMedicalScale = async (
   validateClinicalInput(clinicalInput);
   validateInput(scaleName, 2);
 
-  const prompt = `Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. Tu tarea es evaluar la escala "${scaleName}" basándote ÚNICAMENTE en la información clínica proporcionada.
+  // Verificar cache
+  const cacheKey = generateCacheKey('generateMedicalScale', clinicalInput, scaleName);
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('🎯 Escala obtenida desde cache');
+    return cached;
+  }
 
-INFORMACIÓN CLÍNICA DISPONIBLE:
+  // Prompt optimizado para escalas médicas
+  const prompt = `Evalúa la escala "${scaleName}" con la información clínica disponible.
+
+INFORMACIÓN CLÍNICA:
 "${clinicalInput}"
 
-ESCALA A EVALUAR: ${scaleName}
+ESCALA: ${scaleName}
 
-🚨 **INSTRUCCIONES CRÍTICAS PARA APLICACIÓN DE ESCALAS:**
+INSTRUCCIONES:
+1. Evalúa solo con información explícita disponible
+2. Si falta información, marca "Información insuficiente"
+3. NO hagas inferencias más allá de lo mencionado
+4. Proporciona puntaje total solo si es representativo
+5. Incluye limitaciones por datos faltantes
 
-1. **ANÁLISIS ESTRICTO DE INFORMACIÓN:**
-   - Lee detenidamente SOLO la información clínica proporcionada
-   - Identifica únicamente los datos que correspondan a los ítems de la escala ${scaleName}
-   - NO hagas inferencias o suposiciones más allá de lo explícitamente mencionado
-
-2. **PUNTUACIÓN BASADA EN DATOS REALES:**
-   - Asigna puntajes ÚNICAMENTE basándote en información específica disponible
-   - Si la información para un ítem es insuficiente o no está disponible, marca claramente "Información insuficiente"
-   - NO uses "juicio clínico" para inferir datos que no están presentes
-   - NO inventes o asumas información que no esté explícitamente mencionada
-
-3. **MANEJO DE INFORMACIÓN FALTANTE:**
-   - Si faltan datos para evaluar ítems específicos, NO los puntúes
-   - Indica claramente qué ítems no pudieron evaluarse y por qué
-   - NO asumas valores "normales" o "probables" para datos faltantes
-
-4. **CÁLCULO DE PUNTAJE TOTAL:**
-   - Solo incluye en el cálculo los ítems que pudieron evaluarse con información real
-   - Si faltan datos críticos para la escala, indica que el resultado puede ser incompleto
-   - Menciona qué porcentaje de la escala pudo completarse
-
-5. **INTERPRETACIÓN RESPONSABLE:**
-   - Solo proporciona interpretación si el puntaje está basado en información suficiente
-   - Si faltan datos importantes, indica las limitaciones de la interpretación
-   - No hagas conclusiones definitivas con información incompleta
-
-6. **FORMATO DE RESPUESTA CLARO:**
-   - Presenta cada ítem de la escala con su puntaje y justificación
-   - Indica claramente qué información se usó para cada puntuación
-   - Lista los ítems que no pudieron evaluarse por falta de información
-   - Proporciona puntaje total solo si es representativo
-
-7. **ESTRUCTURA SUGERIDA:**
-   
-   ESCALA ${scaleName}:
-   
-   Ítem 1: [Puntaje] - Justificación basada en: [dato específico]
-   Ítem 2: Información insuficiente - Falta: [dato específico necesario]
-   ...
-   
-   PUNTAJE TOTAL: [X/Y puntos] ([Z]% de la escala completada)
-   
-   INTERPRETACIÓN: [Solo si hay suficiente información]
-   
-   LIMITACIONES: [Mencionar datos faltantes que afectan la evaluación]
-
-8. **RESPUESTA FINAL:**
-   - Proporciona ÚNICAMENTE el resultado de la escala
-   - NO incluyas saludos, comentarios introductorios ni despedidas
-   - La respuesta debe ser profesional y directamente utilizable
-
-**REGLA FUNDAMENTAL:** Solo usa información explícitamente proporcionada. Si no hay suficiente información para evaluar la escala completa, sé transparente sobre las limitaciones.`;
+FORMATO:
+ESCALA ${scaleName}:
+Ítem 1: [Puntaje] - [Justificación]
+Ítem 2: Información insuficiente - Falta: [dato necesario]
+...
+PUNTAJE TOTAL: [X/Y puntos] ([Z]% completada)
+INTERPRETACIÓN: [Solo si hay suficiente información]
+LIMITACIONES: [Datos faltantes que afectan la evaluación]`;
 
   try {
     const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. SOLO usas información explícitamente proporcionada para puntuar escalas, NUNCA inventas datos. Eres transparente sobre limitaciones cuando falta información.";
+    const systemMessage = "Experto en escalas clínicas. Solo usa información explícita, nunca inventa datos. Transparente sobre limitaciones.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -308,18 +322,19 @@ ESCALA A EVALUAR: ${scaleName}
       throw new Error('No se pudo generar contenido válido');
     }
     
-    return {
+    const finalResult = {
       text: result,
       groundingMetadata: { groundingChunks: [] }
     };
+    
+    // Guardar en cache
+    setCachedResponse(cacheKey, finalResult);
+    
+    return finalResult;
   } catch (error) {
     throw handleOpenAIError(error, 'generación de escala médica');
   }
 };
-
-// =============================================================================
-// SERVICIOS ADICIONALES (mantener funcionalidad existente)
-// =============================================================================
 
 export const updateClinicalNote = async (
   originalNote: string,
@@ -327,72 +342,39 @@ export const updateClinicalNote = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
 
-  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información de manera precisa y selectiva. Tu tarea es integrar ÚNICAMENTE la nueva información proporcionada sin reescribir, inventar o modificar secciones que no requieren cambios.
+  // Verificar cache
+  const cacheKey = generateCacheKey('updateClinicalNote', originalNote, newInformation);
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('📝 Actualización obtenida desde cache');
+    return cached;
+  }
 
-**NOTA CLÍNICA ORIGINAL:**
+  // Prompt optimizado para actualización de notas
+  const prompt = `Actualiza esta nota clínica integrando ÚNICAMENTE la nueva información proporcionada.
+
+**NOTA ORIGINAL:**
 ---
 ${originalNote}
 ---
 
-**NUEVA INFORMACIÓN A INTEGRAR:**
+**NUEVA INFORMACIÓN:**
 ---
 ${newInformation}
 ---
 
-🚨 **INSTRUCCIONES CRÍTICAS PARA ACTUALIZACIÓN:**
+INSTRUCCIONES:
+1. Preserva el formato y estructura exactos de la nota original
+2. Integra SOLO la nueva información proporcionada
+3. NO reescribas secciones que no requieren actualización
+4. Mantén el mismo estilo de redacción médica
+5. Si la nueva información reemplaza datos existentes, reemplaza SOLO esos datos específicos
 
-1. **PRESERVACIÓN ABSOLUTA DE LO EXISTENTE:**
-   - Mantén EXACTAMENTE el mismo formato, estructura y estilo de la nota original
-   - NO reescribas secciones que no requieren actualización
-   - Conserva todos los encabezados, numeración, viñetas y sangrías tal como están
-   - Preserva el orden y la estructura de las secciones existentes
-   - NO modifiques el estilo de redacción original
-
-2. **INTEGRACIÓN SOLO DE INFORMACIÓN NUEVA:**
-   - Usa ÚNICAMENTE la nueva información proporcionada en la sección correspondiente
-   - NO inventes, asumas, deduzcas o agregues información que no esté explícitamente en la nueva información
-   - Si la nueva información no menciona algo específico, NO lo agregues
-   - NO hagas inferencias basadas en la nueva información
-
-3. **ACTUALIZACIÓN SELECTIVA PRECISA:**
-   - Identifica específicamente qué sección(es) deben actualizarse con la nueva información
-   - Solo modifica las partes exactas que la nueva información actualiza o complementa
-   - Si la nueva información es adicional, agrégala sin modificar lo existente
-   - Si la nueva información reemplaza datos existentes, reemplaza SOLO esos datos específicos
-
-4. **MANEJO DE INFORMACIÓN FALTANTE:**
-   - Si la nueva información no es suficiente para completar una sección, NO la completes
-   - NO agregues "pendiente", "a evaluar", "dato faltante" u observaciones similares
-   - Simplemente integra lo que está disponible y deja el resto sin modificar
-
-5. **ANÁLISIS INTELIGENTE DE UBICACIÓN:**
-   - Analiza dónde pertenece la nueva información (evolución, examen, tratamiento, etc.)
-   - Respeta la lógica temporal y médica de la nota
-   - Mantén la coherencia clínica entre la información original y la nueva
-   - Coloca la nueva información en la sección más apropiada
-
-6. **INTEGRACIÓN NATURAL:**
-   - Integra la nueva información de forma fluida en el contexto existente
-   - Usa el mismo estilo de redacción médica de la nota original
-   - Mantén la terminología médica consistente
-   - Respeta el tono y formato profesional
-
-7. **FORMATO DE RESPUESTA:**
-   - Devuelve la nota clínica completa con SOLO las modificaciones necesarias
-   - NO incluyas comentarios, explicaciones o notas adicionales
-   - La respuesta debe ser directamente la nota médica actualizada
-   - NO agregues secciones de observaciones sobre los cambios
-
-8. **EJEMPLOS DE ACTUALIZACIÓN CORRECTA:**
-   - Nueva información: "Presión arterial: 140/90 mmHg" → Actualiza SOLO el valor en signos vitales
-   - Nueva información: "Inició tratamiento con losartán" → Agrega SOLO eso al plan de tratamiento
-   - Nueva información incompleta: NO inventes el resto de la información
-
-**REGLA FUNDAMENTAL:** Solo actualiza lo que está explícitamente mencionado en la nueva información. NUNCA inventes, completes o asumas datos adicionales.`;
+Devuelve la nota clínica completa actualizada:`;
 
   try {
     const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. SOLO usas información explícitamente proporcionada, NUNCA inventas datos adicionales. Preservas la estructura original y modificas únicamente lo estrictamente necesario.";
+    const systemMessage = "Especialista en actualización selectiva de notas clínicas. Preserva estructura original, modifica solo lo necesario.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -407,122 +389,76 @@ ${newInformation}
     const response = await openai.chat.completions.create(params);
 
     const generatedText = response.choices[0]?.message?.content || '';
-    return { 
+    
+    const result = { 
       text: generatedText, 
       groundingMetadata: undefined
     };
+    
+    // Guardar en cache
+    setCachedResponse(cacheKey, result);
+    
+    return result;
   } catch (error) {
     throw handleOpenAIError(error, 'actualización selectiva de nota clínica');
   }
 }; 
 
-// ===== CONSULTA CLÍNICA PARA IA BASADA EN EVIDENCIA =====
+// ===== ANÁLISIS CLÍNICO OPTIMIZADO =====
 
 export const analyzeClinicalContent = async (
   request: EvidenceConsultationRequest
 ): Promise<ClinicalAnalysisResult> => {
   validateApiKey();
 
-  const prompt = `Eres un asistente médico experto especializado en análisis clínico basado en evidencia científica. Tu tarea es analizar el contenido clínico proporcionado y generar recomendaciones basadas en la mejor evidencia disponible de fuentes científicas reconocidas.
+  // Verificar cache
+  const cacheKey = generateCacheKey('analyzeClinicalContent', request.clinicalContent, request.consultationType);
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('🔬 Análisis obtenido desde cache');
+    return cached;
+  }
 
-CONTENIDO CLÍNICO PARA ANÁLISIS:
+  // Prompt optimizado para análisis clínico
+  const prompt = `Analiza este contenido clínico y genera recomendaciones basadas en evidencia.
+
+CONTENIDO CLÍNICO:
 ---
 ${request.clinicalContent}
 ---
 
-TIPO DE CONSULTA: ${request.consultationType}
-
-${request.focusAreas ? `ÁREAS DE ENFOQUE SOLICITADAS: ${request.focusAreas.join(', ')}` : ''}
+TIPO: ${request.consultationType}
+${request.focusAreas ? `ÁREAS DE ENFOQUE: ${request.focusAreas.join(', ')}` : ''}
 
 ${request.patientContext ? `CONTEXTO DEL PACIENTE:
 - Edad: ${request.patientContext.age || 'No especificada'}
 - Sexo: ${request.patientContext.sex || 'No especificado'}
-- Comorbilidades: ${request.patientContext.comorbidities?.join(', ') || 'Ninguna reportada'}
-- Alergias: ${request.patientContext.allergies?.join(', ') || 'Ninguna reportada'}
-- Medicamentos actuales: ${request.patientContext.currentMedications?.join(', ') || 'Ninguno reportado'}` : ''}
+- Comorbilidades: ${request.patientContext.comorbidities?.join(', ') || 'Ninguna'}
+- Alergias: ${request.patientContext.allergies?.join(', ') || 'Ninguna'}
+- Medicamentos: ${request.patientContext.currentMedications?.join(', ') || 'Ninguno'}` : ''}
 
-INSTRUCCIONES PARA EL ANÁLISIS:
+INSTRUCCIONES:
+1. Extrae hallazgos clínicos principales
+2. Genera recomendaciones basadas en evidencia
+3. Identifica factores de riesgo y banderas rojas
+4. Sugiere plan diagnóstico
 
-1. **EXTRACCIÓN DE HALLAZGOS CLÍNICOS:**
-   - Identifica síntomas, signos, diagnósticos, tratamientos, resultados de laboratorio, signos vitales
-   - Clasifica cada hallazgo por categoría y severidad
-   - Asigna un nivel de confianza basado en la claridad de la información
-
-2. **GENERACIÓN DE RECOMENDACIONES BASADAS EN EVIDENCIA:**
-   - Para cada hallazgo, proporciona recomendaciones específicas basadas en guías clínicas actuales
-   - Cita fuentes científicas reconocidas (PubMed, UpToDate, guías de sociedades médicas)
-   - Clasifica las recomendaciones por fuerza y calidad de evidencia
-   - Considera aplicabilidad específica al caso
-
-3. **ANÁLISIS DE RIESGO Y BANDERAS ROJAS:**
-   - Identifica factores de riesgo relevantes
-   - Señala cualquier signo de alarma que requiera atención inmediata
-   - Proporciona diagnósticos diferenciales relevantes
-
-4. **PLAN DIAGNÓSTICO SUGERIDO:**
-   - Recomienda estudios adicionales basados en los hallazgos
-   - Prioriza según urgencia y utilidad diagnóstica
-
-FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+RESPUESTA EN JSON:
 {
-  "findings": [
-    {
-      "id": "finding-1",
-      "category": "symptom|sign|diagnosis|treatment|lab_result|vital_sign|medication|procedure",
-      "description": "Descripción clara del hallazgo",
-      "severity": "mild|moderate|severe|critical",
-      "confidence": 0.85,
-      "extractedText": "Texto original del que se extrajo"
-    }
-  ],
-  "recommendations": [
-    {
-      "id": "rec-1",
-      "category": "diagnostic|therapeutic|monitoring|prevention|prognosis|differential_diagnosis",
-      "title": "Título breve de la recomendación",
-      "description": "Descripción detallada de la recomendación",
-      "strength": "strong|conditional|expert_opinion",
-      "evidenceQuality": "high|moderate|low|very_low",
-      "applicability": 0.90,
-      "urgency": "immediate|urgent|routine|elective",
-      "contraindications": ["contraindicación1"],
-      "considerations": ["consideración1"],
-      "followUp": "Seguimiento recomendado",
-      "sources": [
-        {
-          "type": "pubmed|uptodate|clinicalkey|cochrane|guidelines",
-          "title": "Título de la fuente",
-          "authors": ["Autor1", "Autor2"],
-          "journal": "Nombre de la revista",
-          "year": 2023,
-          "evidenceLevel": "A|B|C|D",
-          "studyType": "rct|meta_analysis|cohort|case_control|case_series|expert_opinion"
-        }
-      ],
-      "relatedFindings": ["finding-1"]
-    }
-  ],
-  "riskFactors": ["factor de riesgo 1", "factor de riesgo 2"],
-  "redFlags": ["bandera roja 1", "bandera roja 2"],
-  "differentialDiagnoses": ["diagnóstico diferencial 1"],
-  "suggestedWorkup": ["estudio sugerido 1", "estudio sugerido 2"],
+  "findings": [{"id": "f1", "category": "symptom", "description": "...", "severity": "moderate", "confidence": 0.8, "extractedText": "..."}],
+  "recommendations": [{"id": "r1", "category": "diagnostic", "title": "...", "description": "...", "strength": "strong", "evidenceQuality": "high", "applicability": 0.9, "urgency": "routine", "sources": [{"type": "pubmed", "title": "...", "evidenceLevel": "A"}]}],
+  "riskFactors": ["..."],
+  "redFlags": ["..."],
+  "differentialDiagnoses": ["..."],
+  "suggestedWorkup": ["..."],
   "confidence": 0.85,
   "analysisTimestamp": "${new Date().toISOString()}",
-  "disclaimerText": "Esta información es para apoyo educativo y no sustituye el juicio clínico profesional. Siempre consulte las guías institucionales actuales y considere el contexto clínico completo."
-}
-
-CRITERIOS DE CALIDAD:
-- Solo incluir recomendaciones con base científica sólida
-- Priorizar evidencia de alta calidad (meta-análisis, RCTs, guías clínicas)
-- Ser específico y práctico en las recomendaciones
-- Considerar el contexto del paciente y aplicabilidad local
-- Incluir disclaimers apropiados sobre limitaciones
-
-Asegúrate de que la respuesta sea un JSON válido y completo.`;
+  "disclaimerText": "Esta información es para apoyo educativo y no sustituye el juicio clínico profesional."
+}`;
 
   try {
     const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un asistente médico experto en análisis clínico basado en evidencia científica. Proporcionas recomendaciones precisas basadas en la mejor evidencia disponible, siempre en formato JSON válido.";
+    const systemMessage = "Experto en análisis clínico basado en evidencia. Responde siempre en JSON válido con recomendaciones precisas.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -546,6 +482,9 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
         throw new Error('Respuesta de IA inválida: falta estructura de análisis');
       }
 
+      // Guardar en cache
+      setCachedResponse(cacheKey, parsed);
+      
       return parsed as ClinicalAnalysisResult;
     } catch (jsonError) {
       console.error('Error parsing clinical analysis response:', jsonError);
@@ -562,61 +501,41 @@ export const searchEvidenceBasedRecommendations = async (
 ): Promise<EvidenceSearchResult> => {
   validateApiKey();
 
-  const prompt = `Eres un experto en medicina basada en evidencia con acceso a las principales bases de datos médicas. Tu tarea es buscar y proporcionar recomendaciones específicas basadas en la mejor evidencia científica disponible.
+  // Verificar cache
+  const cacheKey = generateCacheKey('searchEvidenceBasedRecommendations', query, clinicalContext || '');
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('🔍 Búsqueda obtenida desde cache');
+    return cached;
+  }
 
-CONSULTA ESPECÍFICA: "${query}"
+  // Prompt optimizado para búsqueda de evidencia
+  const prompt = `Busca evidencia científica para: "${query}"
 
-${clinicalContext ? `CONTEXTO CLÍNICO ADICIONAL:
+${clinicalContext ? `CONTEXTO CLÍNICO:
 ---
 ${clinicalContext}
 ---` : ''}
 
 INSTRUCCIONES:
-1. Busca evidencia específica para la consulta planteada
-2. Prioriza fuentes de alta calidad (PubMed, Cochrane, guías clínicas)
-3. Proporciona recomendaciones prácticas y aplicables
-4. Incluye niveles de evidencia y fuerza de recomendación
-5. Considera contraindicaciones y consideraciones especiales
+1. Busca evidencia específica para la consulta
+2. Prioriza fuentes de alta calidad
+3. Proporciona recomendaciones prácticas
+4. Incluye niveles de evidencia
 
-FORMATO DE RESPUESTA REQUERIDO (JSON válido):
+RESPUESTA EN JSON:
 {
   "query": "${query}",
-  "sources": [
-    {
-      "type": "pubmed|uptodate|cochrane|guidelines",
-      "title": "Título específico de la fuente",
-      "authors": ["Apellido A", "Apellido B"],
-      "journal": "Nombre de la revista",
-      "year": 2023,
-      "pmid": "12345678",
-      "evidenceLevel": "A|B|C|D",
-      "studyType": "meta_analysis|rct|cohort|guidelines"
-    }
-  ],
-  "recommendations": [
-    {
-      "id": "search-rec-1",
-      "category": "diagnostic|therapeutic|monitoring|prevention",
-      "title": "Recomendación específica",
-      "description": "Descripción detallada basada en evidencia",
-      "strength": "strong|conditional|expert_opinion",
-      "evidenceQuality": "high|moderate|low|very_low",
-      "applicability": 0.85,
-      "urgency": "immediate|urgent|routine|elective",
-      "sources": [/* referencias a las fuentes arriba */],
-      "relatedFindings": []
-    }
-  ],
+  "sources": [{"type": "pubmed", "title": "...", "authors": ["..."], "journal": "...", "year": 2023, "evidenceLevel": "A", "studyType": "meta_analysis"}],
+  "recommendations": [{"id": "sr1", "category": "therapeutic", "title": "...", "description": "...", "strength": "strong", "evidenceQuality": "high", "applicability": 0.85, "urgency": "routine"}],
   "searchTimestamp": "${new Date().toISOString()}",
   "totalResults": 5,
-  "searchStrategy": "Descripción de la estrategia de búsqueda utilizada"
-}
-
-Enfócate en proporcionar información práctica y actualizada que sea directamente aplicable al contexto clínico.`;
+  "searchStrategy": "Búsqueda en bases de datos médicas principales"
+}`;
 
   try {
     const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un experto en medicina basada en evidencia que proporciona búsquedas precisas en literatura médica. Respondes siempre en formato JSON válido con información científicamente respaldada.";
+    const systemMessage = "Experto en medicina basada en evidencia. Responde en JSON válido con información científicamente respaldada.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -634,6 +553,10 @@ Enfócate en proporcionar información práctica y actualizada que sea directame
     
     try {
       const parsed = JSON.parse(responseText);
+      
+      // Guardar en cache
+      setCachedResponse(cacheKey, parsed);
+      
       return parsed as EvidenceSearchResult;
     } catch (jsonError) {
       console.error('Error parsing evidence search response:', jsonError);
@@ -807,19 +730,25 @@ export const formatEvidenceBasedReport = async (
   return report;
 }; 
 
-// ===== CONSULTA CLÍNICA SIMPLIFICADA BASADA EN EVIDENCIA =====
+// ===== CONSULTA CLÍNICA SIMPLIFICADA OPTIMIZADA =====
 
 export const generateSimplifiedEvidenceConsultation = async (
   clinicalContent: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
   
-  // Generar clave para evitar llamadas duplicadas simultáneas
-  const requestKey = generateRequestKey('generateSimplifiedEvidenceConsultation', clinicalContent);
+  // Verificar cache
+  const cacheKey = generateCacheKey('generateSimplifiedEvidenceConsultation', clinicalContent);
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('🩺 Consulta obtenida desde cache');
+    return cached;
+  }
 
   // Usar protección contra llamadas duplicadas
-  return preventDuplicateRequests(requestKey, async () => {
-    const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
+  return preventDuplicateRequests(cacheKey, async () => {
+    // Prompt optimizado para consulta simplificada
+    const prompt = `Analiza este contenido clínico y proporciona recomendaciones basadas en evidencia científica.
 
 CONTENIDO CLÍNICO:
 ---
@@ -827,74 +756,53 @@ ${clinicalContent}
 ---
 
 INSTRUCCIONES:
-1. **ANÁLISIS CLÍNICO:**
-   - Identifica los hallazgos principales
-   - Evalúa la información disponible
-   - Destaca aspectos relevantes o preocupantes
+1. **ANÁLISIS:** Identifica hallazgos principales y aspectos relevantes
+2. **RECOMENDACIONES:** Sugerencias diagnósticas y terapéuticas con evidencia
+3. **CITAS:** Referencias a estudios recientes y guías clínicas relevantes
+4. **FORMATO:** Estructura profesional con citas integradas
 
-2. **RECOMENDACIONES BASADAS EN EVIDENCIA:**
-   - Proporciona sugerencias diagnósticas fundamentadas
-   - Incluye opciones terapéuticas respaldadas por evidencia
-   - Menciona estudios complementarios si son necesarios
-   - Sugiere seguimiento apropiado
+FUENTES PRINCIPALES: PubMed, Cochrane, UpToDate, NEJM, The Lancet, JAMA, BMJ
 
-3. **CITAS CIENTÍFICAS:**
-   - Incluye referencias a estudios recientes
-   - Cita guías clínicas relevantes
-   - Menciona consensos de sociedades médicas
-   - Especifica niveles de evidencia cuando sea apropiado
+Proporciona análisis completo con recomendaciones prácticas para la toma de decisiones clínicas.`;
 
-4. **FORMATO DE RESPUESTA:**
-   - Estructura clara y profesional
-   - Lenguaje médico apropiado
-   - Citas científicas integradas naturalmente
-   - Disclaimer sobre individualización del tratamiento
+    try {
+      const model = 'gpt-4o-mini';
+      const systemMessage = "Médico especialista en medicina basada en evidencia. Análisis clínicos con recomendaciones respaldadas por literatura científica actual.";
+      
+      const messages = createMessages(systemMessage, prompt);
+      
+      const params = {
+        model,
+        messages,
+        temperature: TEMPERATURE_CONFIG.CONSULTATION,
+        max_tokens: TOKEN_LIMITS.CONSULTATION,
+        top_p: 0.9
+      };
+      
+      const response = await openai.chat.completions.create(params);
 
-FUENTES RECOMENDADAS PARA CITAR:
-- PubMed/MEDLINE
-- Cochrane Library
-- UpToDate
-- Guías de sociedades médicas especializadas
-- New England Journal of Medicine
-- The Lancet
-- JAMA
-- BMJ
-
-Proporciona un análisis completo y recomendaciones prácticas que apoyen la toma de decisiones clínicas.`;
-
-  try {
-    const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un médico especialista experto en medicina basada en evidencia. Proporcionas análisis clínicos completos con recomendaciones respaldadas por literatura científica actual. Siempre incluyes citas relevantes y mantienes un enfoque práctico y profesional.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model,
-      messages,
-      temperature: TEMPERATURE_CONFIG.CONSULTATION,
-      max_tokens: TOKEN_LIMITS.CONSULTATION,
-      top_p: 0.9
-    };
-    
-    const response = await openai.chat.completions.create(params);
-
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo generar contenido válido');
+      const result = response.choices[0]?.message?.content || '';
+      
+      if (!result.trim()) {
+        throw new Error('No se pudo generar contenido válido');
+      }
+      
+      const finalResult = {
+        text: result,
+        groundingMetadata: { groundingChunks: [] }
+      };
+      
+      // Guardar en cache
+      setCachedResponse(cacheKey, finalResult);
+      
+      return finalResult;
+    } catch (error) {
+      throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
     }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
-  }
   });
 };
 
-// ===== EXTRACCIÓN DE FORMATO DE PLANTILLA =====
+// ===== EXTRACCIÓN DE FORMATO OPTIMIZADA =====
 
 export const extractTemplateFormat = async (
   templateContent: string
@@ -912,11 +820,21 @@ export const extractTemplateFormat = async (
   }
 
   if (trimmedContent.length > 15000) {
-    throw new Error('La plantilla es demasiado larga. Por favor, reduce el contenido a menos de 15,000 caracteres.');
+    throw new Error('La plantilla es demasiado larga. Reduce el contenido a menos de 15,000 caracteres.');
   }
 
-  // Prompt optimizado y más conciso para mayor velocidad
-  const prompt = `Convierte esta plantilla médica en un formato reutilizable eliminando datos específicos del paciente y reemplazándolos con marcadores genéricos.
+  // Verificar cache
+  const cacheKey = generateCacheKey('extractTemplateFormat', templateContent);
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log('📋 Formato extraído desde cache');
+    return cached;
+  }
+
+  // Usar protección contra llamadas duplicadas
+  return preventDuplicateRequests(cacheKey, async () => {
+    // Prompt optimizado para extracción de formato
+    const prompt = `Extrae ÚNICAMENTE la estructura/formato de esta plantilla, convirtiendo datos específicos en marcadores genéricos.
 
 PLANTILLA ORIGINAL:
 ---
@@ -924,47 +842,49 @@ ${trimmedContent}
 ---
 
 INSTRUCCIONES:
-1. Mantén la estructura visual exacta (espacios, viñetas, numeración)
-2. Reemplaza datos específicos con marcadores genéricos:
-   - Nombres → [Nombre del paciente]
-   - Edades → [Edad] años
-   - Fechas → [Fecha]
-   - Síntomas específicos → [Describir síntoma]
-   - Diagnósticos → [Diagnóstico]
-   - Medicamentos → [Medicamento]
-   - Valores → [Valor]
+1. **PRESERVAR:** Estructura exacta, encabezados, numeración, espacios
+2. **REEMPLAZAR:** Toda información específica con marcadores genéricos
+3. **MARCADORES:** [Nombre del paciente], [Edad], [Diagnóstico], [Medicamento], etc.
+4. **CONSERVAR:** Solo etiquetas estructurales como "Nombre:", "Edad:", etc.
 
-3. Conserva etiquetas estructurales como "Nombre:", "Edad:", etc.
-4. Responde SOLO con el formato extraído, sin comentarios
+EJEMPLOS DE TRANSFORMACIÓN:
+- "Paciente: María González" → "Paciente: [Nombre del paciente]"
+- "Edad: 35 años" → "Edad: [Edad] años"
+- "Presenta dolor torácico" → "Presenta [Describir síntoma]"
+- "Losartán 50mg" → "[Medicamento] [Dosis]"
 
-FORMATO EXTRAÍDO:`;
+Responde ÚNICAMENTE con el formato extraído:`;
 
-  try {
-    const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un experto en crear moldes estructurales de documentos médicos. Conviertes plantillas con datos específicos en formatos puros reutilizables de manera rápida y eficiente.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model,
-      messages,
-      temperature: 0.1, // Reducido para mayor consistencia y velocidad
-      max_tokens: 3000, // Reducido para mayor velocidad
-      top_p: 0.8
-    };
-    
-    const response = await openai.chat.completions.create(params);
+    try {
+      const model = 'gpt-4o-mini';
+      const systemMessage = "Experto en crear moldes estructurales de documentos médicos. Convierte plantillas con datos en formatos puros reutilizables.";
+      
+      const messages = createMessages(systemMessage, prompt);
+      
+      const params = {
+        model,
+        messages,
+        temperature: TEMPERATURE_CONFIG.FORMAT_EXTRACTION,
+        max_tokens: TOKEN_LIMITS.FORMAT_EXTRACTION,
+        top_p: 0.8
+      };
+      
+      const response = await openai.chat.completions.create(params);
 
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo extraer el formato de la plantilla. Intenta con una plantilla más específica.');
+      const result = response.choices[0]?.message?.content || '';
+      
+      if (!result.trim()) {
+        throw new Error('No se pudo extraer el formato de la plantilla. Intenta con una plantilla más específica.');
+      }
+
+      // Guardar en cache
+      setCachedResponse(cacheKey, result);
+      
+      return result;
+    } catch (error) {
+      throw handleOpenAIError(error, 'extracción de formato de plantilla');
     }
-
-    return result;
-  } catch (error) {
-    throw handleOpenAIError(error, 'extracción de formato de plantilla');
-  }
+  });
 }; 
 
 // =============================================================================

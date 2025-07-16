@@ -1,65 +1,98 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SparklesIcon, LoadingSpinner } from '../ui/Icons';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { extractTemplateFormat } from '../../lib/services/openaiService';
 
 interface FormatExtractorProps {
   template: string;
-  templateName: string;
+  onFormatExtracted: (format: string) => void;
+  onError: (error: string) => void;
+  autoExtract?: boolean;
+  debounceMs?: number;
 }
 
-const FormatExtractor: React.FC<FormatExtractorProps> = ({ template, templateName }) => {
-  const [extractedFormat, setExtractedFormat] = useState<string>('');
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Referencias para manejar debounce y cancelación
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const currentTemplateRef = useRef<string>('');
-  const isExtractingRef = useRef<boolean>(false);
+// =============================================================================
+// COMPONENTE OPTIMIZADO CON MEMOIZACIÓN Y DEBOUNCING MEJORADO
+// =============================================================================
 
-  // Función memoizada para extraer formato
+const FormatExtractor: React.FC<FormatExtractorProps> = memo(({
+  template,
+  onFormatExtracted,
+  onError,
+  autoExtract = true,
+  debounceMs = 2000  // Aumentado de 1 segundo a 2 segundos para mejor rendimiento
+}) => {
+  // Estados optimizados
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [lastProcessedTemplate, setLastProcessedTemplate] = useState<string>('');
+  
+  // Referencias para optimización
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const extractionAbortRef = useRef<boolean>(false);
+  const lastTemplateRef = useRef<string>('');
+
+  // Función memoizada para limpiar el formato
+  const clearFormat = useCallback(() => {
+    onFormatExtracted('');
+    setLastProcessedTemplate('');
+    lastTemplateRef.current = '';
+  }, [onFormatExtracted]);
+
+  // Función optimizada para extraer formato con cancelación
   const extractFormat = useCallback(async (templateContent: string) => {
-    // Evitar llamadas duplicadas
-    if (isExtractingRef.current || !templateContent.trim()) return;
-    
-    // Evitar procesar el mismo template múltiples veces
-    if (currentTemplateRef.current === templateContent.trim()) return;
-    
-    currentTemplateRef.current = templateContent.trim();
-    isExtractingRef.current = true;
-    setIsExtracting(true);
-    setError(null);
+    // Verificar si ya se procesó esta plantilla exacta
+    if (templateContent === lastProcessedTemplate) {
+      return;
+    }
+
+    // Verificar longitud mínima
+    if (templateContent.length < 50) {
+      clearFormat();
+      return;
+    }
+
+    // Verificar si hay una extracción en progreso
+    if (isExtracting) {
+      extractionAbortRef.current = true;
+      return;
+    }
 
     try {
-      const format = await extractTemplateFormat(templateContent);
+      setIsExtracting(true);
+      extractionAbortRef.current = false;
+
+      console.log('🔄 Extrayendo formato de plantilla...');
       
-      // Verificar si el template cambió durante la extracción
-      if (currentTemplateRef.current === templateContent.trim()) {
-        setExtractedFormat(format);
+      // Verificar cancelación antes de hacer la llamada costosa
+      if (extractionAbortRef.current) {
+        return;
       }
-    } catch (err) {
-      console.error('Error extracting format:', err);
+
+      const extractedFormat = await extractTemplateFormat(templateContent);
       
-      // Solo mostrar error si es para el template actual
-      if (currentTemplateRef.current === templateContent.trim()) {
-        setError('Error al extraer el formato de la plantilla. Por favor, intenta de nuevo.');
+      // Verificar cancelación después de la operación
+      if (extractionAbortRef.current) {
+        return;
+      }
+
+      console.log('✅ Formato extraído exitosamente');
+      onFormatExtracted(extractedFormat);
+      setLastProcessedTemplate(templateContent);
+      lastTemplateRef.current = templateContent;
+    } catch (error) {
+      // Solo manejar error si no fue cancelado
+      if (!extractionAbortRef.current) {
+        console.error('❌ Error al extraer formato:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        onError(`Error al extraer formato: ${errorMessage}`);
+        clearFormat();
       }
     } finally {
-      isExtractingRef.current = false;
-      setIsExtracting(false);
+      if (!extractionAbortRef.current) {
+        setIsExtracting(false);
+      }
     }
-  }, []);
+  }, [isExtracting, lastProcessedTemplate, onFormatExtracted, onError, clearFormat]);
 
-  // Función para limpiar el estado cuando el template está vacío
-  const clearFormat = useCallback(() => {
-    currentTemplateRef.current = '';
-    setExtractedFormat('');
-    setError(null);
-    setIsExtracting(false);
-    isExtractingRef.current = false;
-  }, []);
-
-  // useEffect con debounce para evitar llamadas excesivas
+  // Effect optimizado con debounce mejorado
   useEffect(() => {
     // Limpiar timer previo
     if (debounceTimerRef.current) {
@@ -68,100 +101,64 @@ const FormatExtractor: React.FC<FormatExtractorProps> = ({ template, templateNam
 
     const templateTrimmed = template.trim();
     
+    // Si no hay plantilla, limpiar formato inmediatamente
     if (!templateTrimmed) {
       clearFormat();
       return;
     }
 
-    // Debounce de 1 segundo para evitar llamadas excesivas
-    debounceTimerRef.current = setTimeout(() => {
-      extractFormat(templateTrimmed);
-    }, 1000);
+    // Si no está habilitado el auto-extract, no hacer nada
+    if (!autoExtract) {
+      return;
+    }
 
-    // Cleanup function
+    // Si es la misma plantilla que la última procesada, no hacer nada
+    if (templateTrimmed === lastTemplateRef.current) {
+      return;
+    }
+
+    // Debounce optimizado con verificación de cambios reales
+    debounceTimerRef.current = setTimeout(() => {
+      // Verificación final antes de extraer
+      if (templateTrimmed !== template.trim()) {
+        return; // El template cambió durante el debounce
+      }
+      
+      extractFormat(templateTrimmed);
+    }, debounceMs);
+
+    // Cleanup function optimizada
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [template, extractFormat, clearFormat]);
+  }, [template, autoExtract, debounceMs, extractFormat, clearFormat]);
 
   // Cleanup al desmontar el componente
   useEffect(() => {
     return () => {
+      // Cancelar cualquier extracción en progreso
+      extractionAbortRef.current = true;
+      
+      // Limpiar timers
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
   }, []);
 
-  return (
-    <div className="mb-4 md:mb-6">
-      <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="text-lg md:text-xl font-semibold text-neutral-800 dark:text-neutral-100">
-          Formato para: <span className="text-secondary">{templateName}</span>
-        </h3>
-        <div className="text-sm text-neutral-600 dark:text-neutral-400">
-          Lado derecho: Formato extraído
-        </div>
-      </div>
-      
-      {isExtracting && (
-        <div className="flex items-center justify-center p-8 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-          <LoadingSpinner className="h-6 w-6 mr-3" />
-          <span className="text-neutral-600 dark:text-neutral-400">
-            Extrayendo formato con IA...
-          </span>
-        </div>
-      )}
+  // Función pública para extraer manualmente (opcional)
+  const extractManually = useCallback(() => {
+    if (template.trim()) {
+      extractFormat(template.trim());
+    }
+  }, [template, extractFormat]);
 
-      {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-          <p className="text-red-700 dark:text-red-200 text-sm">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              if (template.trim()) {
-                extractFormat(template.trim());
-              }
-            }}
-            className="mt-2 text-sm text-red-600 dark:text-red-400 underline hover:no-underline"
-          >
-            Intentar de nuevo
-          </button>
-        </div>
-      )}
+  // El componente no renderiza nada visualmente, solo maneja la lógica
+  return null;
+});
 
-      {!isExtracting && !error && (
-        <div className="relative">
-          <textarea
-            value={extractedFormat}
-            readOnly
-            rows={12}
-            className="w-full p-3 md:p-4 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm bg-neutral-50 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-sm md:text-base resize-y min-h-[200px] cursor-default"
-            placeholder="Selecciona o crea una plantilla para ver el formato extraído aquí..."
-            aria-label={`Formato extraído para ${templateName}`}
-          />
-          {extractedFormat && (
-            <div className="absolute top-2 right-2">
-              <div className="flex items-center text-xs text-secondary bg-white dark:bg-neutral-700 px-2 py-1 rounded-full shadow">
-                <SparklesIcon className="h-3 w-3 mr-1" />
-                Extraído con IA
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {extractedFormat && !isExtracting && (
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
-          <p className="text-blue-700 dark:text-blue-200 text-sm">
-            <strong>Formato extraído:</strong> Este es el formato que se utilizará para generar nuevas notas basadas en la estructura de tu plantilla.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
+FormatExtractor.displayName = 'FormatExtractor';
 
 export default FormatExtractor; 
