@@ -46,11 +46,11 @@ const ProgressBar = memo(({ isProcessing }: { isProcessing: boolean }) => {
       <div className="flex items-center gap-3 mb-2">
         <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
         <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-          Procesando plantilla con IA...
+          Guardando plantilla...
         </p>
       </div>
       <p className="text-blue-500 dark:text-blue-300 text-xs">
-        ⚡ Extrayendo estructura del contenido. Esto puede tomar hasta 15 segundos.
+        💾 Guardando tu plantilla en la base de datos.
       </p>
       <div className="mt-2 bg-blue-100 dark:bg-blue-800/30 rounded-full h-2">
         <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
