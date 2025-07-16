@@ -4,6 +4,7 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ClientOnly from '@/components/ClientOnly'
+import { Debug } from '@/components/Debug';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -46,6 +47,7 @@ export default function RootLayout({
                 {/* Sidebar a la izquierda */}
                 {/* El Sidebar se inyecta desde el children en AuthenticatedApp, así que solo estructuramos el espacio */}
                 {children}
+                <Debug />
               </main>
             </AuthProvider>
           </Providers>

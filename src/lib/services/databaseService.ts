@@ -141,33 +141,105 @@ export const userTemplatesService = {
   // Crear una nueva plantilla personalizada
   createUserTemplate: async (userTemplate: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<UserTemplate> => {
     try {
-      // Usar la función RPC optimizada que maneja todo internamente
+      console.log('🔄 Intentando crear plantilla con RPC...');
+      // Método principal: usar la función RPC optimizada
       const { data: templateId, error: rpcError } = await supabase
         .rpc('create_user_template', {
           template_name: userTemplate.name,
           template_content: userTemplate.content
         });
 
-      if (rpcError) {
-        console.error('Error en create_user_template RPC:', rpcError);
-        throw rpcError;
+      if (!rpcError && templateId) {
+        // Si RPC funciona, obtener la plantilla creada
+        const { data: newTemplate, error: selectError } = await supabase
+          .from('user_templates')
+          .select('*')
+          .eq('id', templateId)
+          .single();
+
+        if (!selectError && newTemplate) {
+          console.log('✅ Plantilla creada exitosamente con RPC');
+          return newTemplate;
+        }
       }
 
-      // Obtener la plantilla creada
-      const { data: newTemplate, error: selectError } = await supabase
-        .from('user_templates')
-        .select('*')
-        .eq('id', templateId)
+      // Si RPC falla, intentar método alternativo
+      console.log('⚠️ RPC falló, intentando método alternativo...');
+      return await userTemplatesService.createUserTemplateAlternative(userTemplate);
+      
+    } catch (error) {
+      console.error('❌ Error en método principal, intentando alternativo:', error);
+      // Fallback al método alternativo
+      return await userTemplatesService.createUserTemplateAlternative(userTemplate);
+    }
+  },
+
+  // Método alternativo usando INSERT directo optimizado
+  createUserTemplateAlternative: async (userTemplate: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<UserTemplate> => {
+    try {
+      console.log('🔄 Creando plantilla con método alternativo optimizado...');
+      
+      // Obtener ID del usuario autenticado
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Verificar si usuario existe en public.users (más rápido que RPC)
+      const { data: userExists } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
         .single();
 
-      if (selectError) {
-        console.error('Error al obtener plantilla creada:', selectError);
-        throw selectError;
+      // Si no existe, crear usuario con método eficiente
+      if (!userExists) {
+        console.log('👤 Usuario no existe en tabla, creando...');
+        const { error: insertUserError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.full_name || user.user_metadata?.name,
+            image: user.user_metadata?.avatar_url,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        
+        // Si falla INSERT directo, usar RPC como fallback
+        if (insertUserError) {
+          console.log('📋 INSERT directo falló, usando RPC...');
+          const { error: rpcError } = await supabase.rpc('ensure_user_exists');
+          if (rpcError) {
+            console.error('❌ Error en RPC ensure_user_exists:', rpcError);
+            throw rpcError;
+          }
+        }
       }
 
-      return newTemplate;
+      // INSERT plantilla directamente
+      const { data, error } = await supabase
+        .from('user_templates')
+        .insert({
+          name: userTemplate.name.trim(),
+          content: userTemplate.content.trim(),
+          user_id: user.id,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error en INSERT de plantilla:', error);
+        throw error;
+      }
+
+      console.log('✅ Plantilla creada exitosamente con método alternativo optimizado');
+      return data;
     } catch (error) {
-      console.error('Error en createUserTemplate:', error);
+      console.error('❌ Error en método alternativo optimizado:', error);
       throw error;
     }
   },

@@ -319,3 +319,6 @@ body {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* DEBUG: Script de diagnóstico para problemas de base de datos */
+/* Este será reemplazado por un script en el layout */

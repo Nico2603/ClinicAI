@@ -37,27 +37,7 @@ const EmptyState = memo(() => (
   </div>
 ));
 
-// Componente memoizado para barra de progreso
-const ProgressBar = memo(({ isProcessing }: { isProcessing: boolean }) => {
-  if (!isProcessing) return null;
-  
-  return (
-    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
-        <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-          Guardando plantilla...
-        </p>
-      </div>
-      <p className="text-blue-500 dark:text-blue-300 text-xs">
-        💾 Guardando tu plantilla en la base de datos.
-      </p>
-      <div className="mt-2 bg-blue-100 dark:bg-blue-800/30 rounded-full h-2">
-        <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
-      </div>
-    </div>
-  );
-});
+
 
 // Componente memoizado para confirmación de eliminación
 const DeleteConfirmDialog = memo(({ 
@@ -439,8 +419,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
               </button>
             </div>
             
-            {/* Barra de progreso */}
-            <ProgressBar isProcessing={isProcessing} />
+
           </div>
         </div>
       )}
@@ -692,7 +671,6 @@ const TemplateItem = memo<TemplateItemProps>(({
 CustomTemplateManager.displayName = 'CustomTemplateManager';
 LoadingState.displayName = 'LoadingState';
 EmptyState.displayName = 'EmptyState';
-ProgressBar.displayName = 'ProgressBar';
 DeleteConfirmDialog.displayName = 'DeleteConfirmDialog';
 TemplateItem.displayName = 'TemplateItem';
 
