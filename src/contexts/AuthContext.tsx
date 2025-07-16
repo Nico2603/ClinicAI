@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { auth, supabase, type AuthUser } from '@/lib/supabase';
-import { cleanAuthUrl, handleAuthError, delay, isClient } from '@/lib/utils';
-import { useSessionExpiry } from '@/hooks/useSessionExpiry';
+import { cleanAuthUrl, handleAuthError, isClient } from '@/lib/utils';
+import { useSimpleSession } from '@/hooks/useSimpleSession';
 import { performCompleteCleanup } from '@/lib/services/storageService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -74,44 +74,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [ensureUserExists]);
 
-  // Función para obtener sesión con retry
-  const getSessionWithRetry = useCallback(async (maxRetries = 2, delayMs = 1000): Promise<Session | null> => {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const { session, error } = await auth.getSession();
-        
-        if (error) {
-          console.error(`Error obteniendo sesión (intento ${i + 1}/${maxRetries}):`, error);
-          if (i === maxRetries - 1) throw error;
-        } else {
-          return session;
-        }
-      } catch (err) {
-        console.error(`Error en intento ${i + 1}/${maxRetries}:`, err);
-        if (i === maxRetries - 1) throw err;
+  // Función simple para obtener sesión
+  const getSession = useCallback(async (): Promise<Session | null> => {
+    try {
+      const { session, error } = await auth.getSession();
+      if (error) {
+        console.error('Error obteniendo sesión:', error);
+        return null;
       }
-      
-      // Esperar antes del siguiente intento
-      await delay(delayMs);
+      return session;
+    } catch (err) {
+      console.error('Error obteniendo sesión:', err);
+      return null;
     }
-    
-    return null;
   }, []);
 
-  // Configurar control de sesiones simplificado
-  const sessionExpiry = useSessionExpiry({
-    sessionTimeoutMs: 55 * 60 * 1000, // 55 minutos
-    enabled: isAuthenticated && !isLoading,
-    onSessionExpiry: () => {
-      console.log('🔄 Sesión expirada, procesando automáticamente');
-      // La sesión ya fue manejada por el hook, no necesitamos hacer nada más
-    },
-    onCleanupLocalData: () => {
-      if (user?.id) {
-        performCompleteCleanup(user.id);
-      }
-    }
-  });
+  // Manejo simple de sesiones
+  const simpleSession = useSimpleSession();
 
   // Función de inicio de sesión
   const signIn = useCallback(async () => {
@@ -151,12 +130,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Extender sesión manualmente
   const extendSession = useCallback(async (): Promise<boolean> => {
     try {
-      return await sessionExpiry.extendSession();
+      return await simpleSession.refreshSession();
     } catch (error) {
       console.error('Error al extender sesión:', error);
       return false;
     }
-  }, [sessionExpiry]);
+  }, [simpleSession]);
 
   useEffect(() => {
     // Verificar que estamos en el cliente
@@ -169,8 +148,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Inicializar autenticación
     const initAuth = async () => {
       try {
-        // Obtener la sesión inicial con retry
-        const session = await getSessionWithRetry();
+        // Obtener la sesión inicial
+        const session = await getSession();
         await updateUserState(session);
         
         if (session) {
@@ -212,7 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [updateUserState, getSessionWithRetry]);
+  }, [updateUserState, getSession]);
 
   const value: AuthContextType = {
     user,

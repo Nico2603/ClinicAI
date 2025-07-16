@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
         {/* Marca */}
         <div className="md:col-span-1 flex flex-col gap-2 text-center sm:text-left">
           <span className="text-2xl font-bold gradient-text">Notas<span className="text-primary">AI</span></span>
-          <span className="text-xs text-neutral-600 dark:text-neutral-400">© {new Date().getFullYear()} Notas-AI.<br/>Todos los derechos reservados.</span>
+          <span className="text-xs text-neutral-600 dark:text-neutral-400">© {new Date().getFullYear()} ClinicAI.<br/>Todos los derechos reservados.</span>
         </div>
         {/* Legal */}
         <div className="flex flex-col gap-2 text-center sm:text-left">
@@ -26,7 +26,7 @@ export const Footer: React.FC = () => {
         </div>
       </div>
       <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-2 px-4 text-xs text-neutral-500 dark:text-neutral-400 text-center">
-        <span className="font-bold">AVISO LEGAL:</span> Notas-AI proporciona únicamente acompañamiento y asistencia basada en inteligencia artificial. No es un servicio de salud mental ni reemplaza la atención profesional.
+                  <span className="font-bold">AVISO LEGAL:</span> ClinicAI proporciona únicamente acompañamiento y asistencia basada en inteligencia artificial. No es un servicio de salud mental ni reemplaza la atención profesional.
         <div className="mt-4 flex flex-col items-center gap-1">
           <span className="font-semibold text-neutral-700 dark:text-neutral-200 text-sm">Desarrollado por Nicolás Ceballos Brito</span>
           <div className="flex gap-4 mt-1">

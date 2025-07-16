@@ -13,73 +13,16 @@ export const MAX_TEMPLATE_NAME_LENGTH = 100;
 export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS DE IA OPTIMIZADA PARA RENDIMIENTO
+// CONFIGURACIÓN SIMPLE DE IA
 // =============================================================================
 
-// Modelos OpenAI Base - Optimizados para velocidad
-export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
-export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
-export const OPENAI_MODEL_LATEST = 'gpt-4o-mini';
-export const OPENAI_MODEL_REASONING = 'o1-preview';
+// Modelo único para toda la aplicación - simplicidad
+export const OPENAI_MODEL = 'gpt-4o-mini';
 
-// =============================================================================
-// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA - OPTIMIZADA
-// =============================================================================
-
-export const MEDICAL_AI_MODELS = {
-  // Todas las funciones usando gpt-4o-mini para velocidad óptima
-  CRITICAL_MEDICAL_FUNCTIONS: {
-    generateNoteFromTemplate: 'gpt-4o-mini',           // Generación de notas médicas
-    updateClinicalNote: 'gpt-4o-mini',                 // Actualización de notas
-    generateMedicalScale: 'gpt-4o-mini',               // Escalas médicas
-    analyzeClinicalContent: 'gpt-4o-mini',             // Análisis clínico
-  },
-  
-  IMPORTANT_MEDICAL_FUNCTIONS: {
-    searchEvidenceBasedRecommendations: 'gpt-4o-mini', // Búsqueda de evidencia médica
-    generateSimplifiedEvidenceConsultation: 'gpt-4o-mini', // Consultas de evidencia
-  },
-  
-  AUXILIARY_FUNCTIONS: {
-    // No auxiliary functions currently needed
-  }
-} as const;
-
-// =============================================================================
-// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA PARA VELOCIDAD Y PRECISIÓN
-// =============================================================================
-
-export const TEMPERATURE_CONFIG = {
-  // Funciones críticas - temperaturas bajas para velocidad y precisión
-  CRITICAL_MEDICAL: 0.05,             // Reducido de 0.1 - mayor velocidad y precisión
-  CLINICAL_REASONING: 0.1,            // Reducido de 0.15 - respuestas más rápidas
-  
-  // Funciones importantes - balance optimizado para velocidad
-  TEMPLATE_GENERATION: 0.15,          // Reducido de 0.25 - más rápido
-  EVIDENCE_SUGGESTIONS: 0.1,          // Reducido de 0.2 - más preciso y rápido
-  CONSULTATION: 0.15,                 // Reducido de 0.2 - respuestas más directas
-  
-  // Funciones auxiliares - optimizadas para velocidad
-  // No auxiliary functions currently needed
-} as const;
-
-// =============================================================================
-// CONFIGURACIÓN DE TOKENS OPTIMIZADA PARA VELOCIDAD
-// =============================================================================
-
-export const TOKEN_LIMITS = {
-  // Funciones críticas - límites reducidos para respuestas más rápidas
-  CRITICAL_MEDICAL_NOTE: 2500,        // Reducido de 4000 - respuestas más concisas y rápidas
-  CLINICAL_ANALYSIS: 3000,             // Reducido de 6000 - análisis más eficiente
-  MEDICAL_SCALE: 1500,                 // Reducido de 3000 - escalas más directas
-  
-  // Funciones importantes - tokens optimizados para velocidad
-  TEMPLATE_NOTE: 2000,                 // Reducido de 3000 - plantillas más eficientes
-  EVIDENCE_SUGGESTIONS: 2500,          // Reducido de 4000 - evidencia más concisa
-  CONSULTATION: 2000,                  // Reducido de 3500 - consultas más directas
-  
-  // Funciones auxiliares - tokens mínimos necesarios
-  // No auxiliary functions currently needed
+// Configuración simple
+export const AI_CONFIG = {
+  TEMPERATURE: 0.1,          // Respuestas precisas
+  MAX_TOKENS: 2000,          // Suficiente para notas médicas
 } as const;
 
 // =============================================================================
@@ -116,11 +59,10 @@ export const THEME_COLORS = {
   INFO: 'blue',
 } as const;
 
-// Configuración de animaciones optimizada
+// Configuración simple de animaciones
 export const ANIMATION_DURATION = {
-  FAST: 100,     // Reducido de 150 - animaciones más rápidas
-  NORMAL: 200,   // Reducido de 300 - mejor percepción de velocidad
-  SLOW: 350,     // Reducido de 500 - menos espera
+  FAST: 150,
+  NORMAL: 300,
 } as const;
 
 // =============================================================================
@@ -128,39 +70,28 @@ export const ANIMATION_DURATION = {
 // =============================================================================
 
 export const ERROR_MESSAGES = {
-  TEMPLATE_NOT_SELECTED: 'Seleccione una plantilla válida.',
-  PATIENT_INFO_REQUIRED: 'Ingrese la información del paciente.',
-  CLINICAL_INFO_REQUIRED: 'Ingrese la información clínica.',
-
-  TEMPLATE_SAVE_ERROR: 'Error al guardar plantilla',
-  TEMPLATE_CREATE_ERROR: 'Error al crear plantilla',
-  TEMPLATE_DELETE_ERROR: 'Error al eliminar plantilla',
-  TEMPLATE_RENAME_ERROR: 'Error al renombrar plantilla',
-  NOTE_GENERATION_ERROR: 'Error al generar nota',
-  SUGGESTIONS_GENERATION_ERROR: 'Error al generar sugerencias',
+  REQUIRED_FIELD: 'Este campo es requerido.',
+  TEMPLATE_ERROR: 'Error con la plantilla',
+  NOTE_ERROR: 'Error al generar nota',
   SPEECH_NOT_SUPPORTED: 'Dictado no compatible con este navegador.',
-  OPENAI_API_KEY_MISSING: 'API key no configurada.',
+  API_KEY_MISSING: 'API key no configurada.',
   GENERIC_ERROR: 'Error inesperado. Intente nuevamente.',
 } as const;
 
 export const SUCCESS_MESSAGES = {
-  TEMPLATE_SAVED: 'Plantilla guardada',
-  TEMPLATE_CREATED: 'Plantilla creada',
-  TEMPLATE_DELETED: 'Plantilla eliminada',
-  TEMPLATE_RENAMED: 'Plantilla renombrada',
-  NOTE_GENERATED: 'Nota generada',
-  SUGGESTIONS_GENERATED: 'Sugerencias generadas',
+  SAVED: 'Guardado correctamente',
+  CREATED: 'Creado correctamente',
+  DELETED: 'Eliminado correctamente',
+  GENERATED: 'Generado correctamente',
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE VALIDACIÓN OPTIMIZADA
+// CONFIGURACIÓN SIMPLE DE VALIDACIÓN
 // =============================================================================
 
 export const VALIDATION_RULES = {
-  MIN_PATIENT_INFO_LENGTH: 5,         // Reducido de 10 - menos restricciones
-  MIN_CLINICAL_INFO_LENGTH: 3,        // Reducido de 5 - más flexible
-  MAX_PATIENT_INFO_LENGTH: 8000,      // Reducido de 10000 - evitar prompts muy largos
-  MAX_CLINICAL_INFO_LENGTH: 8000,     // Reducido de 10000 - mejor rendimiento
+  MIN_TEXT_LENGTH: 3,         // Mínimo simple
+  MAX_TEXT_LENGTH: 5000,      // Límite razonable
   MIN_TEMPLATE_NAME_LENGTH: 1,
   MAX_TEMPLATE_NAME_LENGTH: 100,
 } as const;
@@ -180,34 +111,16 @@ export const STORAGE_KEYS = {
 // =============================================================================
 
 export const CONFIRMATION_MESSAGES = {
-  DELETE_TEMPLATE: '¿Eliminar esta plantilla? No se puede deshacer.',
-  CLEAR_HISTORY: '¿Borrar todo el historial? No se puede deshacer.',
-  DISCARD_CHANGES: '¿Descartar cambios? Se perderán los cambios no guardados.',
+  DELETE: '¿Estás seguro de eliminar esto?',
+  CLEAR_ALL: '¿Borrar todo?',
+  DISCARD: '¿Descartar cambios?',
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE RENDIMIENTO ADICIONAL
+// CONFIGURACIÓN SIMPLE DE TIMEOUTS
 // =============================================================================
 
-// Configuración de timeouts optimizada
 export const TIMEOUT_CONFIG = {
-  FAST_OPERATIONS: 5000,       // 5 segundos para operaciones rápidas
-  STANDARD_OPERATIONS: 15000,  // 15 segundos para operaciones estándar
-  COMPLEX_OPERATIONS: 30000,   // 30 segundos para operaciones complejas (IA)
-  DATABASE_OPERATIONS: 8000,   // 8 segundos para operaciones de BD
-} as const;
-
-// Configuración de cache optimizada
-export const CACHE_CONFIG = {
-  SHORT_CACHE: 10 * 60 * 1000,    // 10 minutos para datos dinámicos
-  MEDIUM_CACHE: 30 * 60 * 1000,   // 30 minutos para datos semi-estáticos
-  LONG_CACHE: 60 * 60 * 1000,     // 1 hora para datos estáticos
-  MAX_CACHE_SIZE: 100,             // Máximo 100 entradas por cache
-} as const;
-
-// Configuración de retry optimizada
-export const RETRY_CONFIG = {
-  MAX_RETRIES: 1,           // Solo 1 reintento para evitar esperas largas
-  RETRY_DELAY: 1000,        // 1 segundo entre reintentos
-  EXPONENTIAL_BACKOFF: false, // Deshabilitado para mayor velocidad
+  DEFAULT: 10000,    // 10 segundos para todo
+  AI_OPERATIONS: 30000,  // 30 segundos para IA
 } as const;

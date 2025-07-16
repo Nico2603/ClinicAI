@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { UserTemplate } from '../types';
-import { useUserTemplates } from './useDatabase';
+import { useSimpleUserTemplates } from './useSimpleDatabase';
 import { ERROR_MESSAGES } from '../lib/constants';
 
 export const useTemplateManager = (
@@ -11,9 +11,8 @@ export const useTemplateManager = (
     userTemplates, 
     createUserTemplate, 
     updateUserTemplate, 
-    deleteUserTemplate, 
-    renameUserTemplate 
-  } = useUserTemplates();
+    deleteUserTemplate
+  } = useSimpleUserTemplates();
 
   // Refs para controlar la selección automática
   const hasAutoSelectedRef = useRef<boolean>(false);
@@ -51,7 +50,7 @@ export const useTemplateManager = (
       await updateUserTemplate(templateId, { content: newContent });
     } catch (error) {
       console.error('Error al guardar plantilla:', error);
-      throw new Error(ERROR_MESSAGES.TEMPLATE_SAVE_ERROR);
+      throw new Error(ERROR_MESSAGES.TEMPLATE_ERROR);
     }
   }, [updateUserTemplate]);
 
@@ -65,7 +64,7 @@ export const useTemplateManager = (
       return newTemplate;
     } catch (error) {
       console.error('Error al crear plantilla:', error);
-      throw new Error(ERROR_MESSAGES.TEMPLATE_CREATE_ERROR);
+      throw new Error(ERROR_MESSAGES.TEMPLATE_ERROR);
     }
   }, [createUserTemplate, onTemplateSelect]);
 
@@ -81,18 +80,18 @@ export const useTemplateManager = (
       }
     } catch (error) {
       console.error('Error al eliminar plantilla:', error);
-      throw new Error(ERROR_MESSAGES.TEMPLATE_DELETE_ERROR);
+      throw new Error(ERROR_MESSAGES.TEMPLATE_ERROR);
     }
   }, [deleteUserTemplate]);
 
   const handleRenameTemplate = useCallback(async (templateId: string, newName: string) => {
     try {
-      await renameUserTemplate(templateId, newName);
+      await updateUserTemplate(templateId, { name: newName });
     } catch (error) {
       console.error('Error al renombrar plantilla:', error);
-      throw new Error(ERROR_MESSAGES.TEMPLATE_RENAME_ERROR);
+      throw new Error(ERROR_MESSAGES.TEMPLATE_ERROR);
     }
-  }, [renameUserTemplate]);
+  }, [updateUserTemplate]);
 
   return {
     userTemplates,

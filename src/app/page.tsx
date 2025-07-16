@@ -94,7 +94,7 @@ export default function HomePage() {
                 </div>
                 <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    Notas-AI
+                    ClinicAI
                   </span>
                 </h1>
                 <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8">
@@ -182,7 +182,7 @@ export default function HomePage() {
                     Comienza ahora
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Únete a miles de profesionales que ya confían en Notas-AI
+                    Únete a miles de profesionales que ya confían en ClinicAI
                   </p>
                 </div>
 
@@ -238,7 +238,7 @@ export default function HomePage() {
                 {/* Beneficios adicionales */}
                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 text-center">
-                    ¿Por qué elegir Notas-AI?
+                    ¿Por qué elegir ClinicAI?
                   </h3>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">

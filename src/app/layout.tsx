@@ -9,7 +9,7 @@ import { SessionWarningDialog } from '@/components/SessionWarningDialog'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Notas-AI - Asistente de IA para Notas Clínicas',
+  title: 'ClinicAI - Asistente de IA para Notas Clínicas',
   description: 'Genera notas clínicas profesionales con IA',
 }
 
@@ -32,7 +32,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Notas-AI" />
+        <meta name="apple-mobile-web-app-title" content="ClinicAI" />
         <meta name="theme-color" content="#3b82f6" />
       </head>
       <body className={`${inter.className} min-h-screen flex flex-col`}>

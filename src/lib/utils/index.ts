@@ -2,17 +2,15 @@
 // BARREL EXPORTS - UTILIDADES
 // =============================================================================
 
-// Utilidades de validación
-export * from './validationUtils';
+// Utilidades de validación simples
+// export * from './validationUtils'; // Eliminado - reemplazado por simpleValidation
 
 // Utilidades de formato
 export * from './formatUtils';
 
-// Utilidades de manejo de errores
-export * from './errorUtils';
-
-// Utilidades de base de datos con timeout y retry
-export * from './databaseUtils';
+// Utilidades simples - reemplazan las complejas
+export * from './simpleValidation';
+export * from './simpleDatabaseUtils';
 
 // Re-exportar utilidades existentes del archivo utils.ts principal
 export * from '../utils'; 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
-import { useUserTemplates } from '../../hooks/useDatabase';
+import { useSimpleUserTemplates } from '../../hooks/useSimpleDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
@@ -115,9 +115,8 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     error, 
     createUserTemplate, 
     updateUserTemplate, 
-    deleteUserTemplate, 
-    renameUserTemplate 
-  } = useUserTemplates();
+    deleteUserTemplate
+  } = useSimpleUserTemplates();
 
   // Estados optimizados con valores iniciales estables
   const [isCreating, setIsCreating] = useState(false);

@@ -15,12 +15,15 @@ export * from './useTemplateManager';
 export * from './useHistoryManager';
 
 // Hooks de base de datos
-export * from './useDatabase';
+export * from './useSimpleDatabase';
+// export * from './useDatabase'; // Comentado - demasiado complejo para app simple
 
 // Hooks de utilidades
 export * from './useDarkMode';
 export * from './useSpeechRecognition';
 
-// Hooks de manejo de sesiones y recuperación
-export * from './useSessionExpiry';
-export * from './useLoadingDetector'; 
+// Hooks de manejo de sesiones y utilidades
+export * from './useSimpleSession';
+export * from './useSimpleLoading';
+// export * from './useSessionExpiry'; // Comentado - demasiado complejo para app simple
+// export * from './useLoadingDetector'; // Comentado - demasiado complejo para app simple 
