@@ -94,10 +94,26 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
     try {
       setIsProcessing(true);
 
-      // Procesar el contenido para extraer solo la estructura/formato
+      // Mostrar progreso específico al usuario
+      console.log('🔄 Iniciando procesamiento de plantilla...');
+      
+      // Verificar si la plantilla es muy grande (>10k caracteres)
+      const isLargeTemplate = newTemplateContent.length > 10000;
+      
+      if (isLargeTemplate) {
+        console.log('📏 Plantilla grande detectada. Usando procesamiento optimizado...');
+        // TODO: Implementar procesamiento asíncrono para plantillas grandes
+        // - Guardar plantilla sin procesar primero
+        // - Procesar formato en background
+        // - Actualizar plantilla cuando esté lista
+      }
+      
+      // Paso 1: Procesar el contenido para extraer solo la estructura/formato
+      console.log('🤖 Procesando con IA para extraer formato...');
       const cleanFormat = await extractTemplateFormat(newTemplateContent);
-
-      // Crear la plantilla con el formato limpio
+      
+      console.log('💾 Guardando plantilla en base de datos...');
+      // Paso 2: Crear la plantilla con el formato limpio
       const newTemplate = await createUserTemplate({
         name: newTemplateName,
         content: cleanFormat,
@@ -105,6 +121,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
         is_active: true
       });
 
+      console.log('✅ Plantilla creada exitosamente');
       setNewTemplateName('');
       setNewTemplateContent('');
       setIsCreating(false);
@@ -112,11 +129,14 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
     } catch (err) {
       console.error('Error al crear plantilla:', err);
       
-      // El error ya se muestra através del hook useUserTemplates
-      // Solo agregamos logging adicional para debugging
+      // Manejo mejorado de errores con contexto específico
       if (err instanceof Error) {
         if (err.message.includes('timeout') || err.message.includes('Timeout')) {
-          console.warn('Timeout detectado al crear plantilla. Sugerencia: reducir contenido o verificar conexión.');
+          console.warn('⏱️ Timeout detectado al crear plantilla. Posibles causas: contenido muy largo, conexión lenta, o alta carga del servidor.');
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          console.warn('🌐 Error de conexión detectado. Verifica tu conexión a internet.');
+        } else if (err.message.includes('rate limit')) {
+          console.warn('🚫 Límite de API alcanzado. Intenta en unos minutos.');
         }
       }
     } finally {

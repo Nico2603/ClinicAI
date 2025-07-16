@@ -915,79 +915,41 @@ export const extractTemplateFormat = async (
     throw new Error('La plantilla es demasiado larga. Por favor, reduce el contenido a menos de 15,000 caracteres.');
   }
 
-  const prompt = `Eres un experto en crear MOLDES ESTRUCTURALES de documentos médicos. Tu tarea es extraer ÚNICAMENTE la estructura/formato de la plantilla, convirtiendo todos los datos específicos en marcadores genéricos.
-
-🎯 OBJETIVO: Crear un FORMATO PURO reutilizable eliminando TODA información específica del paciente original.
+  // Prompt optimizado y más conciso para mayor velocidad
+  const prompt = `Convierte esta plantilla médica en un formato reutilizable eliminando datos específicos del paciente y reemplazándolos con marcadores genéricos.
 
 PLANTILLA ORIGINAL:
 ---
 ${trimmedContent}
 ---
 
-🚨 INSTRUCCIONES CRÍTICAS PARA EXTRACCIÓN DE FORMATO:
-
-1. **PRESERVAR ESTRUCTURA VISUAL EXACTA:**
-   - Mantén EXACTAMENTE: encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
-   - Conserva espacios en blanco, saltos de línea, tabulaciones
-   - Preserva todos los elementos visuales: dos puntos (:), guiones (-), números, etc.
-   - NO cambies la jerarquía ni organización de secciones
-
-2. **ELIMINAR TODA INFORMACIÓN ESPECÍFICA:**
-   - Nombres de pacientes → [Nombre del paciente]
-   - Edades específicas → [Edad] años
-   - Fechas específicas → [Fecha]
-   - Números de documento → [Documento de identidad]
+INSTRUCCIONES:
+1. Mantén la estructura visual exacta (espacios, viñetas, numeración)
+2. Reemplaza datos específicos con marcadores genéricos:
+   - Nombres → [Nombre del paciente]
+   - Edades → [Edad] años
+   - Fechas → [Fecha]
    - Síntomas específicos → [Describir síntoma]
-   - Diagnósticos específicos → [Diagnóstico]
-   - Medicamentos específicos → [Medicamento]
-   - Valores de laboratorio específicos → [Valor de laboratorio]
-   - Signos vitales específicos → [Signos vitales]
-   - Nombres de médicos → [Nombre del médico]
-   - Hallazgos específicos → [Hallazgos del examen]
+   - Diagnósticos → [Diagnóstico]
+   - Medicamentos → [Medicamento]
+   - Valores → [Valor]
 
-3. **CREAR MARCADORES GENÉRICOS:**
-   - Usa marcadores que describan el TIPO de información, no el contenido específico
-   - Ejemplos CORRECTOS: [Motivo de consulta], [Antecedentes familiares], [Plan de tratamiento]
-   - Ejemplos INCORRECTOS: [Dolor de cabeza], [Diabetes], [Paracetamol]
-   - Los marcadores deben ser aplicables a CUALQUIER paciente
+3. Conserva etiquetas estructurales como "Nombre:", "Edad:", etc.
+4. Responde SOLO con el formato extraído, sin comentarios
 
-4. **CONSERVAR SOLO ELEMENTOS ESTRUCTURALES:**
-   - Mantén etiquetas como "Nombre:", "Edad:", "Diagnóstico:", etc.
-   - Conserva frases estructurales no específicas
-   - Preserva numeración y viñetas de listas
-   - Mantén encabezados de secciones
-
-5. **ELIMINAR CONTEXTO ESPECÍFICO:**
-   - NO conserves hallazgos específicos de una patología particular
-   - NO mantengas valores específicos aunque sean "normales"
-   - Reemplaza TODO lo que sea específico del paciente original
-   - La plantilla debe ser universalmente aplicable
-
-6. **TRANSFORMACIONES EJEMPLO:**
-   - "Paciente: María González" → "Paciente: [Nombre del paciente]"
-   - "Edad: 35 años" → "Edad: [Edad] años"
-   - "Presenta dolor torácico opresivo" → "Presenta [Describir síntoma]"
-   - "Losartán 50mg cada 12 horas" → "[Medicamento] [Dosis y frecuencia]"
-   - "Presión arterial: 120/80 mmHg" → "Presión arterial: [Valor]"
-
-7. **RESPUESTA FINAL:**
-   - Responde ÚNICAMENTE con el formato extraído
-   - NO agregues comentarios, explicaciones, ni introducciones
-   - La plantilla debe ser un MOLDE VACÍO directamente utilizable
-
-RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visual exacta pero que pueda usarse para CUALQUIER paciente, sin datos específicos del caso original.`;
+FORMATO EXTRAÍDO:`;
 
   try {
     const model = 'gpt-4o-mini';
-    const systemMessage = "Eres un experto en crear moldes estructurales de documentos médicos. Tu especialidad es convertir plantillas con datos específicos en formatos puros reutilizables, eliminando TODA información del paciente original y creando marcadores genéricos universales.";
+    const systemMessage = "Eres un experto en crear moldes estructurales de documentos médicos. Conviertes plantillas con datos específicos en formatos puros reutilizables de manera rápida y eficiente.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
       model,
       messages,
-      temperature: TEMPERATURE_CONFIG.FORMAT_EXTRACTION,
-      max_tokens: TOKEN_LIMITS.FORMAT_EXTRACTION,
+      temperature: 0.1, // Reducido para mayor consistencia y velocidad
+      max_tokens: 3000, // Reducido para mayor velocidad
       top_p: 0.8
     };
     

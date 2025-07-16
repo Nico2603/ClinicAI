@@ -358,8 +358,9 @@ export const useUserTemplates = () => {
       const newTemplate = await safeDatabaseCall(
         () => userTemplatesService.createUserTemplate(templateData),
         {
-          timeout: 30000, // 30 segundos para crear (incluye procesamiento OpenAI)
-          maxRetries: 2
+          timeout: 45000, // 45 segundos para crear (incluye procesamiento OpenAI + operaciones BD)
+          maxRetries: 1,  // Reducir reintentos para evitar demoras adicionales
+          retryDelay: 1000
         }
       );
       

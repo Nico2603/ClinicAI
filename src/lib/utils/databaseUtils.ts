@@ -110,6 +110,9 @@ export const safeDatabaseCall = async <T>(
 export const getFriendlyErrorMessage = (error: Error): string => {
   if (error instanceof DatabaseTimeoutError) {
     // Mejorar mensaje específico para plantillas que involucran procesamiento IA
+    if (error.message.includes('45000ms')) {
+      return 'La creación de la plantilla está tardando más de lo normal. Esto puede deberse al procesamiento con IA de contenido extenso. Intenta con una plantilla más corta o verifica tu conexión a internet.';
+    }
     if (error.message.includes('30000ms')) {
       return 'La creación de la plantilla está tardando más de lo normal. Esto puede deberse al procesamiento con IA. Por favor, verifica tu conexión e intenta con una plantilla más corta.';
     }
