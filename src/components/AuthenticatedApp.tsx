@@ -6,7 +6,6 @@ import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   useDarkMode, 
-  useSpeechRecognition, 
   useAppState, 
   useTemplateNotes, 
   useHistoryManager, 

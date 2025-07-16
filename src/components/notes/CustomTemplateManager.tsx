@@ -1,21 +1,15 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useSimpleUserTemplates } from '../../hooks/useSimpleDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
-import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
-import { Button } from '../ui/button';
+import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
   selectedTemplateId?: string;
 }
 
-// =============================================================================
-// COMPONENTES MEMOIZADOS PARA OPTIMIZACIÓN
-// =============================================================================
-
-// Componente memoizado para loading
+// Componente de loading simple
 const LoadingState = memo(() => (
   <div className="flex flex-col items-center justify-center p-8">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
@@ -25,7 +19,7 @@ const LoadingState = memo(() => (
   </div>
 ));
 
-// Componente memoizado para estado vacío
+// Componente de estado vacío
 const EmptyState = memo(() => (
   <div className="text-center py-8">
     <p className="text-neutral-500 dark:text-neutral-400 text-sm">
@@ -37,9 +31,7 @@ const EmptyState = memo(() => (
   </div>
 ));
 
-
-
-// Componente memoizado para confirmación de eliminación
+// Diálogo de confirmación de eliminación
 const DeleteConfirmDialog = memo(({ 
   templateId, 
   onConfirm, 
@@ -80,10 +72,6 @@ const DeleteConfirmDialog = memo(({
   );
 });
 
-// =============================================================================
-// COMPONENTE PRINCIPAL OPTIMIZADO
-// =============================================================================
-
 const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   onSelectTemplate,
   selectedTemplateId
@@ -98,7 +86,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     deleteUserTemplate
   } = useSimpleUserTemplates();
 
-  // Estados optimizados con valores iniciales estables
+  // Estados simplificados
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -108,7 +96,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  // Función memoizada para generar nombres de plantilla
+  // Generar nombre de plantilla automático
   const getNextTemplateName = useCallback(() => {
     const templateNumbers = userTemplates
       .map(t => {
@@ -121,78 +109,17 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     return `Plantilla ${nextNumber}`;
   }, [userTemplates]);
 
-  // Speech Recognition optimizado para el contenido de la plantilla
-  const speechConfig = useMemo(() => ({
-    onTranscript: (transcript: string) => {
-      setNewTemplateContent(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error: string) => {
-      console.error('Speech recognition error:', error);
-    }
-  }), []);
-
-  const { 
-    isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
-    error: transcriptError, 
-    startRecording, 
-    stopRecording 
-  } = useSpeechRecognition(speechConfig);
-
-  // Speech Recognition optimizado para edición de contenido
-  const speechEditConfig = useMemo(() => ({
-    onTranscript: (transcript: string) => {
-      setEditingContent(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error: string) => {
-      console.error('Speech recognition error in edit mode:', error);
-    }
-  }), []);
-
-  const { 
-    isRecording: isRecordingEdit, 
-    isSupported: isSpeechApiAvailableEdit, 
-    interimTranscript: interimTranscriptEdit, 
-    error: transcriptErrorEdit, 
-    startRecording: startRecordingEdit, 
-    stopRecording: stopRecordingEdit 
-  } = useSpeechRecognition(speechEditConfig);
-
-  // Handlers optimizados con useCallback
-  const handleToggleRecording = useCallback(() => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  }, [isRecording, stopRecording, startRecording]);
-
-  const handleToggleRecordingEdit = useCallback(() => {
-    if (isRecordingEdit) {
-      stopRecordingEdit();
-    } else {
-      startRecordingEdit();
-    }
-  }, [isRecordingEdit, stopRecordingEdit, startRecordingEdit]);
-
-  // Función optimizada para crear plantilla - guardado directo sin IA
+  // Crear plantilla
   const handleCreateTemplate = useCallback(async () => {
     if (!newTemplateName.trim() || !newTemplateContent.trim()) {
-      console.warn('⚠️ Nombre o contenido de plantilla vacío');
       return;
     }
 
-    // Prevenir múltiples clics simultáneos
-    if (isProcessing) {
-      console.warn('⚠️ Ya hay una plantilla en procesamiento. Por favor espera...');
-      return;
-    }
+    if (isProcessing) return;
 
     try {
       setIsProcessing(true);
       
-      console.log('💾 Guardando plantilla con función RPC optimizada...');
       const newTemplate = await createUserTemplate({
         name: newTemplateName.trim(),
         content: newTemplateContent.trim(),
@@ -200,35 +127,25 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         is_active: true
       });
 
-      console.log('✅ Plantilla creada exitosamente:', newTemplate.name);
-      
-      // Reset optimizado del estado
       setNewTemplateName('');
       setNewTemplateContent('');
       setIsCreating(false);
       onSelectTemplate(newTemplate);
     } catch (err) {
-      console.error('❌ Error al crear plantilla:', err);
-      
-      // Mostrar error al usuario pero no bloquear la interfaz
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al crear plantilla';
-      
-      // Aquí podrías mostrar un toast o notificación al usuario
-      // Por ahora solo logueamos el error
-      console.error('Error detallado:', errorMessage);
+      console.error('Error al crear plantilla:', err);
     } finally {
-      // Siempre resetear el estado de procesamiento
       setIsProcessing(false);
     }
   }, [newTemplateName, newTemplateContent, isProcessing, createUserTemplate, user?.id, onSelectTemplate]);
 
-  // Handlers optimizados para edición
+  // Iniciar edición
   const handleStartEdit = useCallback((template: UserTemplate) => {
     setEditingId(template.id);
     setEditingName(template.name);
     setEditingContent(template.content);
   }, []);
 
+  // Guardar edición
   const handleSaveEdit = useCallback(async () => {
     if (!editingId) return;
 
@@ -238,7 +155,6 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         content: editingContent
       });
       
-      // Reset del estado de edición
       setEditingId(null);
       setEditingName('');
       setEditingContent('');
@@ -247,12 +163,14 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     }
   }, [editingId, editingName, editingContent, updateUserTemplate]);
 
+  // Cancelar edición
   const handleCancelEdit = useCallback(() => {
     setEditingId(null);
     setEditingName('');
     setEditingContent('');
   }, []);
 
+  // Eliminar plantilla
   const handleDelete = useCallback(async (templateId: string) => {
     try {
       await deleteUserTemplate(templateId);
@@ -262,22 +180,20 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     }
   }, [deleteUserTemplate]);
 
+  // Cancelar creación
   const handleCancelCreate = useCallback(() => {
     setIsCreating(false);
     setNewTemplateName('');
     setNewTemplateContent('');
   }, []);
 
+  // Iniciar creación
   const handleStartCreating = useCallback(() => {
     setNewTemplateName(getNextTemplateName());
     setIsCreating(true);
   }, [getNextTemplateName]);
 
-  // Verificación de usuario memoizada
-  const isUserReady = useMemo(() => Boolean(user), [user]);
-
-  // Early returns optimizados
-  if (!isUserReady) return null;
+  if (!user) return null;
 
   if (isLoading && userTemplates.length === 0) {
     return <LoadingState />;
@@ -285,7 +201,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
   return (
     <div className="space-y-4">
-      {/* Header optimizado */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
@@ -307,18 +223,17 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         </button>
       </div>
 
-      {/* Error display optimizado */}
+      {/* Error display */}
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
           <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
       )}
 
-      {/* Crear nueva plantilla - componente optimizado */}
+      {/* Crear nueva plantilla */}
       {isCreating && (
         <div className="p-4 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50 dark:bg-neutral-800">
           <div className="space-y-4">
-            {/* Nombre de plantilla */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                 Nombre de la plantilla
@@ -334,63 +249,28 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
               />
             </div>
             
-            {/* Contenido de plantilla */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Ejemplo de contenido (con datos de paciente)
+                  Contenido de la plantilla
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                    {newTemplateContent.length} caracteres
-                  </span>
-                  {isSpeechApiAvailable && (
-                    <Button
-                      onClick={handleToggleRecording}
-                      variant="outline"
-                      size="sm"
-                      disabled={isProcessing}
-                      className={`flex items-center gap-2 ${
-                        isRecording ? 'bg-red-50 text-red-600 border-red-300' : 'text-neutral-600'
-                      }`}
-                    >
-                      <MicrophoneIcon className="h-4 w-4" />
-                      {isRecording ? 'Detener' : 'Dictar'}
-                    </Button>
-                  )}
-                </div>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {newTemplateContent.length} caracteres
+                </span>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
                 💡 Escriba una nota que usted utiliza frecuentemente para estructurarla como plantilla base.
               </p>
-              <div className="relative">
-                <textarea
-                  value={newTemplateContent}
-                  onChange={(e) => setNewTemplateContent(e.target.value)}
-                  rows={12}
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-                  placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente."
-                  disabled={isProcessing}
-                />
-                {isRecording && (
-                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-                    Grabando...
-                  </div>
-                )}
-              </div>
-              {interimTranscript && (
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 italic mt-1">
-                  Transcripción: {interimTranscript}
-                </p>
-              )}
-              {transcriptError && (
-                <p className="text-sm text-red-500 mt-1">
-                  Error: {transcriptError}
-                </p>
-              )}
+              <textarea
+                value={newTemplateContent}
+                onChange={(e) => setNewTemplateContent(e.target.value)}
+                rows={12}
+                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+                placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente."
+                disabled={isProcessing}
+              />
             </div>
             
-            {/* Botones de acción */}
             <div className="flex gap-2">
               <button
                 onClick={handleCreateTemplate}
@@ -400,7 +280,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
                 {isProcessing ? (
                   <>
                     <LoadingSpinner className="h-4 w-4 mr-2 text-white" />
-                    Procesando...
+                    Guardando...
                   </>
                 ) : (
                   <>
@@ -418,13 +298,11 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
                 Cancelar
               </button>
             </div>
-            
-
           </div>
         </div>
       )}
 
-      {/* Lista de plantillas optimizada */}
+      {/* Lista de plantillas */}
       {userTemplates.length === 0 && !isCreating ? (
         <EmptyState />
       ) : (
@@ -444,11 +322,6 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
               onDelete={() => setShowDeleteConfirm(template.id)}
               onEditNameChange={setEditingName}
               onEditContentChange={setEditingContent}
-              isRecordingEdit={isRecordingEdit}
-              isSpeechApiAvailableEdit={isSpeechApiAvailableEdit}
-              interimTranscriptEdit={interimTranscriptEdit}
-              transcriptErrorEdit={transcriptErrorEdit}
-              onToggleRecordingEdit={handleToggleRecordingEdit}
             />
           ))}
         </div>
@@ -464,10 +337,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   );
 });
 
-// =============================================================================
-// COMPONENTE ITEM DE PLANTILLA MEMOIZADO
-// =============================================================================
-
+// Componente item de plantilla simplificado
 interface TemplateItemProps {
   template: UserTemplate;
   isSelected: boolean;
@@ -481,11 +351,6 @@ interface TemplateItemProps {
   onDelete: () => void;
   onEditNameChange: (name: string) => void;
   onEditContentChange: (content: string) => void;
-  isRecordingEdit: boolean;
-  isSpeechApiAvailableEdit: boolean;
-  interimTranscriptEdit: string;
-  transcriptErrorEdit: string | null;
-  onToggleRecordingEdit: () => void;
 }
 
 const TemplateItem = memo<TemplateItemProps>(({
@@ -500,12 +365,7 @@ const TemplateItem = memo<TemplateItemProps>(({
   onCancelEdit,
   onDelete,
   onEditNameChange,
-  onEditContentChange,
-  isRecordingEdit,
-  isSpeechApiAvailableEdit,
-  interimTranscriptEdit,
-  transcriptErrorEdit,
-  onToggleRecordingEdit
+  onEditContentChange
 }) => {
   const handleSelect = useCallback(() => {
     onSelect(template);
@@ -515,23 +375,10 @@ const TemplateItem = memo<TemplateItemProps>(({
     onStartEdit(template);
   }, [onStartEdit, template]);
 
-  const formattedDate = useMemo(() => {
-    return new Date(template.created_at).toLocaleDateString();
-  }, [template.created_at]);
-
-  const previewText = useMemo(() => {
-    return template.content.substring(0, 200) + (template.content.length > 200 ? '...' : '');
-  }, [template.content]);
-
   if (isEditing) {
     return (
-      <div className={`border rounded-lg p-4 transition-colors ${
-        isSelected 
-          ? 'border-primary bg-primary/5 dark:bg-primary/10' 
-          : 'border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800'
-      }`}>
+      <div className="border rounded-lg p-4 bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600">
         <div className="space-y-4">
-          {/* Editar nombre */}
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
               Nombre
@@ -544,57 +391,23 @@ const TemplateItem = memo<TemplateItemProps>(({
             />
           </div>
           
-          {/* Editar contenido */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Contenido de la plantilla
               </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {editingContent.length} caracteres
-                </span>
-                {isSpeechApiAvailableEdit && (
-                  <Button
-                    onClick={onToggleRecordingEdit}
-                    variant="outline"
-                    size="sm"
-                    className={`flex items-center gap-2 ${
-                      isRecordingEdit ? 'bg-red-50 text-red-600 border-red-300' : 'text-neutral-600'
-                    }`}
-                  >
-                    <MicrophoneIcon className="h-4 w-4" />
-                    {isRecordingEdit ? 'Detener' : 'Dictar'}
-                  </Button>
-                )}
-              </div>
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                {editingContent.length} caracteres
+              </span>
             </div>
-            <div className="relative">
-              <textarea
-                value={editingContent}
-                onChange={(e) => onEditContentChange(e.target.value)}
-                rows={12}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
-              />
-              {isRecordingEdit && (
-                <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-                  Grabando...
-                </div>
-              )}
-            </div>
-            {interimTranscriptEdit && (
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 italic mt-1">
-                Transcripción: {interimTranscriptEdit}
-              </p>
-            )}
-            {transcriptErrorEdit && (
-              <p className="text-sm text-red-500 mt-1">
-                Error: {transcriptErrorEdit}
-              </p>
-            )}
+            <textarea
+              value={editingContent}
+              onChange={(e) => onEditContentChange(e.target.value)}
+              rows={12}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+            />
           </div>
           
-          {/* Botones de edición */}
           <div className="flex gap-2">
             <button
               onClick={onSaveEdit}
@@ -632,7 +445,7 @@ const TemplateItem = memo<TemplateItemProps>(({
               {template.name}
             </h3>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Creada el {formattedDate}
+              Creada el {new Date(template.created_at).toLocaleDateString()}
             </p>
           </button>
         </div>
@@ -660,7 +473,7 @@ const TemplateItem = memo<TemplateItemProps>(({
             Vista previa:
           </p>
           <pre className="text-xs text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto">
-            {previewText}
+            {template.content.substring(0, 200) + (template.content.length > 200 ? '...' : '')}
           </pre>
         </div>
       )}

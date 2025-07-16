@@ -13,5 +13,3 @@ export * from './storageService';
 
 // Re-exportar utilidades relacionadas
 export * from '../utils';
-
-export * from './testService'; 
