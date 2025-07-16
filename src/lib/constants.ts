@@ -3,7 +3,7 @@
 // =============================================================================
 
 // Configuración general de la aplicación
-export const APP_NAME = 'Notas AI';
+export const APP_NAME = 'ClinicAI';
 export const APP_VERSION = '1.0.0';
 export const APP_DESCRIPTION = 'Asistente de IA para notas clínicas';
 
@@ -13,62 +13,49 @@ export const MAX_TEMPLATE_NAME_LENGTH = 100;
 export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS DE IA OPTIMIZADOS POR TAREA
+// CONFIGURACIÓN DE MODELOS DE IA SIMPLIFICADA
 // =============================================================================
 
-// Modelos OpenAI Base
+// Modelos OpenAI Base - Simplificado para usar solo gpt-4o-mini
 export const OPENAI_MODEL_TEXT = 'gpt-4o-mini';
 export const OPENAI_MODEL_ADVANCED = 'gpt-4o';
-
-// Modelos OpenAI Nuevos (2025) - Específicamente configurado
-// GPT-4.1-mini-2025-04-14 - Características del modelo:
-// ✅ Contexto: 1M tokens (masivo para análisis extensos)
-// ✅ Salida máxima: 32K tokens (ideal para notas largas)
-// ✅ Conocimiento: Hasta junio 2024 (actualizado)
-// ✅ Costo: $0.40/$1.60 por millón de tokens (muy económico)
-// ✅ Rendimiento: 87.5% MMLU, 65% GPQA (excelente)
-// ✅ Soporte: Mensajes system, parámetros completos
-// ✅ Capacidades: Texto + Imágenes, 50% más rápido que GPT-4o
-export const OPENAI_MODEL_LATEST = 'gpt-4.1-mini-2025-04-14';       // Modelo específico GPT-4.1 Mini
-export const OPENAI_MODEL_REASONING = 'o1-preview';                  // Especializado en razonamiento (con limitaciones)
-export const OPENAI_MODEL_REASONING_MINI = 'o1-mini';               // Razonamiento económico (con limitaciones)
+export const OPENAI_MODEL_LATEST = 'gpt-4o-mini';
+export const OPENAI_MODEL_REASONING = 'o1-preview';
 
 // =============================================================================
-// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA
+// CONFIGURACIÓN DE MODELOS POR FUNCIÓN MÉDICA - SIMPLIFICADA
 // =============================================================================
 
 export const MEDICAL_AI_MODELS = {
-  // Funciones CRÍTICAS - Usando específicamente gpt-4.1-mini-2025-04-14
+  // Todas las funciones usando gpt-4o-mini para simplicidad
   CRITICAL_MEDICAL_FUNCTIONS: {
-    generateNoteFromTemplate: 'gpt-4.1-mini-2025-04-14',           // Generación de notas médicas - CRÍTICO
-    updateClinicalNote: 'gpt-4.1-mini-2025-04-14',                 // Actualización de notas - CRÍTICO  
-    generateMedicalScale: 'gpt-4.1-mini-2025-04-14',               // Escalas médicas - Modelo específico
-    analyzeClinicalContent: 'gpt-4.1-mini-2025-04-14',             // Análisis clínico complejo - Modelo específico
+    generateNoteFromTemplate: 'gpt-4o-mini',           // Generación de notas médicas
+    updateClinicalNote: 'gpt-4o-mini',                 // Actualización de notas
+    generateMedicalScale: 'gpt-4o-mini',               // Escalas médicas
+    analyzeClinicalContent: 'gpt-4o-mini',             // Análisis clínico
   },
   
-  // Funciones IMPORTANTES - Usando gpt-4.1-mini-2025-04-14 para consistencia
   IMPORTANT_MEDICAL_FUNCTIONS: {
-    searchEvidenceBasedRecommendations: 'gpt-4.1-mini-2025-04-14', // Búsqueda de evidencia médica
-    generateSimplifiedEvidenceConsultation: 'gpt-4.1-mini-2025-04-14', // Consultas de evidencia
+    searchEvidenceBasedRecommendations: 'gpt-4o-mini', // Búsqueda de evidencia médica
+    generateSimplifiedEvidenceConsultation: 'gpt-4o-mini', // Consultas de evidencia
   },
   
-  // Funciones AUXILIARES - Pueden usar modelos económicos
   AUXILIARY_FUNCTIONS: {
-    extractTemplateFormat: 'gpt-4o-mini',                          // Extracción de formato - tarea simple
+    extractTemplateFormat: 'gpt-4o-mini',              // Extracción de formato
   }
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA PARA GPT-4.1-MINI-2025-04-14
+// CONFIGURACIÓN DE TEMPERATURA OPTIMIZADA
 // =============================================================================
 
 export const TEMPERATURE_CONFIG = {
-  // Funciones críticas - máxima precisión para GPT-4.1-mini
+  // Funciones críticas - máxima precisión
   CRITICAL_MEDICAL: 0.1,              // Para notas médicas y escalas - precisión máxima
-  CLINICAL_REASONING: 0.15,            // Para análisis clínico complejo - optimizado para GPT-4.1-mini
+  CLINICAL_REASONING: 0.15,            // Para análisis clínico complejo
   
   // Funciones importantes - balance entre precisión y creatividad
-  TEMPLATE_GENERATION: 0.25,           // Optimizado para GPT-4.1-mini
+  TEMPLATE_GENERATION: 0.25,           // Generación de plantillas
   EVIDENCE_SUGGESTIONS: 0.2,           // Búsqueda de evidencia precisa
   CONSULTATION: 0.2,                   // Consultas clínicas profesionales
   
@@ -77,23 +64,22 @@ export const TEMPERATURE_CONFIG = {
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN DE TOKENS OPTIMIZADA PARA GPT-4.1-MINI-2025-04-14
-// (Aprovechando 1M contexto y 32K salida máxima)
+// CONFIGURACIÓN DE TOKENS OPTIMIZADA
 // =============================================================================
 
 export const TOKEN_LIMITS = {
-  // Funciones críticas - aprovechando la capacidad del modelo
-  CRITICAL_MEDICAL_NOTE: 4000,        // Aumentado para notas médicas extensas
-  CLINICAL_ANALYSIS: 6000,             // Aumentado para análisis clínico complejo
-  MEDICAL_SCALE: 3000,                 // Aumentado para escalas médicas detalladas
+  // Funciones críticas - límites apropiados para notas médicas
+  CRITICAL_MEDICAL_NOTE: 4000,        // Para notas médicas extensas
+  CLINICAL_ANALYSIS: 6000,             // Para análisis clínico complejo
+  MEDICAL_SCALE: 3000,                 // Para escalas médicas detalladas
   
   // Funciones importantes - tokens moderados-altos
-  TEMPLATE_NOTE: 3000,                 // Aumentado para plantillas complejas
-  EVIDENCE_SUGGESTIONS: 4000,          // Aumentado para mejor evidencia científica
-  CONSULTATION: 3500,                  // Aumentado para consultas detalladas
+  TEMPLATE_NOTE: 3000,                 // Para plantillas complejas
+  EVIDENCE_SUGGESTIONS: 4000,          // Para evidencia científica
+  CONSULTATION: 3500,                  // Para consultas detalladas
   
-  // Funciones auxiliares - tokens básicos optimizados
-  FORMAT_EXTRACTION: 2000,             // Aumentado ligeramente para mejor extracción
+  // Funciones auxiliares - tokens básicos
+  FORMAT_EXTRACTION: 2000,             // Para extracción de formatos
 } as const;
 
 // =============================================================================
@@ -198,54 +184,3 @@ export const CONFIRMATION_MESSAGES = {
   CLEAR_HISTORY: '¿Está seguro de que desea borrar todo el historial de notas? Esta acción no se puede deshacer.',
   DISCARD_CHANGES: '¿Está seguro de que desea descartar los cambios? Se perderán todos los cambios no guardados.',
 } as const;
-
-// =============================================================================
-// PLANTILLAS POR DEFECTO
-// =============================================================================
-
-export const DEFAULT_USER_TEMPLATES = [
-  {
-    name: 'Mi Plantilla',
-    content: `NOTA CLÍNICA
-
-INFORMACIÓN DEL PACIENTE:
-Nombre: [Nombre del paciente]
-Edad: [Edad] años
-Género: [Género]
-Documento: [Documento de identidad]
-
-MOTIVO DE CONSULTA:
-[Motivo de consulta]
-
-HISTORIA DE LA ENFERMEDAD ACTUAL:
-[Historia de la enfermedad actual]
-
-REVISIÓN POR SISTEMAS:
-[Revisión por sistemas]
-
-ANTECEDENTES:
-- Personales: [Antecedentes personales]
-- Farmacológicos: [Medicamentos actuales]
-- Familiares: [Antecedentes familiares]
-- Sociales: [Antecedentes sociales]
-
-EXAMEN FÍSICO:
-- Signos vitales: [Signos vitales]
-- Aspecto general: [Aspecto general]
-- Examen por sistemas: [Hallazgos del examen]
-
-ANÁLISIS:
-[Impresión diagnóstica]
-
-PLAN:
-1. Diagnóstico: [Plan diagnóstico]
-2. Tratamiento: [Plan terapéutico]
-3. Educación al paciente: [Educación al paciente]
-4. Seguimiento: [Plan de seguimiento]
-
-MÉDICO: [Nombre del médico]
-FECHA: [Fecha de la consulta]
-
-NOTA: Esta es una plantilla ESTRUCTURAL que define únicamente el formato. Los marcadores entre corchetes deben reemplazarse con datos reales del paciente. Las secciones sin información serán omitidas.`
-  }
-] as const;

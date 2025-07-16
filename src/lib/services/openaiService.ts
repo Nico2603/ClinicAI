@@ -40,119 +40,31 @@ const openai = new OpenAI({
 });
 
 // =============================================================================
-// UTILIDADES PARA COMPATIBILIDAD DE MODELOS
+// UTILIDADES SIMPLIFICADAS
 // =============================================================================
 
-// Función para verificar si un modelo soporta mensajes de sistema
-const supportsSystemMessages = (model: string): boolean => {
-  // Los modelos o1 no soportan mensajes de sistema
-  // GPT-4.1-mini-2025-04-14 SÍ soporta mensajes de sistema (serie GPT-4.1)
-  return !model.startsWith('o1');
-};
-
-// Función para adaptar mensajes según las capacidades del modelo
-const adaptMessagesForModel = (model: string, systemMessage: string, userMessage: string) => {
-  if (supportsSystemMessages(model)) {
-    return [
-      { role: "system" as const, content: systemMessage },
-      { role: "user" as const, content: userMessage }
-    ];
-  } else {
-    // Para modelos o1, combinar el mensaje de sistema con el mensaje de usuario
-    const combinedMessage = `${systemMessage}\n\n${userMessage}`;
-    return [{ role: "user" as const, content: combinedMessage }];
-  }
-};
-
-// Función para adaptar parámetros según las capacidades del modelo
-const adaptParametersForModel = (model: string, baseParams: any) => {
-  if (model.startsWith('o1')) {
-    // Los modelos o1 tienen parámetros limitados
-    return {
-      model,
-      messages: baseParams.messages,
-      // No incluir temperature, top_p para modelos o1
-    };
-  } else {
-    return baseParams;
-  }
-};
-
-// Función de validación específica para GPT-4.1-mini-2025-04-14
-const validateGPT41MiniConfiguration = (params: any): void => {
-  const model = params.model;
-  
-  if (model === 'gpt-4.1-mini-2025-04-14') {
-    // Validar que no exceda los límites del modelo
-    if (params.max_tokens && params.max_tokens > 32000) {
-      console.warn('⚠️ GPT-4.1-mini-2025-04-14: max_tokens reducido a 32000 (límite del modelo)');
-      params.max_tokens = 32000;
-    }
-    
-    // Validar temperatura está en rango óptimo
-    if (params.temperature && params.temperature > 1) {
-      console.warn('⚠️ GPT-4.1-mini-2025-04-14: temperature ajustada a 1.0 (máximo)');
-      params.temperature = 1.0;
-    }
-    
-    // Log de configuración optimizada
-    console.log('✅ GPT-4.1-mini-2025-04-14 configurado:', {
-      model: params.model,
-      temperature: params.temperature,
-      max_tokens: params.max_tokens,
-      supportsSystem: supportsSystemMessages(model),
-      contextWindow: '1M tokens',
-      maxOutput: '32K tokens'
-    });
-  }
+// Función simplificada para crear mensajes (gpt-4o-mini soporta mensajes de sistema)
+const createMessages = (systemMessage: string, userMessage: string) => {
+  return [
+    { role: "system" as const, content: systemMessage },
+    { role: "user" as const, content: userMessage }
+  ];
 };
 
 // =============================================================================
-// SISTEMA DE CACHÉ Y DEBOUNCING
+// PROTECCIÓN CONTRA LLAMADAS DUPLICADAS
 // =============================================================================
 
-// Cache simple en memoria para respuestas frecuentes
-const responseCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
-
-// Mapa de promesas pendientes para evitar múltiples llamadas simultáneas
+// Mapa de promesas pendientes para evitar múltiples llamadas simultáneas idénticas
 const pendingRequests = new Map<string, Promise<any>>();
 
-// Limpiar cache periódicamente (cada 10 minutos)
-setInterval(() => {
-  const now = Date.now();
-  responseCache.forEach((value, key) => {
-    if (now - value.timestamp > value.ttl) {
-      responseCache.delete(key);
-    }
-  });
-}, 10 * 60 * 1000);
-
-// Función para generar clave de cache
-const generateCacheKey = (functionName: string, ...args: any[]): string => {
+// Función para generar clave única de petición
+const generateRequestKey = (functionName: string, ...args: any[]): string => {
   return `${functionName}:${JSON.stringify(args)}`;
 };
 
-// Función para obtener respuesta del cache
-const getCachedResponse = (key: string): any | null => {
-  const cached = responseCache.get(key);
-  if (cached && Date.now() - cached.timestamp < cached.ttl) {
-    return cached.data;
-  }
-  responseCache.delete(key);
-  return null;
-};
-
-// Función para guardar en cache
-const setCachedResponse = (key: string, data: any, ttlMs: number = 5 * 60 * 1000): void => {
-  responseCache.set(key, {
-    data,
-    timestamp: Date.now(),
-    ttl: ttlMs
-  });
-};
-
-// Debouncing para múltiples llamadas simultáneas
-const debounceRequest = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
+// Protección contra llamadas duplicadas simultáneas
+const preventDuplicateRequests = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
   // Si ya hay una petición pendiente para esta clave, devolver esa promesa
   if (pendingRequests.has(key)) {
     return pendingRequests.get(key) as Promise<T>;
@@ -248,18 +160,11 @@ export const generateNoteFromTemplate = async (
   validateApiKey();
   validateTemplateInput(templateContent, patientInfo);
   
-  // Generar clave de cache
-  const cacheKey = generateCacheKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
-  
-  // Verificar cache primero
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('✅ Respuesta obtenida del cache');
-    return cached;
-  }
+  // Generar clave para evitar llamadas duplicadas simultáneas
+  const requestKey = generateRequestKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
 
-  // Usar debouncing para evitar llamadas duplicadas
-  return debounceRequest(cacheKey, async () => {
+  // Usar protección contra llamadas duplicadas
+  return preventDuplicateRequests(requestKey, async () => {
     const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar ÚNICAMENTE la información del paciente proporcionada para generar una nota médica siguiendo el formato de la plantilla.
 
 INFORMACIÓN DEL PACIENTE:
@@ -280,12 +185,12 @@ INSTRUCCIONES CRÍTICAS:
 Genera la nota médica completada:`;
 
     try {
-      const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateNoteFromTemplate;
+      const model = 'gpt-4o-mini';
       const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. NUNCA usas datos de las plantillas como información del paciente - las plantillas son SOLO formatos estructurales. Solo usas información explícitamente proporcionada del paciente real y omites secciones sin datos correspondientes.";
       
-      const messages = adaptMessagesForModel(model, systemMessage, prompt);
+      const messages = createMessages(systemMessage, prompt);
       
-      const baseParams = {
+      const params = {
         model,
         messages,
         temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
@@ -293,8 +198,7 @@ Genera la nota médica completada:`;
         top_p: 0.9
       };
       
-      const adaptedParams = adaptParametersForModel(model, baseParams);
-      const response = await openai.chat.completions.create(adaptedParams);
+      const response = await openai.chat.completions.create(params);
 
       const generatedText = response.choices[0]?.message?.content || '';
       
@@ -302,22 +206,15 @@ Genera la nota médica completada:`;
         throw new Error('No se pudo generar contenido válido');
       }
 
-      const result = { 
+      return { 
         text: generatedText, 
         groundingMetadata: undefined
       };
-
-      // Guardar en cache por 5 minutos
-      setCachedResponse(cacheKey, result, 5 * 60 * 1000);
-
-      return result;
     } catch (error) {
       throw handleOpenAIError(error, 'generación de nota con plantilla');
     }
   });
 };
-
-
 
 export const generateMedicalScale = async (
   clinicalInput: string,
@@ -390,12 +287,12 @@ ESCALA A EVALUAR: ${scaleName}
 **REGLA FUNDAMENTAL:** Solo usa información explícitamente proporcionada. Si no hay suficiente información para evaluar la escala completa, sé transparente sobre las limitaciones.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.generateMedicalScale;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un asistente médico experto en la aplicación de escalas clínicas estandarizadas. SOLO usas información explícitamente proporcionada para puntuar escalas, NUNCA inventas datos. Eres transparente sobre limitaciones cuando falta información.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
@@ -403,12 +300,7 @@ ESCALA A EVALUAR: ${scaleName}
       top_p: 0.9
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    
-    // Validación específica para GPT-4.1-mini-2025-04-14
-    validateGPT41MiniConfiguration(adaptedParams);
-    
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const result = response.choices[0]?.message?.content || '';
     
@@ -428,8 +320,6 @@ ESCALA A EVALUAR: ${scaleName}
 // =============================================================================
 // SERVICIOS ADICIONALES (mantener funcionalidad existente)
 // =============================================================================
-
- 
 
 export const updateClinicalNote = async (
   originalNote: string,
@@ -501,12 +391,12 @@ ${newInformation}
 **REGLA FUNDAMENTAL:** Solo actualiza lo que está explícitamente mencionado en la nueva información. NUNCA inventes, completes o asumas datos adicionales.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.updateClinicalNote;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un asistente médico experto especializado en actualizar notas clínicas de forma selectiva y precisa. SOLO usas información explícitamente proporcionada, NUNCA inventas datos adicionales. Preservas la estructura original y modificas únicamente lo estrictamente necesario.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
@@ -514,8 +404,7 @@ ${newInformation}
       top_p: 0.8
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const generatedText = response.choices[0]?.message?.content || '';
     return { 
@@ -632,12 +521,12 @@ CRITERIOS DE CALIDAD:
 Asegúrate de que la respuesta sea un JSON válido y completo.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.CRITICAL_MEDICAL_FUNCTIONS.analyzeClinicalContent;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un asistente médico experto en análisis clínico basado en evidencia científica. Proporcionas recomendaciones precisas basadas en la mejor evidencia disponible, siempre en formato JSON válido.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
@@ -645,8 +534,7 @@ Asegúrate de que la respuesta sea un JSON válido y completo.`;
       top_p: 0.8
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const responseText = response.choices[0]?.message?.content || '';
     
@@ -727,12 +615,12 @@ FORMATO DE RESPUESTA REQUERIDO (JSON válido):
 Enfócate en proporcionar información práctica y actualizada que sea directamente aplicable al contexto clínico.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.searchEvidenceBasedRecommendations;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un experto en medicina basada en evidencia que proporciona búsquedas precisas en literatura médica. Respondes siempre en formato JSON válido con información científicamente respaldada.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
@@ -740,8 +628,7 @@ Enfócate en proporcionar información práctica y actualizada que sea directame
       top_p: 0.8
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const responseText = response.choices[0]?.message?.content || '';
     
@@ -927,18 +814,11 @@ export const generateSimplifiedEvidenceConsultation = async (
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
   
-  // Generar clave de cache
-  const cacheKey = generateCacheKey('generateSimplifiedEvidenceConsultation', clinicalContent);
-  
-  // Verificar cache primero
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('✅ Consulta obtenida del cache');
-    return cached;
-  }
+  // Generar clave para evitar llamadas duplicadas simultáneas
+  const requestKey = generateRequestKey('generateSimplifiedEvidenceConsultation', clinicalContent);
 
-  // Usar debouncing para evitar llamadas duplicadas
-  return debounceRequest(cacheKey, async () => {
+  // Usar protección contra llamadas duplicadas
+  return preventDuplicateRequests(requestKey, async () => {
     const prompt = `Eres un médico especialista experto en medicina basada en evidencia. Analiza el siguiente contenido clínico y proporciona recomendaciones fundamentadas en evidencia científica actual.
 
 CONTENIDO CLÍNICO:
@@ -983,12 +863,12 @@ FUENTES RECOMENDADAS PARA CITAR:
 Proporciona un análisis completo y recomendaciones prácticas que apoyen la toma de decisiones clínicas.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.IMPORTANT_MEDICAL_FUNCTIONS.generateSimplifiedEvidenceConsultation;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un médico especialista experto en medicina basada en evidencia. Proporcionas análisis clínicos completos con recomendaciones respaldadas por literatura científica actual. Siempre incluyes citas relevantes y mantienes un enfoque práctico y profesional.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.CONSULTATION,
@@ -996,8 +876,7 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
       top_p: 0.9
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const result = response.choices[0]?.message?.content || '';
     
@@ -1005,15 +884,10 @@ Proporciona un análisis completo y recomendaciones prácticas que apoyen la tom
       throw new Error('No se pudo generar contenido válido');
     }
     
-    const response_data = {
+    return {
       text: result,
       groundingMetadata: { groundingChunks: [] }
     };
-
-    // Guardar en cache por 10 minutos
-    setCachedResponse(cacheKey, response_data, 10 * 60 * 1000);
-    
-    return response_data;
   } catch (error) {
     throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
   }
@@ -1104,12 +978,12 @@ ${trimmedContent}
 RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visual exacta pero que pueda usarse para CUALQUIER paciente, sin datos específicos del caso original.`;
 
   try {
-    const model = MEDICAL_AI_MODELS.AUXILIARY_FUNCTIONS.extractTemplateFormat;
+    const model = 'gpt-4o-mini';
     const systemMessage = "Eres un experto en crear moldes estructurales de documentos médicos. Tu especialidad es convertir plantillas con datos específicos en formatos puros reutilizables, eliminando TODA información del paciente original y creando marcadores genéricos universales.";
     
-    const messages = adaptMessagesForModel(model, systemMessage, prompt);
+    const messages = createMessages(systemMessage, prompt);
     
-    const baseParams = {
+    const params = {
       model,
       messages,
       temperature: TEMPERATURE_CONFIG.FORMAT_EXTRACTION,
@@ -1117,8 +991,7 @@ RESULTADO ESPERADO: Una plantilla estructural que mantenga la organización visu
       top_p: 0.8
     };
     
-    const adaptedParams = adaptParametersForModel(model, baseParams);
-    const response = await openai.chat.completions.create(adaptedParams);
+    const response = await openai.chat.completions.create(params);
 
     const result = response.choices[0]?.message?.content || '';
     
