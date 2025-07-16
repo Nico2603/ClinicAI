@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { auth, supabase, type AuthUser } from '@/lib/supabase';
 import { cleanAuthUrl, handleAuthError, isClient } from '@/lib/utils';
-import { useSimpleSession } from '@/hooks/useSimpleSession';
 import { performCompleteCleanup } from '@/lib/services/storageService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -16,7 +15,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   error: string | null;
   mounted: boolean;
-  extendSession: () => Promise<boolean>;
 }
 
 interface AuthProviderProps {
@@ -74,24 +72,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [ensureUserExists]);
 
-  // Función simple para obtener sesión
-  const getSession = useCallback(async (): Promise<Session | null> => {
-    try {
-      const { session, error } = await auth.getSession();
-      if (error) {
-        console.error('Error obteniendo sesión:', error);
-        return null;
-      }
-      return session;
-    } catch (err) {
-      console.error('Error obteniendo sesión:', err);
-      return null;
-    }
-  }, []);
-
-  // Manejo simple de sesiones
-  const simpleSession = useSimpleSession();
-
   // Función de inicio de sesión
   const signIn = useCallback(async () => {
     try {
@@ -127,16 +107,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // Extender sesión manualmente
-  const extendSession = useCallback(async (): Promise<boolean> => {
-    try {
-      return await simpleSession.refreshSession();
-    } catch (error) {
-      console.error('Error al extender sesión:', error);
-      return false;
-    }
-  }, [simpleSession]);
-
   useEffect(() => {
     // Verificar que estamos en el cliente
     if (!isClient()) {
@@ -148,8 +118,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Inicializar autenticación
     const initAuth = async () => {
       try {
-        // Obtener la sesión inicial
-        const session = await getSession();
+        // Obtener la sesión inicial usando auth.getSession directamente
+        const { session } = await auth.getSession();
         await updateUserState(session);
         
         if (session) {
@@ -191,7 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [updateUserState, getSession]);
+  }, [updateUserState]);
 
   const value: AuthContextType = {
     user,
@@ -202,7 +172,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     error,
     mounted,
-    extendSession,
   };
 
   return (
@@ -215,7 +184,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
 }; 

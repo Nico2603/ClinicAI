@@ -111,7 +111,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
       }
     } catch (error) {
       console.error('Error generating template note:', error);
-      showError(error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_GENERATION_ERROR);
+      showError(error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_ERROR);
     }
   }, [selectedTemplate, patientInfo, generateNote, showError, clearGlobalError, clearTemplateError, user?.id, addNoteToHistory]);
 

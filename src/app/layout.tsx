@@ -4,7 +4,6 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ClientOnly from '@/components/ClientOnly'
-import { SessionWarningDialog } from '@/components/SessionWarningDialog'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -48,8 +47,6 @@ export default function RootLayout({
                 {/* El Sidebar se inyecta desde el children en AuthenticatedApp, así que solo estructuramos el espacio */}
                 {children}
               </main>
-              {/* Diálogo de aviso de sesión */}
-              <SessionWarningDialog />
             </AuthProvider>
           </Providers>
         </ClientOnly>
