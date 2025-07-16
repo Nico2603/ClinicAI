@@ -1,12 +1,7 @@
 import { OpenAI } from 'openai';
 import {
-  OPENAI_MODEL_TEXT,
-  OPENAI_MODEL_ADVANCED,
-  OPENAI_MODEL_LATEST,
-  OPENAI_MODEL_REASONING,
-  MEDICAL_AI_MODELS,
-  TEMPERATURE_CONFIG,
-  TOKEN_LIMITS,
+  OPENAI_MODEL,
+  AI_CONFIG,
   ERROR_MESSAGES,
   VALIDATION_RULES
 } from '../constants';
@@ -20,10 +15,9 @@ import {
 } from '../../types';
 
 // =============================================================================
-// CONFIGURACIÓN Y VALIDACIÓN OPTIMIZADA
+// CONFIGURACIÓN SIMPLIFICADA
 // =============================================================================
 
-// Configuración de OpenAI optimizada para rendimiento
 const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
 if (!API_KEY) {
@@ -31,64 +25,18 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Cliente OpenAI optimizado para velocidad
+// Cliente OpenAI simple
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
-  timeout: 15000, // Reducido de 35s a 15s para mejor UX
-  maxRetries: 1, // Reducido de 2 a 1 para evitar esperas largas
+  timeout: 30000,
+  maxRetries: 2,
 });
 
 // =============================================================================
-// SISTEMA DE CACHE OPTIMIZADO
+// UTILIDADES SIMPLIFICADAS
 // =============================================================================
 
-// Cache in-memory optimizado para respuestas de IA
-const responseCache = new Map<string, { response: any; timestamp: number; }>();
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos (aumentado de lo que había implícito)
-
-// Generar clave de cache más eficiente
-const generateCacheKey = (functionName: string, ...args: any[]): string => {
-  // Usar hash simple en lugar de JSON.stringify para mejor rendimiento
-  const argsHash = args.map(arg => {
-    if (typeof arg === 'string') {
-      return arg.length > 100 ? arg.substring(0, 100) + `_len${arg.length}` : arg;
-    }
-    return typeof arg + '_' + String(arg).substring(0, 50);
-  }).join('|');
-  
-  return `${functionName}:${argsHash}`;
-};
-
-// Cache inteligente con limpieza automática
-const getCachedResponse = (key: string) => {
-  const cached = responseCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.response;
-  }
-  if (cached) {
-    responseCache.delete(key); // Limpiar cache expirado
-  }
-  return null;
-};
-
-const setCachedResponse = (key: string, response: any) => {
-  // Limitar tamaño del cache (máximo 100 entradas)
-  if (responseCache.size >= 100) {
-    const oldestKey = responseCache.keys().next().value;
-    if (oldestKey) {
-      responseCache.delete(oldestKey);
-    }
-  }
-  
-  responseCache.set(key, { response, timestamp: Date.now() });
-};
-
-// =============================================================================
-// UTILIDADES OPTIMIZADAS
-// =============================================================================
-
-// Función optimizada para crear mensajes
 const createMessages = (systemMessage: string, userMessage: string) => {
   return [
     { role: "system" as const, content: systemMessage },
@@ -96,33 +44,9 @@ const createMessages = (systemMessage: string, userMessage: string) => {
   ];
 };
 
-// =============================================================================
-// PROTECCIÓN CONTRA LLAMADAS DUPLICADAS OPTIMIZADA
-// =============================================================================
-
-// Mapa optimizado de promesas pendientes
-const pendingRequests = new Map<string, Promise<any>>();
-
-// Protección contra llamadas duplicadas optimizada
-const preventDuplicateRequests = async <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
-  // Si ya hay una petición pendiente, devolver esa promesa
-  if (pendingRequests.has(key)) {
-    return pendingRequests.get(key) as Promise<T>;
-  }
-
-  // Crear nueva promesa con limpieza automática
-  const promise = requestFn().finally(() => {
-    pendingRequests.delete(key);
-  });
-
-  pendingRequests.set(key, promise);
-  return promise;
-};
-
-// Validaciones optimizadas (ejecutar solo una vez por función)
 const validateApiKey = (): void => {
   if (!API_KEY) {
-    throw new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
+    throw new Error(ERROR_MESSAGES.API_KEY_MISSING);
   }
 };
 
@@ -132,31 +56,12 @@ const validateInput = (input: string, minLength: number = 1): void => {
   }
 };
 
-const validateTemplateInput = (templateContent: string, patientInfo: string): void => {
-  validateInput(templateContent, 10);
-  validateInput(patientInfo, VALIDATION_RULES.MIN_PATIENT_INFO_LENGTH);
-  
-  if (patientInfo.length > VALIDATION_RULES.MAX_PATIENT_INFO_LENGTH) {
-    throw new Error('La información del paciente es demasiado larga');
-  }
-};
-
-const validateClinicalInput = (clinicalInput: string): void => {
-  validateInput(clinicalInput, VALIDATION_RULES.MIN_CLINICAL_INFO_LENGTH);
-  
-  if (clinicalInput.length > VALIDATION_RULES.MAX_CLINICAL_INFO_LENGTH) {
-    throw new Error('La información clínica es demasiado larga');
-  }
-};
-
-// Función optimizada para manejar errores de OpenAI
 const handleOpenAIError = (error: unknown, context: string): Error => {
   console.error(`Error en ${context}:`, error);
   
   if (error instanceof Error) {
-    // Manejar errores específicos de OpenAI
     if (error.message.includes('API key')) {
-      return new Error(ERROR_MESSAGES.OPENAI_API_KEY_MISSING);
+      return new Error(ERROR_MESSAGES.API_KEY_MISSING);
     }
     if (error.message.includes('rate limit')) {
       return new Error('Límite de API excedido. Intenta en unos momentos.');
@@ -180,7 +85,7 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
 };
 
 // =============================================================================
-// SERVICIOS PRINCIPALES OPTIMIZADOS
+// SERVICIOS PRINCIPALES SIMPLIFICADOS
 // =============================================================================
 
 export const generateNoteFromTemplate = async (
@@ -189,22 +94,11 @@ export const generateNoteFromTemplate = async (
   patientInfo: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
-  validateTemplateInput(templateContent, patientInfo);
-  
-  // Generar clave de cache optimizada
-  const cacheKey = generateCacheKey('generateNoteFromTemplate', specialtyName, templateContent, patientInfo);
-  
-  // Verificar cache primero
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('📋 Respuesta obtenida desde cache');
-    return cached;
-  }
+  validateInput(templateContent, 10);
+  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Usar protección contra llamadas duplicadas
-  return preventDuplicateRequests(cacheKey, async () => {
-    // Prompt optimizado - más conciso pero igual de efectivo
-    const prompt = `Completa esta nota médica usando SOLO la información del paciente proporcionada.
+  // Prompt optimizado - más conciso pero igual de efectivo
+  const prompt = `Completa esta nota médica usando SOLO la información del paciente proporcionada.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
@@ -223,41 +117,33 @@ INSTRUCCIONES:
 
 Genera la nota médica completada:`;
 
-    try {
-      const model = 'gpt-4o-mini';
-      const systemMessage = "Asistente médico experto en notas clínicas. Usa solo información del paciente real, nunca datos de ejemplo de plantillas.";
-      
-      const messages = createMessages(systemMessage, prompt);
-      
-      const params = {
-        model,
-        messages,
-        temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
-        max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
-        top_p: 0.9
-      };
-      
-      const response = await openai.chat.completions.create(params);
-
-      const generatedText = response.choices[0]?.message?.content || '';
-      
-      if (!generatedText.trim()) {
-        throw new Error('No se pudo generar contenido válido');
-      }
-
-      const result = { 
-        text: generatedText, 
-        groundingMetadata: undefined
-      };
-      
-      // Guardar en cache
-      setCachedResponse(cacheKey, result);
-      
-      return result;
-    } catch (error) {
-      throw handleOpenAIError(error, 'generación de nota con plantilla');
+  try {
+    const systemMessage = "Asistente médico experto en notas clínicas. Usa solo información del paciente real, nunca datos de ejemplo de plantillas.";
+    
+    const messages = createMessages(systemMessage, prompt);
+    
+    const params = {
+      model: OPENAI_MODEL,
+      messages,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
+      top_p: 0.9
+    };
+    
+    const response = await openai.chat.completions.create(params);
+    const generatedText = response.choices[0]?.message?.content || '';
+    
+    if (!generatedText.trim()) {
+      throw new Error('No se pudo generar contenido válido');
     }
-  });
+
+    return { 
+      text: generatedText, 
+      groundingMetadata: undefined
+    };
+  } catch (error) {
+    throw handleOpenAIError(error, 'generación de nota con plantilla');
+  }
 };
 
 export const generateMedicalScale = async (
@@ -265,16 +151,8 @@ export const generateMedicalScale = async (
   scaleName: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
-  validateClinicalInput(clinicalInput);
+  validateInput(clinicalInput, VALIDATION_RULES.MIN_TEXT_LENGTH);
   validateInput(scaleName, 2);
-
-  // Verificar cache
-  const cacheKey = generateCacheKey('generateMedicalScale', clinicalInput, scaleName);
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('🎯 Escala obtenida desde cache');
-    return cached;
-  }
 
   // Prompt optimizado para escalas médicas
   const prompt = `Evalúa la escala "${scaleName}" con la información clínica disponible.
@@ -301,36 +179,29 @@ INTERPRETACIÓN: [Solo si hay suficiente información]
 LIMITACIONES: [Datos faltantes que afectan la evaluación]`;
 
   try {
-    const model = 'gpt-4o-mini';
     const systemMessage = "Experto en escalas clínicas. Solo usa información explícita, nunca inventa datos. Transparente sobre limitaciones.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
-      model,
+      model: OPENAI_MODEL,
       messages,
-      temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
-      max_tokens: TOKEN_LIMITS.MEDICAL_SCALE,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.9
     };
     
     const response = await openai.chat.completions.create(params);
-
     const result = response.choices[0]?.message?.content || '';
     
     if (!result.trim()) {
       throw new Error('No se pudo generar contenido válido');
     }
     
-    const finalResult = {
+    return {
       text: result,
       groundingMetadata: { groundingChunks: [] }
     };
-    
-    // Guardar en cache
-    setCachedResponse(cacheKey, finalResult);
-    
-    return finalResult;
   } catch (error) {
     throw handleOpenAIError(error, 'generación de escala médica');
   }
@@ -341,14 +212,8 @@ export const updateClinicalNote = async (
   newInformation: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
-
-  // Verificar cache
-  const cacheKey = generateCacheKey('updateClinicalNote', originalNote, newInformation);
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('📝 Actualización obtenida desde cache');
-    return cached;
-  }
+  validateInput(originalNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
+  validateInput(newInformation, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   // Prompt optimizado para actualización de notas
   const prompt = `Actualiza esta nota clínica integrando ÚNICAMENTE la nueva información proporcionada.
@@ -373,51 +238,35 @@ INSTRUCCIONES:
 Devuelve la nota clínica completa actualizada:`;
 
   try {
-    const model = 'gpt-4o-mini';
     const systemMessage = "Especialista en actualización selectiva de notas clínicas. Preserva estructura original, modifica solo lo necesario.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
-      model,
+      model: OPENAI_MODEL,
       messages,
-      temperature: TEMPERATURE_CONFIG.CRITICAL_MEDICAL,
-      max_tokens: TOKEN_LIMITS.CRITICAL_MEDICAL_NOTE,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.8
     };
     
     const response = await openai.chat.completions.create(params);
-
     const generatedText = response.choices[0]?.message?.content || '';
     
-    const result = { 
+    return { 
       text: generatedText, 
       groundingMetadata: undefined
     };
-    
-    // Guardar en cache
-    setCachedResponse(cacheKey, result);
-    
-    return result;
   } catch (error) {
     throw handleOpenAIError(error, 'actualización selectiva de nota clínica');
   }
 }; 
 
-// ===== ANÁLISIS CLÍNICO OPTIMIZADO =====
-
 export const analyzeClinicalContent = async (
   request: EvidenceConsultationRequest
 ): Promise<ClinicalAnalysisResult> => {
   validateApiKey();
-
-  // Verificar cache
-  const cacheKey = generateCacheKey('analyzeClinicalContent', request.clinicalContent, request.consultationType);
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('🔬 Análisis obtenido desde cache');
-    return cached;
-  }
+  validateInput(request.clinicalContent, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   // Prompt optimizado para análisis clínico
   const prompt = `Analiza este contenido clínico y genera recomendaciones basadas en evidencia.
@@ -457,34 +306,28 @@ RESPUESTA EN JSON:
 }`;
 
   try {
-    const model = 'gpt-4o-mini';
     const systemMessage = "Experto en análisis clínico basado en evidencia. Responde siempre en JSON válido con recomendaciones precisas.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
-      model,
+      model: OPENAI_MODEL,
       messages,
-      temperature: TEMPERATURE_CONFIG.CLINICAL_REASONING,
-      max_tokens: TOKEN_LIMITS.CLINICAL_ANALYSIS,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.8
     };
     
     const response = await openai.chat.completions.create(params);
-
     const responseText = response.choices[0]?.message?.content || '';
     
     try {
       const parsed = JSON.parse(responseText);
       
-      // Validar estructura mínima
       if (!parsed.findings || !parsed.recommendations) {
         throw new Error('Respuesta de IA inválida: falta estructura de análisis');
       }
 
-      // Guardar en cache
-      setCachedResponse(cacheKey, parsed);
-      
       return parsed as ClinicalAnalysisResult;
     } catch (jsonError) {
       console.error('Error parsing clinical analysis response:', jsonError);
@@ -500,14 +343,7 @@ export const searchEvidenceBasedRecommendations = async (
   clinicalContext?: string
 ): Promise<EvidenceSearchResult> => {
   validateApiKey();
-
-  // Verificar cache
-  const cacheKey = generateCacheKey('searchEvidenceBasedRecommendations', query, clinicalContext || '');
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('🔍 Búsqueda obtenida desde cache');
-    return cached;
-  }
+  validateInput(query, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   // Prompt optimizado para búsqueda de evidencia
   const prompt = `Busca evidencia científica para: "${query}"
@@ -534,29 +370,23 @@ RESPUESTA EN JSON:
 }`;
 
   try {
-    const model = 'gpt-4o-mini';
     const systemMessage = "Experto en medicina basada en evidencia. Responde en JSON válido con información científicamente respaldada.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
-      model,
+      model: OPENAI_MODEL,
       messages,
-      temperature: TEMPERATURE_CONFIG.EVIDENCE_SUGGESTIONS,
-      max_tokens: TOKEN_LIMITS.EVIDENCE_SUGGESTIONS,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.8
     };
     
     const response = await openai.chat.completions.create(params);
-
     const responseText = response.choices[0]?.message?.content || '';
     
     try {
       const parsed = JSON.parse(responseText);
-      
-      // Guardar en cache
-      setCachedResponse(cacheKey, parsed);
-      
       return parsed as EvidenceSearchResult;
     } catch (jsonError) {
       console.error('Error parsing evidence search response:', jsonError);
@@ -573,7 +403,6 @@ export const generateEvidenceBasedConsultation = async (
 ): Promise<{ analysis: ClinicalAnalysisResult; evidenceSearch?: EvidenceSearchResult }> => {
   validateApiKey();
 
-  // Configurar la solicitud de consulta
   const consultationRequest: EvidenceConsultationRequest = {
     clinicalContent,
     consultationType: 'comprehensive',
@@ -581,10 +410,8 @@ export const generateEvidenceBasedConsultation = async (
   };
 
   try {
-    // Realizar análisis clínico completo
     const analysis = await analyzeClinicalContent(consultationRequest);
 
-    // Si hay preguntas específicas, realizar búsqueda adicional
     let evidenceSearch: EvidenceSearchResult | undefined;
     if (specificQuestions && specificQuestions.length > 0) {
       const combinedQuery = specificQuestions.join(' AND ');
@@ -730,25 +557,14 @@ export const formatEvidenceBasedReport = async (
   return report;
 }; 
 
-// ===== CONSULTA CLÍNICA SIMPLIFICADA OPTIMIZADA =====
-
 export const generateSimplifiedEvidenceConsultation = async (
   clinicalContent: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
-  
-  // Verificar cache
-  const cacheKey = generateCacheKey('generateSimplifiedEvidenceConsultation', clinicalContent);
-  const cached = getCachedResponse(cacheKey);
-  if (cached) {
-    console.log('🩺 Consulta obtenida desde cache');
-    return cached;
-  }
+  validateInput(clinicalContent, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Usar protección contra llamadas duplicadas
-  return preventDuplicateRequests(cacheKey, async () => {
-    // Prompt optimizado para consulta simplificada
-    const prompt = `Analiza este contenido clínico y proporciona recomendaciones basadas en evidencia científica.
+  // Prompt optimizado para consulta simplificada
+  const prompt = `Analiza este contenido clínico y proporciona recomendaciones basadas en evidencia científica.
 
 CONTENIDO CLÍNICO:
 ---
@@ -765,41 +581,33 @@ FUENTES PRINCIPALES: PubMed, Cochrane, UpToDate, NEJM, The Lancet, JAMA, BMJ
 
 Proporciona análisis completo con recomendaciones prácticas para la toma de decisiones clínicas.`;
 
-    try {
-      const model = 'gpt-4o-mini';
-      const systemMessage = "Médico especialista en medicina basada en evidencia. Análisis clínicos con recomendaciones respaldadas por literatura científica actual.";
-      
-      const messages = createMessages(systemMessage, prompt);
-      
-      const params = {
-        model,
-        messages,
-        temperature: TEMPERATURE_CONFIG.CONSULTATION,
-        max_tokens: TOKEN_LIMITS.CONSULTATION,
-        top_p: 0.9
-      };
-      
-      const response = await openai.chat.completions.create(params);
-
-      const result = response.choices[0]?.message?.content || '';
-      
-      if (!result.trim()) {
-        throw new Error('No se pudo generar contenido válido');
-      }
-      
-      const finalResult = {
-        text: result,
-        groundingMetadata: { groundingChunks: [] }
-      };
-      
-      // Guardar en cache
-      setCachedResponse(cacheKey, finalResult);
-      
-      return finalResult;
-    } catch (error) {
-      throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
+  try {
+    const systemMessage = "Médico especialista en medicina basada en evidencia. Análisis clínicos con recomendaciones respaldadas por literatura científica actual.";
+    
+    const messages = createMessages(systemMessage, prompt);
+    
+    const params = {
+      model: OPENAI_MODEL,
+      messages,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
+      top_p: 0.9
+    };
+    
+    const response = await openai.chat.completions.create(params);
+    const result = response.choices[0]?.message?.content || '';
+    
+    if (!result.trim()) {
+      throw new Error('No se pudo generar contenido válido');
     }
-  });
+    
+    return {
+      text: result,
+      groundingMetadata: { groundingChunks: [] }
+    };
+  } catch (error) {
+    throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
+  }
 };
 
 // =============================================================================
@@ -812,12 +620,7 @@ export const validateOpenAIConfiguration = (): boolean => {
 
 export const getOpenAIModelInfo = () => {
   return {
-    textModel: OPENAI_MODEL_TEXT,
-    advancedModel: OPENAI_MODEL_ADVANCED,
-    latestModel: OPENAI_MODEL_LATEST,
-    reasoningModel: OPENAI_MODEL_REASONING,
-    medicalModels: MEDICAL_AI_MODELS,
-    temperatureConfig: TEMPERATURE_CONFIG,
-    tokenLimits: TOKEN_LIMITS,
+    model: OPENAI_MODEL,
+    config: AI_CONFIG,
   };
 }; 

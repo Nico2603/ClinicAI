@@ -2,9 +2,6 @@
 // BARREL EXPORTS - UTILIDADES
 // =============================================================================
 
-// Utilidades de validación simples
-// export * from './validationUtils'; // Eliminado - reemplazado por simpleValidation
-
 // Utilidades de formato
 export * from './formatUtils';
 
