@@ -247,7 +247,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
                 </div>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                💡 Ingrese un ejemplo completo con datos de un paciente. El sistema extraerá automáticamente solo la estructura para crear una plantilla reutilizable.
+                💡 Escriba aquí una nota o plantilla que usted utiliza con frecuencia y desea guardar para estructurarla como base.
               </p>
               <div className="relative">
                 <textarea
