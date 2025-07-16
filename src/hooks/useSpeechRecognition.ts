@@ -43,6 +43,7 @@ export const useSpeechRecognition = (
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isInitializedRef = useRef(false);
   const sessionTranscriptRef = useRef(''); // Acumular texto de toda la sesión
+  const currentSessionStartIndexRef = useRef(0); // Índice donde inicia la sesión actual
 
   // Inicializar el reconocimiento de voz
   useEffect(() => {
@@ -70,21 +71,23 @@ export const useSpeechRecognition = (
         setIsRecording(true);
         setError(null);
         setInterimTranscript('');
-        sessionTranscriptRef.current = ''; // Resetear el acumulador de sesión
+        // No resetear sessionTranscriptRef.current aquí - mantener el texto acumulado
+        // Solo establecer el índice de inicio de la sesión actual
+        currentSessionStartIndexRef.current = sessionTranscriptRef.current.length;
         onStart?.();
       };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let sessionFinalTranscript = '';
+        let currentSessionFinalTranscript = '';
         let currentInterim = '';
         
-        // Procesar TODOS los resultados desde el inicio
+        // Procesar TODOS los resultados desde el inicio de la sesión actual
         for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i];
           if (result && result[0]) {
             const transcript = result[0].transcript;
             if (result.isFinal) {
-              sessionFinalTranscript += transcript;
+              currentSessionFinalTranscript += transcript;
             } else {
               currentInterim += transcript;
             }
@@ -93,12 +96,15 @@ export const useSpeechRecognition = (
         
         setInterimTranscript(currentInterim);
         
+        // Construir el nuevo texto de sesión completo
+        const newSessionTranscript = sessionTranscriptRef.current.substring(0, currentSessionStartIndexRef.current) + currentSessionFinalTranscript;
+        
         // Solo enviar texto nuevo si hay diferencia con lo acumulado anteriormente
-        if (sessionFinalTranscript.trim() && sessionFinalTranscript !== sessionTranscriptRef.current) {
-          const newText = sessionFinalTranscript.substring(sessionTranscriptRef.current.length);
+        if (currentSessionFinalTranscript.trim() && newSessionTranscript !== sessionTranscriptRef.current) {
+          const newText = newSessionTranscript.substring(sessionTranscriptRef.current.length);
           if (newText.trim()) {
             onTranscript?.(newText.trim());
-            sessionTranscriptRef.current = sessionFinalTranscript;
+            sessionTranscriptRef.current = newSessionTranscript;
           }
         }
       };
@@ -140,7 +146,7 @@ export const useSpeechRecognition = (
       recognition.onend = () => {
         setIsRecording(false);
         setInterimTranscript('');
-        sessionTranscriptRef.current = ''; // Limpiar el acumulador cuando termina
+        // No limpiar sessionTranscriptRef.current aquí - mantener el texto acumulado
         onEnd?.();
       };
 
@@ -206,6 +212,7 @@ export const useSpeechRecognition = (
     setInterimTranscript('');
     setError(null);
     sessionTranscriptRef.current = '';
+    currentSessionStartIndexRef.current = 0;
   }, []);
 
   return {
