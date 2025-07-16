@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
@@ -36,6 +36,11 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
+  // Función estable para manejar transcripciones
+  const handleTranscript = useCallback((transcript: string) => {
+    onPatientInfoChange(patientInfo + (patientInfo.endsWith(' ') || patientInfo === '' ? '' : ' ') + transcript + ' ');
+  }, [patientInfo, onPatientInfoChange]);
+
   // Hook de reconocimiento de voz
   const { 
     isRecording, 
@@ -45,9 +50,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     startRecording, 
     stopRecording 
   } = useSpeechRecognition({
-    onTranscript: (transcript) => {
-      onPatientInfoChange(patientInfo + (patientInfo.endsWith(' ') || patientInfo === '' ? '' : ' ') + transcript + ' ');
-    },
+    onTranscript: handleTranscript,
     onError: (error) => {
       console.error('Speech recognition error:', error);
     }
