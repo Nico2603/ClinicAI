@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
+import { Button } from '../ui/button';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
 interface TemplateNoteViewProps {
@@ -141,45 +142,56 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Ingrese la información del paciente que desea incluir en la nota. Puede usar el micrófono para dictar.
             </p>
-            <div className="relative">
-              <label htmlFor="patient-info" className="sr-only">
-                Información del paciente
-              </label>
-              <textarea
-                id="patient-info"
-                value={patientInfo}
-                onChange={(e) => onPatientInfoChange(e.target.value)}
-                rows={6}
-                className="w-full p-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
-                placeholder="Ingrese la información del paciente que desea incluir en la nota..."
-              />
-              
-              {isSpeechApiAvailable && (
-                <button
-                  onClick={handleToggleRecording}
-                  className={`absolute bottom-3 right-3 p-2 rounded-full transition-all ${
-                    isRecording
-                      ? 'bg-red-500 text-white hover:bg-red-600'
-                      : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-500'
-                  }`}
-                  title={isRecording ? 'Detener grabación' : 'Iniciar grabación de voz'}
-                >
-                  <MicrophoneIcon className="h-4 w-4" />
-                </button>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Información del Paciente
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {patientInfo.length} caracteres
+                  </span>
+                  {isSpeechApiAvailable && (
+                    <Button
+                      onClick={handleToggleRecording}
+                      variant="outline"
+                      size="sm"
+                      className={`flex items-center gap-2 ${
+                        isRecording ? 'bg-red-50 text-red-600 border-red-300' : 'text-gray-600'
+                      }`}
+                    >
+                      <MicrophoneIcon className="h-4 w-4" />
+                      {isRecording ? 'Detener' : 'Dictar'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="relative">
+                <textarea
+                  id="patient-info"
+                  value={patientInfo}
+                  onChange={(e) => onPatientInfoChange(e.target.value)}
+                  rows={6}
+                  className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                  placeholder="Ingrese la información del paciente que desea incluir en la nota..."
+                />
+                {isRecording && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+                    Grabando...
+                  </div>
+                )}
+              </div>
+              {interimTranscript && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  Transcripción en progreso: {interimTranscript}
+                </p>
+              )}
+              {transcriptError && (
+                <p className="text-sm text-red-500">
+                  Error de transcripción: {transcriptError}
+                </p>
               )}
             </div>
-            
-            {interimTranscript && (
-              <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded text-sm text-blue-800 dark:text-blue-200">
-                <span className="font-medium">Transcribiendo:</span> {interimTranscript}
-              </div>
-            )}
-            
-            {transcriptError && (
-              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded text-sm text-red-800 dark:text-red-200">
-                <span className="font-medium">Error de transcripción:</span> {transcriptError}
-              </div>
-            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
