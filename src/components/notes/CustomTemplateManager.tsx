@@ -198,7 +198,10 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
   // Función optimizada para crear plantilla - guardado directo sin IA
   const handleCreateTemplate = useCallback(async () => {
-    if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
+    if (!newTemplateName.trim() || !newTemplateContent.trim()) {
+      console.warn('⚠️ Nombre o contenido de plantilla vacío');
+      return;
+    }
 
     // Prevenir múltiples clics simultáneos
     if (isProcessing) {
@@ -211,13 +214,13 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       
       console.log('💾 Guardando plantilla directamente en base de datos...');
       const newTemplate = await createUserTemplate({
-        name: newTemplateName,
-        content: newTemplateContent, // Guardar contenido directamente sin procesamiento de IA
+        name: newTemplateName.trim(),
+        content: newTemplateContent.trim(),
         user_id: user?.id || '',
         is_active: true
       });
 
-      console.log('✅ Plantilla creada exitosamente');
+      console.log('✅ Plantilla creada exitosamente:', newTemplate.name);
       
       // Reset optimizado del estado
       setNewTemplateName('');
@@ -225,7 +228,9 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       setIsCreating(false);
       onSelectTemplate(newTemplate);
     } catch (err) {
-      console.error('Error al crear plantilla:', err);
+      console.error('❌ Error al crear plantilla:', err);
+      // El error ya es manejado por el hook useSimpleUserTemplates
+      // No necesitamos mostrar mensajes adicionales aquí
     } finally {
       setIsProcessing(false);
     }

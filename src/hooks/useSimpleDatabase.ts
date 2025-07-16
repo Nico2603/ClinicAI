@@ -161,13 +161,21 @@ export const useSimpleUserTemplates = () => {
     if (!user?.id) throw new Error('Usuario no autenticado');
 
     try {
+      console.log('🔄 Iniciando creación de plantilla...');
+      const startTime = Date.now();
+      
       const newTemplate = await simpleDbCall(() => userTemplatesService.createUserTemplate({
         ...templateData,
         user_id: user.id
-      }));
+      }), { timeout: 45000 }); // Timeout más largo para creación de plantillas
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ Plantilla creada exitosamente en ${duration}ms`);
+      
       setUserTemplates(prev => [...prev, newTemplate]);
       return newTemplate;
     } catch (err) {
+      console.error('❌ Error al crear plantilla:', err);
       const errorMessage = getSimpleErrorMessage(err);
       setError(errorMessage);
       throw new Error(errorMessage);
