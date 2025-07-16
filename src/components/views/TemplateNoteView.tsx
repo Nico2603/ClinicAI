@@ -35,11 +35,6 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
-  // Función estable para manejar transcripciones
-  const handleTranscript = useCallback((transcript: string) => {
-    onPatientInfoChange(patientInfo + (patientInfo.endsWith(' ') || patientInfo === '' ? '' : ' ') + transcript + ' ');
-  }, [patientInfo, onPatientInfoChange]);
-
   // Hook de reconocimiento de voz
   const { 
     isRecording, 
@@ -49,7 +44,11 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     startRecording, 
     stopRecording 
   } = useSpeechRecognition({
-    onTranscript: handleTranscript,
+    onTranscript: (transcript) => {
+      const currentText = patientInfo;
+      const newText = currentText + (currentText.endsWith(' ') || currentText === '' ? '' : ' ') + transcript + ' ';
+      onPatientInfoChange(newText);
+    },
     onError: (error) => {
       console.error('Speech recognition error:', error);
     }
