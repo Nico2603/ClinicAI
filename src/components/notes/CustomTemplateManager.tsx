@@ -171,10 +171,13 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
     return `Plantilla ${nextNumber}`;
   };
 
-  if (isLoading) {
+  if (isLoading && userTemplates.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Cargando plantillas...
+        </p>
       </div>
     );
   }
@@ -182,9 +185,17 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
-          Mis Plantillas Personalizadas
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
+            Mis Plantillas Personalizadas
+          </h2>
+          {isLoading && userTemplates.length > 0 && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+              <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
+              <span className="text-xs text-blue-600 dark:text-blue-400">Actualizando...</span>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => {
             setNewTemplateName(getNextTemplateName());

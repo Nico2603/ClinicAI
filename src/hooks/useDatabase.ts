@@ -233,6 +233,46 @@ export const useUserTemplates = () => {
   const userIdRef = useRef<string | null>(null);
   const hasFetchedRef = useRef<boolean>(false);
 
+  // Claves para localStorage
+  const getCacheKey = useCallback((userId: string) => `user_templates_${userId}`, []);
+  const getCacheTimestampKey = useCallback((userId: string) => `user_templates_timestamp_${userId}`, []);
+
+  // Cargar desde caché local
+  const loadFromCache = useCallback((userId: string) => {
+    try {
+      const cacheKey = getCacheKey(userId);
+      const timestampKey = getCacheTimestampKey(userId);
+      const cached = localStorage.getItem(cacheKey);
+      const timestamp = localStorage.getItem(timestampKey);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        // Caché válido por 5 minutos
+        if (age < 5 * 60 * 1000) {
+          const templates = JSON.parse(cached);
+          setUserTemplates(templates);
+          setIsLoading(false);
+          return templates;
+        }
+      }
+    } catch (error) {
+      console.warn('Error al cargar caché de plantillas:', error);
+    }
+    return null;
+  }, [getCacheKey, getCacheTimestampKey]);
+
+  // Guardar en caché local
+  const saveToCache = useCallback((userId: string, templates: UserTemplate[]) => {
+    try {
+      const cacheKey = getCacheKey(userId);
+      const timestampKey = getCacheTimestampKey(userId);
+      localStorage.setItem(cacheKey, JSON.stringify(templates));
+      localStorage.setItem(timestampKey, Date.now().toString());
+    } catch (error) {
+      console.warn('Error al guardar caché de plantillas:', error);
+    }
+  }, [getCacheKey, getCacheTimestampKey]);
+
   const fetchUserTemplates = useCallback(async () => {
     if (!user?.id) {
       setIsLoading(false);
@@ -244,38 +284,58 @@ export const useUserTemplates = () => {
       return;
     }
     
+    // Cargar desde caché primero para mostrar datos inmediatamente
+    const cachedTemplates = loadFromCache(user.id);
+    
     try {
-      setIsLoading(true);
       setError(null);
       setHasTimeout(false);
       
+      // Si no hay caché, mostrar loading
+      if (!cachedTemplates) {
+        setIsLoading(true);
+      }
+      
+      // Intentar cargar desde base de datos con timeout reducido
       const data = await safeDatabaseCall(
         () => userTemplatesService.getUserTemplates(user.id),
         {
-          timeout: 15000, // 15 segundos de timeout
-          maxRetries: 2,  // Máximo 2 reintentos
-          retryDelay: 1500 // 1.5 segundos entre reintentos
+          timeout: 3000, // Reducido a 3 segundos
+          maxRetries: 1,  // Solo 1 reintento
+          retryDelay: 500 // 0.5 segundos entre reintentos
         }
       );
       
+      // Actualizar estado y caché
       setUserTemplates(data);
+      saveToCache(user.id, data);
       userIdRef.current = user.id;
       hasFetchedRef.current = true;
     } catch (err) {
       console.error('Error al cargar plantillas del usuario:', err);
       
-      if (err instanceof DatabaseTimeoutError) {
-        setHasTimeout(true);
-        setError('La carga está tardando demasiado. Haz clic en "Reintentar" para intentar nuevamente.');
-      } else if (err instanceof DatabaseRetryError) {
-        setError('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+      // Si hay caché disponible, usarlo en caso de error
+      if (cachedTemplates) {
+        console.log('Usando plantillas del caché debido a error de red');
+        // Ya están cargadas del caché, solo limpiar el error
+        setError(null);
+        userIdRef.current = user.id;
+        hasFetchedRef.current = true;
       } else {
-        setError(getFriendlyErrorMessage(err as Error));
+        // Sin caché, mostrar error
+        if (err instanceof DatabaseTimeoutError) {
+          setHasTimeout(true);
+          setError('Carga lenta. Verificando conexión...');
+        } else if (err instanceof DatabaseRetryError) {
+          setError('Problema de conectividad. Usando modo offline.');
+        } else {
+          setError(getFriendlyErrorMessage(err as Error));
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]); // Usar optional chaining para manejar user null
+  }, [user?.id, loadFromCache, saveToCache]);
 
   // Efecto separado para manejar cambios de usuario
   useEffect(() => {
@@ -298,11 +358,20 @@ export const useUserTemplates = () => {
       const newTemplate = await safeDatabaseCall(
         () => userTemplatesService.createUserTemplate(templateData),
         {
-          timeout: 10000,
+          timeout: 5000, // 5 segundos para crear
           maxRetries: 1
         }
       );
+      
+      // Actualizar estado local
       setUserTemplates(prev => [newTemplate, ...prev]);
+      
+      // Actualizar caché si hay usuario
+      if (user?.id) {
+        const updatedTemplates = [newTemplate, ...userTemplates];
+        saveToCache(user.id, updatedTemplates);
+      }
+      
       return newTemplate;
     } catch (err) {
       console.error('Error al crear plantilla:', err);
@@ -310,18 +379,33 @@ export const useUserTemplates = () => {
       setError(friendlyMessage);
       throw new Error(friendlyMessage);
     }
-  }, []);
+  }, [user?.id, userTemplates, saveToCache]);
 
   const updateUserTemplate = useCallback(async (id: string, updates: Partial<Omit<UserTemplate, 'id' | 'created_at'>>) => {
     try {
       const updatedTemplate = await safeDatabaseCall(
         () => userTemplatesService.updateUserTemplate(id, updates),
         {
-          timeout: 10000,
+          timeout: 5000,
           maxRetries: 1
         }
       );
-      setUserTemplates(prev => prev.map(template => template.id === id ? updatedTemplate : template));
+      
+      // Actualizar estado local
+      setUserTemplates(prev => 
+        prev.map(template => 
+          template.id === id ? updatedTemplate : template
+        )
+      );
+      
+      // Actualizar caché
+      if (user?.id) {
+        const updatedTemplates = userTemplates.map(template => 
+          template.id === id ? updatedTemplate : template
+        );
+        saveToCache(user.id, updatedTemplates);
+      }
+      
       return updatedTemplate;
     } catch (err) {
       console.error('Error al actualizar plantilla:', err);
@@ -329,50 +413,69 @@ export const useUserTemplates = () => {
       setError(friendlyMessage);
       throw new Error(friendlyMessage);
     }
-  }, []);
+  }, [user?.id, userTemplates, saveToCache]);
 
   const deleteUserTemplate = useCallback(async (id: string) => {
     try {
       await safeDatabaseCall(
         () => userTemplatesService.deleteUserTemplate(id),
         {
-          timeout: 10000,
+          timeout: 5000,
           maxRetries: 1
         }
       );
+      
+      // Actualizar estado local
       setUserTemplates(prev => prev.filter(template => template.id !== id));
+      
+      // Actualizar caché
+      if (user?.id) {
+        const updatedTemplates = userTemplates.filter(template => template.id !== id);
+        saveToCache(user.id, updatedTemplates);
+      }
+      
+      return true;
     } catch (err) {
       console.error('Error al eliminar plantilla:', err);
       const friendlyMessage = getFriendlyErrorMessage(err as Error);
       setError(friendlyMessage);
       throw new Error(friendlyMessage);
     }
-  }, []);
+  }, [user?.id, userTemplates, saveToCache]);
 
   const renameUserTemplate = useCallback(async (id: string, newName: string) => {
     try {
-      const renamedTemplate = await safeDatabaseCall(
-        () => userTemplatesService.renameUserTemplate(id, newName),
+      const updatedTemplate = await safeDatabaseCall(
+        () => userTemplatesService.updateUserTemplate(id, { name: newName }),
         {
-          timeout: 10000,
+          timeout: 5000,
           maxRetries: 1
         }
       );
-      setUserTemplates(prev => prev.map(template => template.id === id ? renamedTemplate : template));
-      return renamedTemplate;
+      
+      // Actualizar estado local
+      setUserTemplates(prev => 
+        prev.map(template => 
+          template.id === id ? updatedTemplate : template
+        )
+      );
+      
+      // Actualizar caché
+      if (user?.id) {
+        const updatedTemplates = userTemplates.map(template => 
+          template.id === id ? updatedTemplate : template
+        );
+        saveToCache(user.id, updatedTemplates);
+      }
+      
+      return updatedTemplate;
     } catch (err) {
       console.error('Error al renombrar plantilla:', err);
       const friendlyMessage = getFriendlyErrorMessage(err as Error);
       setError(friendlyMessage);
       throw new Error(friendlyMessage);
     }
-  }, []);
-
-  // Función de refetch manual que fuerza una nueva carga
-  const refetch = useCallback(() => {
-    hasFetchedRef.current = false;
-    fetchUserTemplates();
-  }, [fetchUserTemplates]);
+  }, [user?.id, userTemplates, saveToCache]);
 
   return {
     userTemplates,
@@ -383,6 +486,6 @@ export const useUserTemplates = () => {
     updateUserTemplate,
     deleteUserTemplate,
     renameUserTemplate,
-    refetch
+    refreshTemplates: fetchUserTemplates
   };
 }; 

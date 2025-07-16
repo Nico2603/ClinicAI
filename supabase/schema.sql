@@ -55,6 +55,9 @@ CREATE INDEX IF NOT EXISTS idx_user_templates_user_id ON public.user_templates(u
 CREATE INDEX IF NOT EXISTS idx_user_templates_user_active ON public.user_templates(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_user_templates_created_at ON public.user_templates(created_at);
 
+-- Índice optimizado para la consulta principal de plantillas (user_id + is_active + orden por created_at)
+CREATE INDEX IF NOT EXISTS idx_user_templates_optimized ON public.user_templates(user_id, is_active, created_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_notes_user_template_id ON public.notes(user_template_id);
 CREATE INDEX IF NOT EXISTS idx_notes_created_at ON public.notes(created_at);
@@ -290,6 +293,41 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.ensure_current_user_exists() TO authenticated;
+
+-- ========================================
+-- FUNCIÓN OPTIMIZADA PARA CARGAR PLANTILLAS
+-- ========================================
+
+-- Función optimizada para cargar plantillas del usuario actual
+CREATE OR REPLACE FUNCTION public.get_user_templates_fast()
+RETURNS TABLE (
+  id uuid,
+  name text,
+  content text,
+  user_id uuid,
+  is_active boolean,
+  created_at timestamptz,
+  updated_at timestamptz
+) AS $$
+BEGIN
+  -- Usar el índice optimizado para una consulta rápida
+  RETURN QUERY
+  SELECT 
+    ut.id,
+    ut.name,
+    ut.content,
+    ut.user_id,
+    ut.is_active,
+    ut.created_at,
+    ut.updated_at
+  FROM public.user_templates ut
+  WHERE ut.user_id = auth.uid() 
+    AND ut.is_active = true
+  ORDER BY ut.created_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_user_templates_fast() TO authenticated;
 
 -- ========================================
 -- FINALIZACIÓN

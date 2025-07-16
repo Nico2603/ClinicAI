@@ -112,14 +112,11 @@ export const notesService = {
 
 // Servicios para Plantillas Personalizadas del Usuario
 export const userTemplatesService = {
-  // Obtener plantillas personalizadas del usuario
+  // Obtener plantillas personalizadas del usuario (función optimizada)
   getUserTemplates: async (userId: string): Promise<UserTemplate[]> => {
+    // Usar la función SQL optimizada para mejor rendimiento
     const { data, error } = await supabase
-      .from('user_templates')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .rpc('get_user_templates_fast');
 
     if (error) throw error;
     return data || [];
