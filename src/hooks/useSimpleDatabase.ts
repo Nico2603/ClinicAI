@@ -157,7 +157,7 @@ export const useSimpleUserTemplates = () => {
     }
   }, [user?.id, fetchUserTemplates]);
 
-  const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>) => {
+  const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (!user?.id) throw new Error('Usuario no autenticado');
 
     try {

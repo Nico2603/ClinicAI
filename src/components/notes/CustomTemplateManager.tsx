@@ -123,7 +123,6 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       const newTemplate = await createUserTemplate({
         name: newTemplateName.trim(),
         content: newTemplateContent.trim(),
-        user_id: user?.id || '',
         is_active: true
       });
 
@@ -136,7 +135,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     } finally {
       setIsProcessing(false);
     }
-  }, [newTemplateName, newTemplateContent, isProcessing, createUserTemplate, user?.id, onSelectTemplate]);
+  }, [newTemplateName, newTemplateContent, isProcessing, createUserTemplate, onSelectTemplate]);
 
   // Iniciar edición
   const handleStartEdit = useCallback((template: UserTemplate) => {

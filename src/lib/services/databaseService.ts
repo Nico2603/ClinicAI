@@ -174,6 +174,18 @@ export const userTemplatesService = {
 
   // Actualizar una plantilla personalizada
   updateUserTemplate: async (id: string, updates: Partial<Omit<UserTemplate, 'id' | 'created_at'>>): Promise<UserTemplate> => {
+    // Verificar que la plantilla pertenece al usuario actual antes de actualizar
+    const { data: existingTemplate, error: checkError } = await supabase
+      .from('user_templates')
+      .select('id, user_id')
+      .eq('id', id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
+
+    if (checkError || !existingTemplate) {
+      throw new Error('No se pudo encontrar la plantilla o no tienes permisos para actualizarla.');
+    }
+
     const { data, error } = await supabase
       .from('user_templates')
       .update({ 
@@ -181,24 +193,29 @@ export const userTemplatesService = {
         updated_at: new Date().toISOString() 
       })
       .eq('id', id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
       .select()
       .single();
 
     if (error) throw error;
+    if (!data) {
+      throw new Error('No se pudo actualizar la plantilla.');
+    }
     return data;
   },
 
   // Eliminar (desactivar) una plantilla personalizada
   deleteUserTemplate: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from('user_templates')
-      .update({ 
-        is_active: false,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', id);
+    const { data: success, error } = await supabase
+      .rpc('deactivate_user_template', {
+        template_uuid: id
+      });
 
     if (error) throw error;
+    
+    if (!success) {
+      throw new Error('No se pudo eliminar la plantilla. Verifica que te pertenezca y esté activa.');
+    }
   },
 
   // Renombrar una plantilla personalizada
