@@ -90,14 +90,9 @@ export default function HomePage() {
             <div className="text-center lg:text-left space-y-8 w-full max-w-2xl">
               {/* Logo y título principal */}
               <div>
-                <div className="inline-flex items-center justify-center mb-6 mx-auto lg:mx-0">
-                  <Logo size="xl" className="h-20" />
+                <div className="inline-flex items-center justify-center mb-8 mx-auto lg:mx-0">
+                  <Logo size="xl" className="h-32" />
                 </div>
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    ClinicAI
-                  </span>
-                </h1>
                 <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8">
                   El futuro de las notas clínicas está aquí
                 </p>
@@ -248,7 +243,7 @@ export default function HomePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Gratis durante los primeros 30 días</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Plantillas personalizables por especialidad</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
@@ -256,7 +251,23 @@ export default function HomePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Sin cláusulas de permanencia</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Reconocimiento de voz integrado</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Historial completo de consultas</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Escalas clínicas automatizadas</span>
                     </div>
                   </div>
                 </div>
