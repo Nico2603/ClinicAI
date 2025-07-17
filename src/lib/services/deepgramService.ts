@@ -29,6 +29,9 @@ export class DeepgramService {
   private config: DeepgramConfig;
   private callbacks: DeepgramCallbacks;
   private isRecording = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 3;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   constructor(config: DeepgramConfig, callbacks: DeepgramCallbacks = {}) {
     this.config = config;
@@ -45,6 +48,10 @@ export class DeepgramService {
       // Validar API key antes de intentar conectar
       if (!this.config.apiKey || this.config.apiKey.trim() === '') {
         throw new Error('API key de Deepgram no configurada o vacía');
+      }
+
+      if (this.config.apiKey.trim().length < 10) {
+        throw new Error('API key de Deepgram parece ser inválida (muy corta)');
       }
 
       // Obtener acceso al micrófono
@@ -94,13 +101,25 @@ export class DeepgramService {
     }
 
     this.isRecording = false;
+    this.reconnectAttempts = 0;
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
 
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-      this.websocket.close();
+      // Enviar mensaje de finalización antes de cerrar
+      try {
+        this.websocket.send(JSON.stringify({ type: "CloseStream" }));
+      } catch (e) {
+        console.warn('Error al enviar mensaje de cierre:', e);
+      }
+      this.websocket.close(1000, 'Recording stopped by user');
     }
 
     this.cleanup();
@@ -111,11 +130,14 @@ export class DeepgramService {
     
     return new Promise((resolve, reject) => {
       try {
-        // Crear WebSocket (la autenticación va en la URL como query parameter)
+        console.log('Creando nueva conexión WebSocket con Deepgram...');
+        
+        // Crear WebSocket con configuración mejorada
         this.websocket = new WebSocket(wsUrl);
 
         this.websocket.onopen = () => {
-          console.log('Conexión WebSocket con Deepgram establecida');
+          console.log('✅ Conexión WebSocket con Deepgram establecida exitosamente');
+          this.reconnectAttempts = 0; // Reset intentos de reconexión
           this.callbacks.onOpen?.();
           resolve();
         };
@@ -131,12 +153,21 @@ export class DeepgramService {
         };
 
         this.websocket.onerror = (error) => {
-          console.error('Error en WebSocket:', error);
+          console.error('❌ Error en WebSocket:', error);
           let errorMessage = 'Error de conexión con el servicio de transcripción';
           
-          // Intentar dar más información específica del error
-          if (this.websocket?.readyState === WebSocket.CLOSED) {
-            errorMessage = 'Conexión cerrada inesperadamente. Verifica tu conexión a internet y la configuración de API.';
+          // Verificar el estado de la conexión para dar más información
+          if (this.websocket) {
+            switch (this.websocket.readyState) {
+              case WebSocket.CONNECTING:
+                errorMessage = 'Error al conectar con el servicio de transcripción. Verifica tu conexión a internet.';
+                break;
+              case WebSocket.CLOSED:
+                errorMessage = 'Conexión cerrada inesperadamente. Verifica tu conexión a internet y la configuración de API.';
+                break;
+              default:
+                errorMessage = 'Error de conexión WebSocket';
+            }
           }
           
           this.callbacks.onError?.(errorMessage);
@@ -144,36 +175,95 @@ export class DeepgramService {
         };
 
         this.websocket.onclose = (event) => {
-          console.log('Conexión WebSocket cerrada:', event.code, event.reason);
+          console.log('🔌 Conexión WebSocket cerrada:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+          });
           
-          // Dar información específica según el código de cierre
-          if (event.code === 1006) {
-            this.callbacks.onError?.('Conexión perdida inesperadamente. Verifica tu conexión a internet.');
-          } else if (event.code === 1000) {
-            // Cierre normal
-            this.callbacks.onClose?.();
-          } else if (event.code === 4008) {
-            this.callbacks.onError?.('API key inválida o expirada. Verifica tu configuración de Deepgram.');
-          } else if (event.code === 4001) {
-            this.callbacks.onError?.('API key no autorizada para esta funcionalidad.');
+          // Manejar códigos de error específicos de Deepgram
+          let shouldReconnect = false;
+          let errorMessage = '';
+
+          switch (event.code) {
+            case 1000: // Cierre normal
+              console.log('Conexión cerrada normalmente');
+              this.callbacks.onClose?.();
+              return;
+            
+            case 1001: // Going away
+              errorMessage = 'Servicio de transcripción temporalmente no disponible';
+              shouldReconnect = true;
+              break;
+            
+            case 1006: // Abnormal closure
+              errorMessage = 'Conexión perdida inesperadamente. Verifica tu conexión a internet.';
+              shouldReconnect = true;
+              break;
+            
+            case 4008: // Authentication failed
+              errorMessage = 'API key inválida o expirada. Verifica tu configuración de Deepgram.';
+              break;
+            
+            case 4001: // Unauthorized
+              errorMessage = 'API key no autorizada para esta funcionalidad.';
+              break;
+            
+            case 4013: // Insufficient funds
+              errorMessage = 'Créditos insuficientes en tu cuenta de Deepgram.';
+              break;
+            
+            default:
+              errorMessage = event.reason || `Error de conexión (código: ${event.code})`;
+              shouldReconnect = event.code >= 1001 && event.code <= 1015;
+          }
+
+          // Intentar reconectar si es apropiado y estamos grabando
+          if (shouldReconnect && this.isRecording && this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.attemptReconnect();
           } else {
-            this.callbacks.onError?.(event.reason || 'Conexión cerrada por el servidor');
+            this.callbacks.onError?.(errorMessage);
           }
         };
 
-        // Timeout para la conexión
+        // Timeout mejorado para la conexión
         setTimeout(() => {
           if (this.websocket?.readyState === WebSocket.CONNECTING) {
+            console.error('⏰ Timeout de conexión WebSocket');
             this.websocket.close();
-            reject(new Error('Timeout de conexión. El servicio de transcripción no responde.'));
+            reject(new Error('Timeout de conexión. El servicio de transcripción no responde. Verifica tu conexión a internet.'));
           }
-        }, 10000); // 10 segundos timeout
+        }, 15000); // 15 segundos timeout
 
       } catch (error) {
         console.error('Error al crear WebSocket:', error);
-        reject(new Error('Error al establecer conexión WebSocket'));
+        reject(new Error('Error al establecer conexión WebSocket: ' + (error instanceof Error ? error.message : 'Error desconocido')));
       }
     });
+  }
+
+  private attemptReconnect(): void {
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000); // Backoff exponencial, máximo 10s
+    
+    console.log(`🔄 Intento de reconexión ${this.reconnectAttempts}/${this.maxReconnectAttempts} en ${delay}ms...`);
+    
+    this.reconnectTimeout = setTimeout(async () => {
+      try {
+        if (this.isRecording) {
+          await this.createWebSocketConnection();
+          console.log('✅ Reconexión exitosa');
+        }
+      } catch (error) {
+        console.error('❌ Error en reconexión:', error);
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          this.callbacks.onError?.('No se pudo restablecer la conexión después de varios intentos. Intenta nuevamente.');
+          this.stopRecording();
+        } else {
+          this.attemptReconnect();
+        }
+      }
+    }, delay);
   }
 
   private buildWebSocketUrl(): string {
@@ -188,18 +278,20 @@ export class DeepgramService {
       interim_results: this.config.interimResults.toString(),
       punctuate: this.config.punctuate.toString(),
       smart_format: this.config.smartFormat.toString(),
-      encoding: 'linear16', // Especificar encoding compatible
+      encoding: 'linear16',
+      // Parámetros adicionales para mejorar la estabilidad
+      endpointing: '300', // 300ms de silencio para finalizar utterance
+      vad_events: 'true', // Detección de actividad de voz
     });
 
     // Agregar la API key como parámetro de autorización
-    // Deepgram acepta la API key como query parameter 'token'
     params.append('token', this.config.apiKey);
     
     const urlWithParams = `${baseUrl}?${params.toString()}`;
     
     // Log sin mostrar la API key completa por seguridad
     const safeUrl = urlWithParams.replace(this.config.apiKey, '[API_KEY_HIDDEN]');
-    console.log('Conectando a Deepgram:', safeUrl);
+    console.log('🔗 URL de conexión:', safeUrl);
     
     return urlWithParams;
   }
@@ -209,40 +301,59 @@ export class DeepgramService {
       throw new Error('No hay stream de audio disponible');
     }
 
-    // Configuración más compatible con diferentes navegadores
+    // Configuración más robusta con fallbacks
     let options: MediaRecorderOptions = {};
 
-    // Intentar diferentes tipos MIME según la compatibilidad del navegador
-    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-      options.mimeType = 'audio/webm;codecs=opus';
-    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-      options.mimeType = 'audio/webm';
-    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-      options.mimeType = 'audio/mp4';
-    } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-      options.mimeType = 'audio/ogg;codecs=opus';
-    } else {
-      console.warn('Ningún tipo de audio compatible encontrado, usando configuración por defecto');
+    // Probar diferentes codecs en orden de preferencia
+    const mimeTypes = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4'
+    ];
+
+    for (const mimeType of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        options.mimeType = mimeType;
+        console.log('📼 Usando formato de audio:', mimeType);
+        break;
+      }
     }
 
-    this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+    if (!options.mimeType) {
+      console.warn('⚠️ Ningún formato de audio específico soportado, usando configuración por defecto');
+    }
+
+    try {
+      this.mediaRecorder = new MediaRecorder(this.audioStream, options);
+    } catch (error) {
+      console.warn('⚠️ Error con configuración específica, intentando con configuración básica:', error);
+      this.mediaRecorder = new MediaRecorder(this.audioStream);
+    }
 
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0 && this.websocket?.readyState === WebSocket.OPEN) {
-        this.websocket.send(event.data);
+        try {
+          this.websocket.send(event.data);
+        } catch (error) {
+          console.error('Error al enviar datos de audio:', error);
+        }
+      } else if (event.data.size > 0) {
+        console.warn('⚠️ Datos de audio disponibles pero WebSocket no está abierto');
       }
     };
 
     this.mediaRecorder.onstart = () => {
-      console.log('MediaRecorder iniciado');
+      console.log('🎤 MediaRecorder iniciado');
     };
 
     this.mediaRecorder.onstop = () => {
-      console.log('MediaRecorder detenido');
+      console.log('⏹️ MediaRecorder detenido');
     };
 
     this.mediaRecorder.onerror = (event) => {
-      console.error('Error en MediaRecorder:', event);
+      console.error('❌ Error en MediaRecorder:', event);
       this.callbacks.onError?.('Error en la grabación de audio');
     };
   }
@@ -250,8 +361,19 @@ export class DeepgramService {
   private handleDeepgramResponse(response: any): void {
     // Manejar errores en la respuesta primero
     if (response.error) {
-      console.error('Error de Deepgram:', response.error);
+      console.error('❌ Error de Deepgram:', response.error);
       this.callbacks.onError?.(`Error del servicio de transcripción: ${response.error}`);
+      return;
+    }
+
+    // Manejar eventos VAD (Voice Activity Detection)
+    if (response.type === 'SpeechStarted') {
+      console.log('🎯 Detección de voz iniciada');
+      return;
+    }
+
+    if (response.type === 'UtteranceEnd') {
+      console.log('🎯 Final de utterance detectado');
       return;
     }
 
@@ -267,19 +389,30 @@ export class DeepgramService {
           isFinal: response.is_final || false,
         };
 
+        console.log(`📝 Transcripción ${result.isFinal ? 'final' : 'temporal'}:`, result.transcript);
         this.callbacks.onTranscript?.(result);
       }
     }
 
     // Manejar metadatos adicionales
     if (response.metadata) {
-      console.log('Metadata de Deepgram:', response.metadata);
+      console.log('📊 Metadata de Deepgram:', response.metadata);
     }
   }
 
   private cleanup(): void {
+    console.log('🧹 Limpiando recursos...');
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     if (this.audioStream) {
-      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('🔇 Track de audio detenido');
+      });
       this.audioStream = null;
     }
 
@@ -292,6 +425,7 @@ export class DeepgramService {
     }
 
     this.isRecording = false;
+    this.reconnectAttempts = 0;
   }
 
   // Métodos públicos para control y configuración
@@ -303,31 +437,49 @@ export class DeepgramService {
     this.callbacks = { ...this.callbacks, ...callbacks };
   }
 
-  // Método para verificar si la API key es válida
+  // Método mejorado para verificar conexión
   async testConnection(): Promise<boolean> {
     try {
-      // Test simple de conexión sin audio
+      console.log('🔍 Probando conexión con Deepgram...');
+      
+      // Validar API key primero
+      if (!this.config.apiKey || this.config.apiKey.trim().length < 10) {
+        console.error('❌ API key inválida o muy corta');
+        return false;
+      }
+
       const wsUrl = this.buildWebSocketUrl();
       const testSocket = new WebSocket(wsUrl);
       
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
+          console.log('⏰ Timeout en prueba de conexión');
           testSocket.close();
           resolve(false);
-        }, 5000);
+        }, 8000); // 8 segundos para la prueba
 
         testSocket.onopen = () => {
+          console.log('✅ Prueba de conexión exitosa');
           clearTimeout(timeout);
-          testSocket.close();
+          testSocket.close(1000, 'Test completed');
           resolve(true);
         };
 
-        testSocket.onerror = () => {
+        testSocket.onerror = (error) => {
+          console.error('❌ Error en prueba de conexión:', error);
           clearTimeout(timeout);
           resolve(false);
         };
+
+        testSocket.onclose = (event) => {
+          console.log('🔌 Conexión de prueba cerrada:', event.code);
+          if (event.code === 4008) {
+            console.error('❌ API key inválida detectada en prueba');
+          }
+        };
       });
-    } catch {
+    } catch (error) {
+      console.error('❌ Excepción en prueba de conexión:', error);
       return false;
     }
   }

@@ -48,24 +48,38 @@ export const useDeepgramSpeech = (
     if (hasInitializedRef.current) return;
 
     const checkSupport = () => {
+      console.log('🔍 Verificando soporte del navegador para dictado...');
+      
       // Verificar soporte de WebSocket, MediaRecorder y getUserMedia
       const hasWebSocket = typeof WebSocket !== 'undefined';
       const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
       const hasGetUserMedia = !!(navigator?.mediaDevices?.getUserMedia);
       const hasApiKey = !!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
 
+      console.log('📋 Estado de compatibilidad:', {
+        WebSocket: hasWebSocket,
+        MediaRecorder: hasMediaRecorder,
+        getUserMedia: hasGetUserMedia,
+        hasApiKey: hasApiKey
+      });
+
       if (!hasWebSocket || !hasMediaRecorder || !hasGetUserMedia) {
+        const errorMsg = 'Tu navegador no soporta las funciones necesarias para el dictado. Intenta usar Chrome, Firefox o Edge.';
         setIsSupported(false);
-        setError('Tu navegador no soporta las funciones necesarias para el dictado. Intenta usar Chrome, Firefox o Edge.');
+        setError(errorMsg);
+        console.error('❌ Navegador no compatible:', { hasWebSocket, hasMediaRecorder, hasGetUserMedia });
         return false;
       }
 
       if (!hasApiKey) {
+        const errorMsg = 'Configuración de API de transcripción no disponible.';
         setIsSupported(false);
-        setError('Configuración de API de transcripción no disponible.');
+        setError(errorMsg);
+        console.error('❌ API key no configurada');
         return false;
       }
 
+      console.log('✅ Navegador compatible con dictado');
       return true;
     };
 
@@ -86,7 +100,7 @@ export const useDeepgramSpeech = (
       throw new Error('API key de Deepgram parece ser inválida (muy corta)');
     }
 
-    console.log('Creando servicio Deepgram con API key:', apiKey.substring(0, 8) + '...');
+    console.log('🔧 Creando servicio Deepgram con API key:', apiKey.substring(0, 8) + '...');
 
     return createDeepgramService(apiKey, {
       onTranscript: (result: DeepgramTranscriptResult) => {
@@ -95,6 +109,7 @@ export const useDeepgramSpeech = (
           if (result.transcript.trim()) {
             const newText = result.transcript.trim();
             sessionTranscriptRef.current += (sessionTranscriptRef.current ? ' ' : '') + newText;
+            console.log('📝 Nueva transcripción final:', newText);
             onTranscript?.(newText);
           }
           // Limpiar transcripción temporal
@@ -105,18 +120,18 @@ export const useDeepgramSpeech = (
         }
       },
       onError: (errorMessage: string) => {
-        console.error('Error de Deepgram:', errorMessage);
+        console.error('❌ Error de Deepgram:', errorMessage);
         setError(errorMessage);
         onError?.(errorMessage);
         setIsRecording(false);
       },
       onOpen: () => {
-        console.log('Conexión con Deepgram establecida');
+        console.log('✅ Conexión con Deepgram establecida');
         setError(null);
         onStart?.();
       },
       onClose: () => {
-        console.log('Conexión con Deepgram cerrada');
+        console.log('🔌 Conexión con Deepgram cerrada');
         setIsRecording(false);
         setInterimTranscript('');
         onEnd?.();
@@ -125,6 +140,7 @@ export const useDeepgramSpeech = (
   }, [onTranscript, onError, onStart, onEnd]);
 
   const stopRecording = useCallback(() => {
+    console.log('⏹️ Deteniendo grabación...');
     if (deepgramServiceRef.current) {
       deepgramServiceRef.current.stopRecording();
       deepgramServiceRef.current = null;
@@ -134,19 +150,25 @@ export const useDeepgramSpeech = (
   }, []);
 
   const startRecording = useCallback(async () => {
+    console.log('🎤 Intentando iniciar grabación...');
+    
     if (!isSupported) {
-      setError('El dictado no está disponible en este navegador.');
+      const errorMsg = 'El dictado no está disponible en este navegador.';
+      console.error('❌', errorMsg);
+      setError(errorMsg);
       return;
     }
 
     if (isRecording) {
       // Si ya está grabando, detener
+      console.log('🔄 Ya está grabando, deteniendo...');
       stopRecording();
       return;
     }
 
     try {
       setError(null);
+      console.log('🚀 Iniciando nueva sesión de grabación...');
       
       // Crear nueva instancia del servicio
       deepgramServiceRef.current = createService();
@@ -154,9 +176,10 @@ export const useDeepgramSpeech = (
       // Iniciar grabación
       setIsRecording(true);
       await deepgramServiceRef.current.startRecording();
+      console.log('✅ Grabación iniciada exitosamente');
       
     } catch (err) {
-      console.error('Error al iniciar grabación:', err);
+      console.error('❌ Error al iniciar grabación:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al iniciar el dictado';
       setError(errorMessage);
       setIsRecording(false);
@@ -165,6 +188,7 @@ export const useDeepgramSpeech = (
   }, [isSupported, isRecording, createService, onError, stopRecording]);
 
   const resetTranscript = useCallback(() => {
+    console.log('🔄 Reseteando transcripción...');
     setInterimTranscript('');
     setError(null);
     sessionTranscriptRef.current = '';
@@ -173,13 +197,15 @@ export const useDeepgramSpeech = (
   // Función para probar la conexión con Deepgram
   const testConnection = useCallback(async (): Promise<boolean> => {
     if (!isSupported) {
-      setError('El dictado no está disponible en este navegador.');
+      const errorMsg = 'El dictado no está disponible en este navegador.';
+      setError(errorMsg);
+      console.error('❌', errorMsg);
       return false;
     }
 
     try {
       setError(null);
-      console.log('Probando conexión con Deepgram...');
+      console.log('🔍 Probando conexión con Deepgram...');
       
       const testService = createService();
       const connectionTest = await testService.testConnection();
@@ -194,7 +220,7 @@ export const useDeepgramSpeech = (
         return false;
       }
     } catch (err) {
-      console.error('Error al probar conexión:', err);
+      console.error('❌ Error al probar conexión:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al probar la conexión';
       setError(errorMessage);
       return false;
@@ -204,6 +230,7 @@ export const useDeepgramSpeech = (
   // Cleanup al desmontar
   useEffect(() => {
     return () => {
+      console.log('🧹 Cleanup del hook useDeepgramSpeech');
       if (deepgramServiceRef.current) {
         deepgramServiceRef.current.stopRecording();
       }
