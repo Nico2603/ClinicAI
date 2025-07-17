@@ -172,17 +172,17 @@ export const useSimpleUserTemplates = () => {
     // Crear nuevo AbortController para esta petición
     abortControllerRef.current = new AbortController();
     
-    // Timeout de 5 segundos
+    // Timeout de 1.5 segundos
     timeoutRef.current = setTimeout(() => {
       setIsTimedOut(true);
-      console.warn('⚠️ Timeout al cargar plantillas después de 5 segundos - recargando página');
+      console.warn('⚠️ Timeout al cargar plantillas después de 1.5 segundos - recargando página');
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       resetLoadingState();
       // Recargar página completa automáticamente
       window.location.reload();
-    }, 5000);
+    }, 1500);
     
     try {
       const templates = await Promise.race([
