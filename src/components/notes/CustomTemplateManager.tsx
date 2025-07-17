@@ -80,7 +80,9 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   const { 
     userTemplates, 
     isLoading, 
-    error, 
+    error,
+    isTimedOut,
+    retryFetch,
     createUserTemplate, 
     updateUserTemplate, 
     deleteUserTemplate
@@ -319,7 +321,35 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       ) : isLoading && activeTemplates.length === 0 ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-neutral-600 dark:text-neutral-400">Cargando tus plantillas...</p>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-2">
+            {isTimedOut ? 'La carga está tomando más tiempo del esperado...' : 'Cargando tus plantillas...'}
+          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              💡 Si este apartado se está demorando demasiado, intenta recargar la página o usa el botón de abajo.
+            </p>
+            <button
+              onClick={retryFetch}
+              className="inline-flex items-center px-4 py-2 border border-primary text-sm font-medium rounded-md text-primary bg-white dark:bg-neutral-800 hover:bg-primary/5 dark:hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+            >
+              🔄 Reintentar
+            </button>
+          </div>
+        </div>
+      ) : error && activeTemplates.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-4">
+            <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <button
+            onClick={retryFetch}
+            className="inline-flex items-center px-4 py-2 border border-red-500 text-sm font-medium rounded-md text-red-600 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+          >
+            🔄 Reintentar
+          </button>
         </div>
       ) : (
         <div className="space-y-3">

@@ -9,6 +9,7 @@ export const useTemplateManager = (
 ) => {
   const { 
     userTemplates, 
+    retryFetch,
     createUserTemplate, 
     updateUserTemplate, 
     deleteUserTemplate
@@ -101,6 +102,7 @@ export const useTemplateManager = (
 
   return {
     userTemplates,
+    refreshTemplates: retryFetch,
     handleSaveTemplate,
     handleCreateTemplate,
     handleDeleteTemplate,

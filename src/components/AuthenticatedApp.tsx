@@ -49,6 +49,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   // Gestión de plantillas
   const {
     userTemplates,
+    refreshTemplates,
     handleSaveTemplate,
     handleCreateTemplate,
     handleDeleteTemplate,
@@ -185,12 +186,13 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     toggleTheme,
     historicNotes,
     userTemplates,
+    refreshTemplates,
     onLoadNoteInEditor: handleLoadNoteInEditor,
     onLoadNoteInUpdater: (note: HistoricNote) => {
       setNoteForUpdater(note.content);
       setActiveView('note-updater');
     }
-  }), [activeView, setActiveView, theme, toggleTheme, historicNotes, userTemplates, handleLoadNoteInEditor]);
+  }), [activeView, setActiveView, theme, toggleTheme, historicNotes, userTemplates, refreshTemplates, handleLoadNoteInEditor]);
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">

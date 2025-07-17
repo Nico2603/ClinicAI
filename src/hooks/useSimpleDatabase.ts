@@ -135,28 +135,84 @@ export const useSimpleUserTemplates = () => {
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTimedOut, setIsTimedOut] = useState(false);
   
   // Flag para evitar múltiples llamadas concurrentes
   const isLoadingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchUserTemplates = useCallback(async () => {
-    if (!user?.id || isLoadingRef.current) return;
+  const resetLoadingState = useCallback(() => {
+    setIsLoading(false);
+    setIsTimedOut(false);
+    isLoadingRef.current = false;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  const fetchUserTemplates = useCallback(async (isRetry = false) => {
+    if (!user?.id || (isLoadingRef.current && !isRetry)) return;
+    
+    // Si es un retry, forzar reset del estado
+    if (isRetry) {
+      resetLoadingState();
+    }
     
     isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
+    setIsTimedOut(false);
+    
+    // Crear nuevo AbortController para esta petición
+    abortControllerRef.current = new AbortController();
+    
+    // Timeout de 5 segundos
+    timeoutRef.current = setTimeout(() => {
+      setIsTimedOut(true);
+      console.warn('⚠️ Timeout al cargar plantillas después de 5 segundos - recargando página');
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      resetLoadingState();
+      // Recargar página completa automáticamente
+      window.location.reload();
+    }, 5000);
     
     try {
-      const templates = await simpleDbCall(() => userTemplatesService.getUserTemplates(user.id));
+      const templates = await Promise.race([
+        simpleDbCall(() => userTemplatesService.getUserTemplates(user.id)),
+        new Promise((_, reject) => {
+          if (abortControllerRef.current) {
+            abortControllerRef.current.signal.addEventListener('abort', () => {
+              reject(new Error('Operación cancelada por timeout'));
+            });
+          }
+        })
+      ]) as UserTemplate[];
+      
+      // Si llegamos aquí, la petición fue exitosa
+      clearTimeout(timeoutRef.current!);
+      timeoutRef.current = null;
+      
       setUserTemplates(templates);
-    } catch (err) {
-      console.error('Error al cargar plantillas:', err);
-      setError(getSimpleErrorMessage(err));
+      setError(null);
+      setIsTimedOut(false);
+    } catch (err: any) {
+      // Solo mostrar error si no fue cancelado por timeout
+      if (err.message !== 'Operación cancelada por timeout') {
+        console.error('Error al cargar plantillas:', err);
+        setError(getSimpleErrorMessage(err));
+      }
     } finally {
-      setIsLoading(false);
-      isLoadingRef.current = false;
+      resetLoadingState();
     }
-  }, [user?.id]);
+  }, [user?.id, resetLoadingState]);
 
   useEffect(() => {
     if (user?.id) {
@@ -164,8 +220,14 @@ export const useSimpleUserTemplates = () => {
     } else {
       setUserTemplates([]);
       setError(null);
+      setIsTimedOut(false);
     }
-  }, [user?.id]); // Removed fetchUserTemplates dependency to prevent infinite loops
+    
+    // Cleanup al desmontar o cambiar de usuario
+    return () => {
+      resetLoadingState();
+    };
+  }, [user?.id, fetchUserTemplates, resetLoadingState]);
 
   const createUserTemplate = useCallback(async (templateData: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
     if (!user?.id) throw new Error('Usuario no autenticado');
@@ -222,7 +284,10 @@ export const useSimpleUserTemplates = () => {
     userTemplates,
     isLoading,
     error,
+    isTimedOut,
     fetchUserTemplates,
+    retryFetch: () => fetchUserTemplates(true),
+    resetLoadingState,
     createUserTemplate,
     updateUserTemplate,
     deleteUserTemplate,

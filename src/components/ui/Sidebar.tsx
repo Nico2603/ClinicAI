@@ -11,6 +11,7 @@ interface SidebarProps {
   toggleTheme: () => void;
   historicNotes?: HistoricNote[];
   userTemplates?: UserTemplate[];
+  refreshTemplates?: () => void;
   onLoadNoteInEditor?: (note: HistoricNote) => void;
   onLoadNoteInUpdater?: (note: HistoricNote) => void;
 }
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   toggleTheme, 
   historicNotes = [], 
   userTemplates = [],
+  refreshTemplates,
   onLoadNoteInEditor,
   onLoadNoteInUpdater
 }) => {
@@ -46,6 +48,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleNavClick = (view: ActiveView) => {
     setActiveView(view);
+    
+    // Refrescar plantillas automáticamente al hacer clic en "Plantillas"
+    if (view === 'templates' && refreshTemplates) {
+      refreshTemplates();
+    }
+    
     if (isMobile) {
       setIsOpen(false);
     }
