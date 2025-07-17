@@ -6,6 +6,7 @@ import { GroundingMetadata } from '../../types';
 import { SparklesIcon, LoadingSpinner } from '../ui/Icons';
 import { Button } from '../ui/button';
 import NoteDisplay from './NoteDisplay';
+import { TextareaWithSpeech } from '@/components';
 
 interface NoteUpdaterProps {
   className?: string;
@@ -85,37 +86,29 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
 
       {/* Entrada de Nota Original */}
       <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Nota Clínica Original
-          </label>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {originalNote.length} caracteres
-          </span>
-        </div>
-        <textarea
+        <TextareaWithSpeech
           value={originalNote}
           onChange={(e) => setOriginalNote(e.target.value)}
           placeholder="Pegue aquí la nota clínica original que desea actualizar..."
-          className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
+          rows={12}
+          label="Nota Clínica Original"
+          showCharacterCount={true}
+          speechLanguage="es-ES"
+          className="focus:border-green-500 focus:ring-green-500"
         />
       </div>
 
       {/* Entrada de Nueva Información */}
       <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Nueva Información a Integrar
-          </label>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {newInformation.length} caracteres
-          </span>
-        </div>
-        <textarea
+        <TextareaWithSpeech
           value={newInformation}
           onChange={(e) => setNewInformation(e.target.value)}
           placeholder="Ingrese la nueva información médica que desea integrar en la nota existente..."
-          className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
+          rows={8}
+          label="Nueva Información a Integrar"
+          showCharacterCount={true}
+          speechLanguage="es-ES"
+          className="focus:border-green-500 focus:ring-green-500"
         />
       </div>
 

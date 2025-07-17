@@ -238,26 +238,48 @@ export const updateClinicalNote = async (
   validateInput(newInformation, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   // Prompt optimizado para actualización de notas
-  const prompt = `Actualiza esta nota clínica integrando ÚNICAMENTE la nueva información proporcionada.
+  const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información. Tu tarea es integrar de forma inteligente la nueva información en la nota clínica original manteniendo coherencia, estilo médico profesional y estructura adecuada.
 
-**NOTA ORIGINAL:**
+NOTA ORIGINAL:
 ---
 ${originalNote}
 ---
 
-**NUEVA INFORMACIÓN:**
+NUEVA INFORMACIÓN:
 ---
 ${newInformation}
 ---
 
-INSTRUCCIONES:
-1. Preserva el formato y estructura exactos de la nota original
-2. Integra SOLO la nueva información proporcionada
-3. NO reescribas secciones que no requieren actualización
-4. Mantén el mismo estilo de redacción médica
-5. Si la nueva información reemplaza datos existentes, reemplaza SOLO esos datos específicos
+**INSTRUCCIONES CRÍTICAS:**
 
-Devuelve la nota clínica completa actualizada:`;
+1. **Análisis e Integración Inteligente:**
+   - Analiza dónde debe ir la nueva información dentro de la estructura de la nota original.
+   - Identifica la sección más apropiada (evolución, tratamiento, diagnóstico, plan, etc.).
+   - Integra la información de forma natural sin alterar el resto del contenido.
+   - Si la nueva información proviene de una grabación de voz, primero conviértela a texto clínico coherente antes de integrarla.
+
+2. **Preservación del Contenido Original:**
+   - Conserva EXACTAMENTE todo el contenido original que no requiere modificación.
+   - Mantén la estructura, formato, encabezados y estilo de la nota original.
+   - Solo reemplaza lo estrictamente pertinente según la nueva información; no modifiques otras secciones.
+
+3. **Coherencia y Estilo Médico:**
+   - Mantén el estilo de redacción médica profesional de la nota original.
+   - Asegura coherencia temporal y clínica en la información.
+   - Usa terminología médica apropiada y consistente.
+
+4. **Manejo de Contradicciones:**
+   - Si la nueva información contradice algo en la nota original, actualiza solo lo necesario.
+   - Mantén un registro cronológico lógico si es aplicable.
+   - Preserva la coherencia clínica general.
+
+5. **Formato de Respuesta:**
+   - Responde ÚNICAMENTE con la nota clínica completa y actualizada.
+   - No incluyas comentarios, explicaciones o texto adicional.
+   - La respuesta debe ser directamente la nota médica lista para usar.
+
+**EJEMPLO DE INTEGRACIÓN:**
+Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es sobre el estado actual del paciente, integra esa información en esa sección manteniendo el formato y estilo existente.`;
 
   try {
     const systemMessage = "Especialista en actualización selectiva de notas clínicas. Preserva estructura original, modifica solo lo necesario.";
@@ -269,7 +291,7 @@ Devuelve la nota clínica completa actualizada:`;
       messages,
       temperature: AI_CONFIG.TEMPERATURE,
       max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.8
+      top_p: 0.9
     };
     
     const response = await openai.chat.completions.create(params);

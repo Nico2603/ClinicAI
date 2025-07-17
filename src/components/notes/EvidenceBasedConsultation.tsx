@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { generateSimplifiedEvidenceConsultation } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
+import { TextareaWithSpeech } from '@/components';
 
 interface EvidenceBasedConsultationProps {
   className?: string;
@@ -113,15 +114,15 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
         {/* Área de entrada de contenido clínico */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Información Clínica para Análisis
-            </label>
-            <textarea
+            <TextareaWithSpeech
               value={clinicalContent}
               onChange={(e) => setClinicalContent(e.target.value)}
               rows={4}
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
               placeholder="Ingrese aquí la información clínica que desea analizar (síntomas, diagnósticos, tratamientos, etc.)"
+              label="Información Clínica para Análisis"
+              showCharacterCount={false}
+              speechLanguage="es-ES"
+              className="focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 

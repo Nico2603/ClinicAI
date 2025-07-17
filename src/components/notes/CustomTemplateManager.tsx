@@ -3,6 +3,7 @@ import { useSimpleUserTemplates } from '../../hooks/useSimpleDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
+import { TextareaWithSpeech } from '@/components';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -263,24 +264,18 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
             </div>
             
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Contenido de la plantilla
-                </label>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {newTemplateContent.length} caracteres
-                </span>
-              </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
                 💡 Escriba una nota que usted utiliza frecuentemente para estructurarla como plantilla base.
               </p>
-              <textarea
+              <TextareaWithSpeech
                 value={newTemplateContent}
                 onChange={(e) => setNewTemplateContent(e.target.value)}
                 rows={12}
-                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
                 placeholder="Escriba aquí un ejemplo de nota completa con datos de paciente."
                 disabled={isProcessing}
+                label="Contenido de la plantilla"
+                showCharacterCount={true}
+                speechLanguage="es-ES"
               />
             </div>
             
@@ -438,19 +433,13 @@ const TemplateItem = memo<TemplateItemProps>(({
           </div>
           
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Contenido de la plantilla
-              </label>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                {editingContent.length} caracteres
-              </span>
-            </div>
-            <textarea
+            <TextareaWithSpeech
               value={editingContent}
               onChange={(e) => onEditContentChange(e.target.value)}
               rows={12}
-              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 resize-y"
+              label="Contenido de la plantilla"
+              showCharacterCount={true}
+              speechLanguage="es-ES"
             />
           </div>
           

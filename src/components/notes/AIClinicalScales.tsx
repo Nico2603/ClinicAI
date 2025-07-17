@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { generateMedicalScale } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
+import { TextareaWithSpeech } from '@/components';
 
 interface AIClinicalScalesProps {
   className?: string;
@@ -113,18 +114,16 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
         {/* Área de entrada para solicitud de escala */}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              ¿Qué escala clínica deseas calcular?
-            </label>
-            <div className="relative">
-              <textarea
-                value={scaleRequest}
-                onChange={(e) => setScaleRequest(e.target.value)}
-                rows={3}
-                className="w-full p-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
-                placeholder="Ej: 'Escala de Glasgow', 'APACHE II', 'Wells para TEP', 'Escala de Braden', etc."
-              />
-            </div>
+            <TextareaWithSpeech
+              value={scaleRequest}
+              onChange={(e) => setScaleRequest(e.target.value)}
+              rows={3}
+              placeholder="Ej: 'Escala de Glasgow', 'APACHE II', 'Wells para TEP', 'Escala de Braden', etc."
+              label="¿Qué escala clínica deseas calcular?"
+              showCharacterCount={false}
+              speechLanguage="es-ES"
+              className="focus:border-emerald-500 focus:ring-emerald-500"
+            />
           </div>
 
           {/* Botones de acción */}

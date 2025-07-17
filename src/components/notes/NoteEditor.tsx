@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { SaveIcon, PlusIcon, PencilSquareIcon } from '../ui/Icons';
+import { TextareaWithSpeech } from '@/components';
 
 interface NoteEditorProps {
   note: HistoricNote;
@@ -104,38 +105,27 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       {/* Editor de información del paciente */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            Información del Paciente
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-              {originalInput.length} caracteres
-            </span>
-          </div>
-        </div>
-        <div className="relative">
-          <textarea
-            value={originalInput}
-            onChange={(e) => handleOriginalInputChange(e.target.value)}
-            rows={6}
-            className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-primary"
-            placeholder="Información del paciente..."
-          />
-        </div>
+        <TextareaWithSpeech
+          value={originalInput}
+          onChange={(e) => handleOriginalInputChange(e.target.value)}
+          rows={6}
+          placeholder="Información del paciente..."
+          label="Información del Paciente"
+          showCharacterCount={true}
+          speechLanguage="es-ES"
+        />
       </div>
 
       {/* Editor de contenido de la nota */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-          Contenido de la Nota
-        </label>
-        <textarea
+        <TextareaWithSpeech
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           rows={15}
-          className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-primary"
           placeholder="Contenido de la nota..."
+          label="Contenido de la Nota"
+          showCharacterCount={true}
+          speechLanguage="es-ES"
         />
       </div>
 

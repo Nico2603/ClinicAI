@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SaveIcon } from '../ui/Icons';
+import { TextareaWithSpeech } from '@/components';
 
 interface TemplateEditorProps {
   template: string;
@@ -32,13 +33,15 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onSaveTemplat
           Crea la estructura de tu plantilla (no datos reales)
         </div>
       </div>
-      <textarea
+      <TextareaWithSpeech
         value={editedTemplate}
         onChange={(e) => setEditedTemplate(e.target.value)}
         rows={12}
-        className="w-full p-3 md:p-4 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary dark:bg-neutral-700 dark:text-neutral-100 transition-colors text-sm md:text-base resize-y min-h-[200px]"
         placeholder="Crea o pega tu plantilla"
-        aria-label={`Editor de plantilla para ${specialtyName}`}
+        label={`Plantilla: ${specialtyName}`}
+        showCharacterCount={true}
+        speechLanguage="es-ES"
+        className="text-sm md:text-base min-h-[200px]"
       />
       <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <button

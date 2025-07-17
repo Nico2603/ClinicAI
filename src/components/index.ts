@@ -15,6 +15,8 @@ export { default as UserProfile } from './auth/UserProfile';
 
 // Componentes UI
 export { default as Logo } from './ui/Logo';
+export { default as SpeechButton } from './ui/SpeechButton';
+export { default as TextareaWithSpeech } from './ui/TextareaWithSpeech';
 
 // Componentes de notas
 export { default as AIClinicalScales } from './notes/AIClinicalScales';
