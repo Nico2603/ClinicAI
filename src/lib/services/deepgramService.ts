@@ -448,39 +448,97 @@ export class DeepgramService {
         return false;
       }
 
+      // PASO 1: Verificar API key con la API REST de Deepgram
+      console.log('🔑 Verificando API key con REST API...');
+      const restApiValid = await this.testRestApi();
+      
+      if (!restApiValid) {
+        console.error('❌ API key inválida en REST API');
+        return false;
+      }
+      
+      console.log('✅ API key válida en REST API');
+
+      // PASO 2: Probar conexión WebSocket
+      console.log('🔌 Probando conexión WebSocket...');
       const wsUrl = this.buildWebSocketUrl();
       const testSocket = new WebSocket(wsUrl);
       
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          console.log('⏰ Timeout en prueba de conexión');
+          console.log('⏰ Timeout en prueba de conexión WebSocket');
           testSocket.close();
           resolve(false);
         }, 8000); // 8 segundos para la prueba
 
         testSocket.onopen = () => {
-          console.log('✅ Prueba de conexión exitosa');
+          console.log('✅ Prueba de conexión WebSocket exitosa');
           clearTimeout(timeout);
           testSocket.close(1000, 'Test completed');
           resolve(true);
         };
 
         testSocket.onerror = (error) => {
-          console.error('❌ Error en prueba de conexión:', error);
+          console.error('❌ Error en prueba de conexión WebSocket:', error);
           clearTimeout(timeout);
           resolve(false);
         };
 
         testSocket.onclose = (event) => {
-          console.log('🔌 Conexión de prueba cerrada:', event.code);
+          console.log('🔌 Conexión de prueba cerrada:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+          });
+          
           if (event.code === 4008) {
-            console.error('❌ API key inválida detectada en prueba');
+            console.error('❌ API key inválida detectada en WebSocket (4008)');
+          } else if (event.code === 4001) {
+            console.error('❌ API key no autorizada para streaming (4001)');
+          } else if (event.code === 4013) {
+            console.error('❌ Créditos insuficientes (4013)');
           }
         };
       });
     } catch (error) {
       console.error('❌ Excepción en prueba de conexión:', error);
       return false;
+    }
+  }
+
+  // Nuevo método para verificar API key con REST API
+  private async testRestApi(): Promise<boolean> {
+    try {
+      const response = await fetch('https://api.deepgram.com/v1/projects', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${this.config.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ API key válida, proyectos encontrados:', data.projects?.length || 0);
+        return true;
+      } else {
+        console.error('❌ Error en REST API:', {
+          status: response.status,
+          statusText: response.statusText
+        });
+        
+        if (response.status === 401) {
+          console.error('❌ API key no válida (401 Unauthorized)');
+        } else if (response.status === 403) {
+          console.error('❌ API key sin permisos necesarios (403 Forbidden)');
+        }
+        
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error de red al verificar API key:', error);
+      // Si hay error de red, asumir que el API key está bien pero hay problemas de conectividad
+      return true;
     }
   }
 }

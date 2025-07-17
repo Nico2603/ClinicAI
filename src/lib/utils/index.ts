@@ -22,6 +22,11 @@ export interface DeepgramDiagnostic {
   isSecureContext: boolean;
   browserInfo: string;
   recommendations: string[];
+  apiKeyValid?: boolean; // Nuevo: resultado de verificación REST API
+  connectivityTest?: {
+    restApi: boolean;
+    websocket: boolean;
+  };
 }
 
 export const diagnosDeepgramIssues = (): DeepgramDiagnostic => {
@@ -90,4 +95,118 @@ export const diagnosDeepgramIssues = (): DeepgramDiagnostic => {
     browserInfo,
     recommendations
   };
+};
+
+// Nueva función para diagnóstico avanzado con verificación de API
+export const diagnosDeepgramAdvanced = async (): Promise<DeepgramDiagnostic> => {
+  const basicDiagnostic = diagnosDeepgramIssues();
+  
+  // Si no hay API key, retornar diagnóstico básico
+  if (!basicDiagnostic.hasApiKey) {
+    return basicDiagnostic;
+  }
+
+  const apiKey = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY!;
+  
+  try {
+    console.log('🔍 Ejecutando diagnóstico avanzado con verificación de API...');
+    
+    // Test 1: Verificar API key con REST API
+    const restApiResult = await testDeepgramRestApi(apiKey);
+    
+    // Test 2: Probar conectividad WebSocket básica
+    const websocketResult = await testWebSocketConnectivity();
+    
+    // Actualizar recomendaciones basadas en los resultados
+    const newRecommendations = [...basicDiagnostic.recommendations];
+    
+    if (!restApiResult) {
+      newRecommendations.unshift('❌ API key inválida o sin permisos. Verifica tu cuenta de Deepgram');
+      newRecommendations.unshift('💰 Verifica que tu cuenta de Deepgram tenga créditos disponibles');
+    }
+    
+    if (!websocketResult && restApiResult) {
+      newRecommendations.unshift('🔥 API key válida pero WebSocket bloqueado. Revisa firewall/proxy');
+      newRecommendations.unshift('🌐 Intenta desde otra red para descartar bloqueo corporativo');
+    }
+    
+    return {
+      ...basicDiagnostic,
+      apiKeyValid: restApiResult,
+      connectivityTest: {
+        restApi: restApiResult,
+        websocket: websocketResult
+      },
+      recommendations: newRecommendations
+    };
+    
+  } catch (error) {
+    console.error('❌ Error en diagnóstico avanzado:', error);
+    return {
+      ...basicDiagnostic,
+      recommendations: [
+        ...basicDiagnostic.recommendations,
+        '⚠️ No se pudo completar el diagnóstico avanzado - problema de conectividad'
+      ]
+    };
+  }
+};
+
+// Función auxiliar para probar REST API
+const testDeepgramRestApi = async (apiKey: string): Promise<boolean> => {
+  try {
+    console.log('🔑 Probando API key con REST API...');
+    
+    const response = await fetch('https://api.deepgram.com/v1/projects', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ API key válida, proyectos:', data.projects?.length || 0);
+      return true;
+    } else {
+      console.error('❌ REST API falló:', response.status, response.statusText);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error de red en REST API:', error);
+    return false;
+  }
+};
+
+// Función auxiliar para probar conectividad WebSocket
+const testWebSocketConnectivity = async (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      // Test básico de conectividad a un WebSocket público
+      const testWs = new WebSocket('wss://echo.websocket.org');
+      
+      const timeout = setTimeout(() => {
+        testWs.close();
+        resolve(false);
+      }, 5000);
+      
+      testWs.onopen = () => {
+        console.log('✅ Conectividad WebSocket básica OK');
+        clearTimeout(timeout);
+        testWs.close();
+        resolve(true);
+      };
+      
+      testWs.onerror = () => {
+        console.error('❌ Conectividad WebSocket básica falló');
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      
+    } catch (error) {
+      console.error('❌ Error en test WebSocket:', error);
+      resolve(false);
+    }
+  });
 }; 

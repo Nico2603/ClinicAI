@@ -13,7 +13,7 @@ declare global {
 
 import { useState } from 'react';
 import { useDeepgramSpeech } from '../hooks/useDeepgramSpeech';
-import { diagnosDeepgramIssues, type DeepgramDiagnostic } from '../lib/utils/index';
+import { diagnosDeepgramIssues, diagnosDeepgramAdvanced, type DeepgramDiagnostic } from '../lib/utils/index';
 
 // Componente de debugging simplificado - Solo para desarrollo
 export const Debug = () => {
@@ -63,10 +63,32 @@ export const Debug = () => {
   };
 
   const handleRunDiagnostic = () => {
-    console.log('🔍 Ejecutando diagnóstico de Deepgram...');
+    console.log('🔍 Ejecutando diagnóstico básico de Deepgram...');
     const result = diagnosDeepgramIssues();
     setDiagnostic(result);
-    console.log('📊 Resultado del diagnóstico:', result);
+    console.log('📊 Resultado del diagnóstico básico:', result);
+  };
+
+  const handleRunAdvancedDiagnostic = async () => {
+    console.log('🔍 Ejecutando diagnóstico avanzado de Deepgram...');
+    setDiagnostic(null); // Limpiar resultado anterior
+    
+    try {
+      const result = await diagnosDeepgramAdvanced();
+      setDiagnostic(result);
+      console.log('📊 Resultado del diagnóstico avanzado:', result);
+      
+      // Mostrar resumen en consola
+      if (result.apiKeyValid === false) {
+        console.error('🚨 PROBLEMA IDENTIFICADO: API key inválida o sin créditos');
+      } else if (result.connectivityTest?.websocket === false) {
+        console.error('🚨 PROBLEMA IDENTIFICADO: WebSockets bloqueados');
+      } else {
+        console.log('✅ API key y conectividad OK - puede ser un problema temporal');
+      }
+    } catch (error) {
+      console.error('❌ Error en diagnóstico avanzado:', error);
+    }
   };
 
   // No hacer nada en producción para evitar errores
@@ -79,9 +101,18 @@ export const Debug = () => {
     window.debugDB = {
       info: () => console.log('🛠️ Debug mode enabled. Basic functions available.'),
       help: () => console.log('Use debugDB.info() for debug information'),
-      deepgram: () => {
-        const result = diagnosDeepgramIssues();
-        console.log('📊 Diagnóstico de Deepgram:', result);
+      deepgram: async () => {
+        console.log('🔍 Ejecutando diagnóstico avanzado...');
+        const result = await diagnosDeepgramAdvanced();
+        console.log('📊 Diagnóstico avanzado de Deepgram:', result);
+        
+        if (result.apiKeyValid === false) {
+          console.error('🚨 PROBLEMA: API key inválida o sin créditos');
+        } else if (result.connectivityTest?.websocket === false) {
+          console.error('🚨 PROBLEMA: WebSockets bloqueados por firewall/proxy');
+        } else {
+          console.log('✅ Configuración OK - puede ser problema temporal');
+        }
       }
     };
 
@@ -118,7 +149,14 @@ export const Debug = () => {
           onClick={handleRunDiagnostic}
           className="w-full p-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
         >
-          🔍 Ejecutar Diagnóstico Completo
+          🔍 Diagnóstico Básico
+        </button>
+        
+        <button 
+          onClick={handleRunAdvancedDiagnostic}
+          className="w-full p-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+        >
+          🚀 Diagnóstico Avanzado (Verifica API Key)
         </button>
         
         <button 
@@ -173,6 +211,14 @@ export const Debug = () => {
                   }
                 </span>
               </div>
+              {diagnostic.apiKeyValid !== undefined && (
+                <div>
+                  <span className="font-medium">API Key válida:</span> 
+                  <span className={diagnostic.apiKeyValid ? 'text-green-600' : 'text-red-600'}>
+                    {diagnostic.apiKeyValid ? ' ✅ Válida' : ' ❌ Inválida'}
+                  </span>
+                </div>
+              )}
               <div>
                 <span className="font-medium">WebSocket:</span> 
                 <span className={diagnostic.hasWebSocket ? 'text-green-600' : 'text-red-600'}>
@@ -192,6 +238,46 @@ export const Debug = () => {
                 </span>
               </div>
             </div>
+
+            {/* Test de conectividad avanzado */}
+            {diagnostic.connectivityTest && (
+              <div className="mt-3 p-3 bg-gray-50 rounded border">
+                <h4 className="font-semibold text-sm text-gray-700 mb-2">🧪 Tests de Conectividad:</h4>
+                <div className="space-y-1 text-sm">
+                  <div>
+                    <span className="font-medium">REST API:</span>
+                    <span className={diagnostic.connectivityTest.restApi ? 'text-green-600' : 'text-red-600'}>
+                      {diagnostic.connectivityTest.restApi ? ' ✅ OK' : ' ❌ Falla'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">WebSocket:</span>
+                    <span className={diagnostic.connectivityTest.websocket ? 'text-green-600' : 'text-red-600'}>
+                      {diagnostic.connectivityTest.websocket ? ' ✅ OK' : ' ❌ Bloqueado'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Análisis de resultados */}
+                <div className="mt-2 text-xs">
+                  {!diagnostic.connectivityTest.restApi && (
+                    <p className="text-red-600 font-medium">
+                      🚨 API key inválida o cuenta sin créditos
+                    </p>
+                  )}
+                  {diagnostic.connectivityTest.restApi && !diagnostic.connectivityTest.websocket && (
+                    <p className="text-orange-600 font-medium">
+                      🔥 API key OK pero WebSockets bloqueados (firewall/proxy)
+                    </p>
+                  )}
+                  {diagnostic.connectivityTest.restApi && diagnostic.connectivityTest.websocket && (
+                    <p className="text-green-600 font-medium">
+                      ✅ Conectividad OK - problema puede ser temporal
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Recomendaciones */}
             <div>
