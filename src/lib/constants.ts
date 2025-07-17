@@ -25,16 +25,7 @@ export const AI_CONFIG = {
   MAX_TOKENS: 2000,          // Suficiente para notas médicas
 } as const;
 
-// =============================================================================
-// CONFIGURACIÓN DE SPEECH RECOGNITION
-// =============================================================================
 
-export const SPEECH_CONFIG = {
-  LANGUAGE: 'es-CO',
-  CONTINUOUS: true,
-  INTERIM_RESULTS: true,
-  MAX_ALTERNATIVES: 1,
-} as const;
 
 // =============================================================================
 // CONFIGURACIÓN DE UI OPTIMIZADA

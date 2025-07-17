@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { useDeepgramSpeech } from '../../hooks/useDeepgramSpeech';
 import { generateMedicalScale } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -29,7 +29,7 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
-  // Hook de reconocimiento de voz
+  // Hook de reconocimiento de voz con Deepgram
   const { 
     isRecording, 
     isSupported: isSpeechApiAvailable, 
@@ -37,11 +37,11 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useSpeechRecognition({
-    onTranscript: (transcript) => {
+  } = useDeepgramSpeech({
+    onTranscript: (transcript: string) => {
       setScaleRequest(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
-    onError: (error) => {
+    onError: (error: string) => {
       console.error('Speech recognition error:', error);
     }
   });

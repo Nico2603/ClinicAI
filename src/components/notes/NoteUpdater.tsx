@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { useDeepgramSpeech } from '../../hooks/useDeepgramSpeech';
 import { GroundingMetadata } from '../../types';
 import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -22,7 +22,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
   const [error, setError] = useState<string | null>(null);
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
 
-  // Speech Recognition usando hook personalizado
+  // Speech Recognition usando Deepgram
   const { 
     isRecording, 
     isSupported: isSpeechApiAvailable, 
@@ -30,11 +30,11 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useSpeechRecognition({
-    onTranscript: (transcript) => {
+  } = useDeepgramSpeech({
+    onTranscript: (transcript: string) => {
       setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
-    onError: (error) => {
+    onError: (error: string) => {
       console.error('Speech recognition error:', error);
     }
   });
