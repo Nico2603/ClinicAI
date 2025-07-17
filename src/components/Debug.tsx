@@ -12,7 +12,7 @@ declare global {
 }
 
 import { useState } from 'react';
-import { useDeepgramSpeech } from '../hooks/useDeepgramSpeech';
+import { useSimpleSpeech } from '../hooks/useSimpleSpeech';
 import { diagnosDeepgramIssues, diagnosDeepgramAdvanced, type DeepgramDiagnostic } from '../lib/utils/index';
 
 // Componente de debugging simplificado - Solo para desarrollo
@@ -28,13 +28,13 @@ export const Debug = () => {
     error,
     startRecording,
     stopRecording,
-    resetTranscript,
+    clearTranscripts,
     testConnection
-  } = useDeepgramSpeech({
-    onTranscript: (transcript) => {
+  } = useSimpleSpeech({
+    onTranscript: (transcript: string) => {
       console.log('📝 Transcripción recibida:', transcript);
     },
-    onError: (error) => {
+    onError: (error: string) => {
       console.error('❌ Error de transcripción:', error);
     },
     onStart: () => {
@@ -314,7 +314,7 @@ export const Debug = () => {
         )}
         
         <button 
-          onClick={resetTranscript}
+          onClick={clearTranscripts}
           className="w-full p-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
         >
           🗑️ Limpiar Transcripción

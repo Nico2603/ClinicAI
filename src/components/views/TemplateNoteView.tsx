@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
 import { Button } from '../ui/button';
-import { useDeepgramSpeech } from '../../hooks/useDeepgramSpeech';
+import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -35,7 +35,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
-  // Hook de reconocimiento de voz con Deepgram
+  // Hook de reconocimiento de voz simplificado
   const { 
     isRecording, 
     isSupported: isSpeechApiAvailable, 
@@ -43,7 +43,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useDeepgramSpeech({
+  } = useSimpleSpeech({
     onTranscript: (transcript: string) => {
       const currentText = patientInfo;
       const newText = currentText + (currentText.endsWith(' ') || currentText === '' ? '' : ' ') + transcript + ' ';

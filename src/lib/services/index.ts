@@ -13,6 +13,7 @@ export * from './storageService';
 
 // Servicios de Deepgram
 export * from './deepgramService';
+export * from './simpleDeepgramService';
 
 // Re-exportar utilidades relacionadas
 export * from '../utils';

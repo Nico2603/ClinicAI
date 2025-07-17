@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
-import { useDeepgramSpeech } from '../../hooks/useDeepgramSpeech';
+import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
 import { GroundingMetadata } from '../../types';
 import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -22,7 +22,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
   const [error, setError] = useState<string | null>(null);
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
 
-  // Speech Recognition usando Deepgram
+  // Speech Recognition simplificado
   const { 
     isRecording, 
     isSupported: isSpeechApiAvailable, 
@@ -30,7 +30,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useDeepgramSpeech({
+  } = useSimpleSpeech({
     onTranscript: (transcript: string) => {
       setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
