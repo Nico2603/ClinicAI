@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
-import { useLiveKitSpeech } from '../../hooks/useLiveKitSpeech';
+import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
 import { GroundingMetadata } from '../../types';
 import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -22,43 +22,37 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
   const [error, setError] = useState<string | null>(null);
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
 
-  // Speech Recognition con LiveKit
+  // Hook para nueva información
   const { 
     isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
+    isAvailable, 
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useLiveKitSpeech({
+  } = useSimpleSpeech({
     onTranscript: (transcript: string) => {
       setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
     onError: (error: string) => {
-      console.error('Speech recognition error:', error);
+      console.error('Error de reconocimiento de voz:', error);
     }
   });
 
-  // Hook adicional para dictado de nota original
+  // Hook para nota original
   const { 
     isRecording: isRecordingOriginal, 
-    isSupported: isSpeechApiAvailable2, 
-    interimTranscript: interimTranscriptOriginal, 
+    isAvailable: isAvailableOriginal, 
     error: transcriptErrorOriginal, 
     startRecording: startRecordingOriginal, 
     stopRecording: stopRecordingOriginal 
-  } = useLiveKitSpeech({
+  } = useSimpleSpeech({
     onTranscript: (transcript: string) => {
       setOriginalNote(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
     onError: (error: string) => {
-      console.error('Speech recognition error (original):', error);
+      console.error('Error de reconocimiento de voz (original):', error);
     }
   });
-
-  // Debug logs
-  console.log('🎤 Speech API disponible:', isSpeechApiAvailable);
-  console.log('🎤 Speech API disponible 2:', isSpeechApiAvailable2);
 
   const handleToggleRecording = () => {
     if (isRecording) {
@@ -149,12 +143,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
               {originalNote.length} caracteres
             </span>
             
-            {/* Debug info - temporal */}
-            <div className="text-xs text-blue-600 dark:text-blue-400">
-              API2: {isSpeechApiAvailable2 ? '✅' : '❌'}
-            </div>
-
-            {isSpeechApiAvailable2 && (
+            {isAvailableOriginal && (
               <Button
                 onClick={handleToggleRecordingOriginal}
                 variant="outline"
@@ -165,19 +154,6 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
               >
                 <MicrophoneIcon className="h-4 w-4" />
                 {isRecordingOriginal ? 'Detener' : 'Dictar'}
-              </Button>
-            )}
-            
-            {/* Botón de prueba forzado - temporal */}
-            {!isSpeechApiAvailable2 && (
-              <Button
-                onClick={handleToggleRecordingOriginal}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-                Dictar Original (Forzado)
               </Button>
             )}
           </div>
@@ -195,11 +171,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
             </div>
           )}
         </div>
-        {interimTranscriptOriginal && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-            Transcripción en progreso: {interimTranscriptOriginal}
-          </p>
-        )}
+
         {transcriptErrorOriginal && (
           <p className="text-sm text-red-500">
             Error de transcripción: {transcriptErrorOriginal}
@@ -218,15 +190,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
               {newInformation.length} caracteres
             </span>
             
-            {/* Debug info - temporal */}
-            <div className="text-xs text-blue-600 dark:text-blue-400">
-              API: {isSpeechApiAvailable ? '✅' : '❌'} 
-              LK: {!!process.env.NEXT_PUBLIC_LIVEKIT_URL ? '✅' : '❌'}
-              KEY: {!!process.env.NEXT_PUBLIC_LIVEKIT_API_KEY ? '✅' : '❌'}
-              DG: {!!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY ? '✅' : '❌'}
-            </div>
-
-            {isSpeechApiAvailable && (
+            {isAvailable && (
               <Button
                 onClick={handleToggleRecording}
                 variant="outline"
@@ -237,19 +201,6 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
               >
                 <MicrophoneIcon className="h-4 w-4" />
                 {isRecording ? 'Detener' : 'Dictar'}
-              </Button>
-            )}
-            
-            {/* Botón de prueba forzado - temporal */}
-            {!isSpeechApiAvailable && (
-              <Button
-                onClick={handleToggleRecording}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-                Dictar (Forzado)
               </Button>
             )}
           </div>
@@ -267,11 +218,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
             </div>
           )}
         </div>
-        {interimTranscript && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-            Transcripción en progreso: {interimTranscript}
-          </p>
-        )}
+
         {transcriptError && (
           <p className="text-sm text-red-500">
             Error de transcripción: {transcriptError}

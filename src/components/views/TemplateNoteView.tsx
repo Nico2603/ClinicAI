@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
 import { Button } from '../ui/button';
-import { useLiveKitSpeech } from '../../hooks/useLiveKitSpeech';
+import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -35,27 +35,23 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
-  // Hook de reconocimiento de voz con LiveKit
+  // Hook de reconocimiento de voz simple
   const { 
     isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
+    isAvailable, 
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useLiveKitSpeech({
+  } = useSimpleSpeech({
     onTranscript: (transcript: string) => {
       const currentText = patientInfo;
       const newText = currentText + (currentText.endsWith(' ') || currentText === '' ? '' : ' ') + transcript + ' ';
       onPatientInfoChange(newText);
     },
     onError: (error: string) => {
-      console.error('Speech recognition error:', error);
+      console.error('Error de reconocimiento de voz:', error);
     }
   });
-
-  // Debug logs
-  console.log('🎤 TemplateNoteView - Speech API disponible:', isSpeechApiAvailable);
 
   const handleToggleRecording = () => {
     if (isRecording) {
@@ -154,18 +150,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                     {patientInfo.length} caracteres
                   </span>
                   
-                  {/* Debug info - temporal */}
-                  <div className="text-xs text-blue-600 dark:text-blue-400">
-                    API: {isSpeechApiAvailable ? '✅' : '❌'} 
-                    WS: {typeof WebSocket !== 'undefined' ? '✅' : '❌'}
-                    MR: {typeof MediaRecorder !== 'undefined' ? '✅' : '❌'}
-                    MIC: {!!(navigator?.mediaDevices?.getUserMedia) ? '✅' : '❌'}
-                    LK: {!!process.env.NEXT_PUBLIC_LIVEKIT_URL ? '✅' : '❌'}
-                    KEY: {!!process.env.NEXT_PUBLIC_LIVEKIT_API_KEY ? '✅' : '❌'}
-                    DG: {!!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY ? '✅' : '❌'}
-                  </div>
-
-                  {isSpeechApiAvailable && (
+                  {isAvailable && (
                     <Button
                       onClick={handleToggleRecording}
                       variant="outline"
@@ -176,19 +161,6 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                     >
                       <MicrophoneIcon className="h-4 w-4" />
                       {isRecording ? 'Detener' : 'Dictar'}
-                    </Button>
-                  )}
-                  
-                  {/* Botón de prueba forzado - temporal */}
-                  {!isSpeechApiAvailable && (
-                    <Button
-                      onClick={handleToggleRecording}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
-                    >
-                      <MicrophoneIcon className="h-4 w-4" />
-                      Dictar (Forzado)
                     </Button>
                   )}
                 </div>
@@ -208,11 +180,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                   </div>
                 )}
               </div>
-              {interimTranscript && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  Transcripción en progreso: {interimTranscript}
-                </p>
-              )}
+
               {transcriptError && (
                 <p className="text-sm text-red-500">
                   Error de transcripción: {transcriptError}
