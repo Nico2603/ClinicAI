@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
-import { NoteDisplay, SparklesIcon, LoadingSpinner, AIClinicalScales, EvidenceBasedConsultation } from '../';
+import { NoteDisplay, SparklesIcon, LoadingSpinner, AIClinicalScales, EvidenceBasedConsultation, TextareaWithSpeech } from '../';
 import { Button } from '../ui/button';
 
 interface TemplateNoteViewProps {
@@ -114,21 +114,16 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
               Ingrese la información del paciente que desea incluir en la nota.
             </p>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Información del Paciente
-                </label>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {patientInfo.length} caracteres
-                </span>
-              </div>
-              <textarea
+              <TextareaWithSpeech
                 id="patient-info"
                 value={patientInfo}
                 onChange={(e) => onPatientInfoChange(e.target.value)}
                 rows={6}
-                className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-1 focus:ring-primary resize-y"
                 placeholder="Ingrese la información del paciente que desea incluir en la nota..."
+                label="Información del Paciente"
+                showCharacterCount={true}
+                speechLanguage="es-ES"
+                className="focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
