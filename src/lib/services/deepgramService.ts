@@ -136,10 +136,21 @@ export class DeepgramService {
       throw new Error('No hay stream de audio disponible');
     }
 
-    this.mediaRecorder = new MediaRecorder(this.audioStream, {
-      mimeType: 'audio/webm;codecs=opus',
+    // Configuración más compatible con diferentes navegadores
+    const options: MediaRecorderOptions = {
       audioBitsPerSecond: 16000,
-    });
+    };
+
+    // Intentar diferentes tipos MIME según la compatibilidad del navegador
+    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      options.mimeType = 'audio/webm;codecs=opus';
+    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+      options.mimeType = 'audio/webm';
+    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+      options.mimeType = 'audio/mp4';
+    }
+
+    this.mediaRecorder = new MediaRecorder(this.audioStream, options);
 
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0 && this.websocket?.readyState === WebSocket.OPEN) {
