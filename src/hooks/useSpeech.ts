@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
 import { createDeepgramService, DeepgramService, DeepgramTranscriptResult } from '../lib/services/deepgramService';
 
-interface UseSimpleSpeechOptions {
+interface UseSpeechOptions {
   onTranscript?: (transcript: string) => void;
   onError?: (error: string) => void;
 }
 
-interface UseSimpleSpeechReturn {
+interface UseSpeechReturn {
   isRecording: boolean;
   isAvailable: boolean;
   error: string | null;
@@ -15,7 +15,11 @@ interface UseSimpleSpeechReturn {
   clearError: () => void;
 }
 
-export const useSimpleSpeech = (options: UseSimpleSpeechOptions = {}): UseSimpleSpeechReturn => {
+/**
+ * Hook simplificado para reconocimiento de voz usando Deepgram
+ * Proporciona una interfaz simple para dictado en cualquier componente
+ */
+export const useSpeech = (options: UseSpeechOptions = {}): UseSpeechReturn => {
   const { onTranscript, onError } = options;
 
   // Estados simples
@@ -35,7 +39,7 @@ export const useSimpleSpeech = (options: UseSimpleSpeechOptions = {}): UseSimple
 
   const startRecording = useCallback(async () => {
     if (!isAvailable) {
-      const errorMsg = 'El micrófono no está disponible';
+      const errorMsg = 'El micrófono no está disponible. Verifica permisos y configuración.';
       setError(errorMsg);
       onError?.(errorMsg);
       return;
@@ -46,7 +50,7 @@ export const useSimpleSpeech = (options: UseSimpleSpeechOptions = {}): UseSimple
     try {
       setError(null);
       
-      // Crear servicio
+      // Crear servicio de Deepgram
       serviceRef.current = createDeepgramService(
         process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY!,
         {

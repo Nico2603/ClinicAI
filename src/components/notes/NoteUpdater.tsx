@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
-import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
+import { useSpeech } from '../../hooks/useSpeech';
 import { GroundingMetadata } from '../../types';
 import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -29,7 +29,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useSimpleSpeech({
+  } = useSpeech({
     onTranscript: (transcript: string) => {
       setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
@@ -45,7 +45,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
     error: transcriptErrorOriginal, 
     startRecording: startRecordingOriginal, 
     stopRecording: stopRecordingOriginal 
-  } = useSimpleSpeech({
+  } = useSpeech({
     onTranscript: (transcript: string) => {
       setOriginalNote(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },

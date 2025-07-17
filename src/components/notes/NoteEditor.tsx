@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { SaveIcon, PlusIcon, PencilSquareIcon, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
-import { useLiveKitSpeech } from '../../hooks/useLiveKitSpeech';
+import { useSpeech } from '../../hooks/useSpeech';
 
 interface NoteEditorProps {
   note: HistoricNote;
@@ -25,15 +25,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [content, setContent] = useState(note.content);
   const [isModified, setIsModified] = useState(false);
 
-  // Hook de reconocimiento de voz con LiveKit
+  // Hook de reconocimiento de voz simplificado
   const { 
     isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
+    isAvailable: isSpeechApiAvailable, 
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useLiveKitSpeech({
+  } = useSpeech({
     onTranscript: (transcript: string) => {
       const newText = originalInput + (originalInput.endsWith(' ') || originalInput === '' ? '' : ' ') + transcript + ' ';
       setOriginalInput(newText);
@@ -170,11 +169,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             </div>
           )}
         </div>
-        {interimTranscript && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 italic mt-1">
-            Transcripción en progreso: {interimTranscript}
-          </p>
-        )}
         {transcriptError && (
           <p className="text-sm text-red-500 mt-1">
             Error de transcripción: {transcriptError}

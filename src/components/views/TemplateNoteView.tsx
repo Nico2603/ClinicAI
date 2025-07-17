@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, MicrophoneIcon, AIClinicalScales, EvidenceBasedConsultation } from '../';
 import { Button } from '../ui/button';
-import { useSimpleSpeech } from '../../hooks/useSimpleSpeech';
+import { useSpeech } from '../../hooks/useSpeech';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -42,7 +42,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useSimpleSpeech({
+  } = useSpeech({
     onTranscript: (transcript: string) => {
       const currentText = patientInfo;
       const newText = currentText + (currentText.endsWith(' ') || currentText === '' ? '' : ' ') + transcript + ' ';

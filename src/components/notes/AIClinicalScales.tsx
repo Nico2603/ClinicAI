@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLiveKitSpeech } from '../../hooks/useLiveKitSpeech';
+import { useSpeech } from '../../hooks/useSpeech';
 import { generateMedicalScale } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon, MicrophoneIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -29,15 +29,14 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
-  // Hook de reconocimiento de voz con LiveKit
+  // Hook de reconocimiento de voz simplificado
   const { 
     isRecording, 
-    isSupported: isSpeechApiAvailable, 
-    interimTranscript, 
+    isAvailable: isSpeechApiAvailable, 
     error: transcriptError, 
     startRecording, 
     stopRecording 
-  } = useLiveKitSpeech({
+  } = useSpeech({
     onTranscript: (transcript: string) => {
       setScaleRequest(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
     },
@@ -173,15 +172,6 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
                 </button>
               )}
             </div>
-            
-            {/* Transcripción en tiempo real */}
-            {interimTranscript && (
-              <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <span className="font-medium">Transcribiendo:</span> {interimTranscript}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Botones de acción */}
