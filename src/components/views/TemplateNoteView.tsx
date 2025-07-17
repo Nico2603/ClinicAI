@@ -54,6 +54,9 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
     }
   });
 
+  // Debug logs
+  console.log('🎤 TemplateNoteView - Speech API disponible:', isSpeechApiAvailable);
+
   const handleToggleRecording = () => {
     if (isRecording) {
       stopRecording();
@@ -150,6 +153,18 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {patientInfo.length} caracteres
                   </span>
+                  
+                  {/* Debug info - temporal */}
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                    API: {isSpeechApiAvailable ? '✅' : '❌'} 
+                    WS: {typeof WebSocket !== 'undefined' ? '✅' : '❌'}
+                    MR: {typeof MediaRecorder !== 'undefined' ? '✅' : '❌'}
+                    MIC: {!!(navigator?.mediaDevices?.getUserMedia) ? '✅' : '❌'}
+                    LK: {!!process.env.NEXT_PUBLIC_LIVEKIT_URL ? '✅' : '❌'}
+                    KEY: {!!process.env.NEXT_PUBLIC_LIVEKIT_API_KEY ? '✅' : '❌'}
+                    DG: {!!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY ? '✅' : '❌'}
+                  </div>
+
                   {isSpeechApiAvailable && (
                     <Button
                       onClick={handleToggleRecording}
@@ -161,6 +176,19 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                     >
                       <MicrophoneIcon className="h-4 w-4" />
                       {isRecording ? 'Detener' : 'Dictar'}
+                    </Button>
+                  )}
+                  
+                  {/* Botón de prueba forzado - temporal */}
+                  {!isSpeechApiAvailable && (
+                    <Button
+                      onClick={handleToggleRecording}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
+                    >
+                      <MicrophoneIcon className="h-4 w-4" />
+                      Dictar (Forzado)
                     </Button>
                   )}
                 </div>

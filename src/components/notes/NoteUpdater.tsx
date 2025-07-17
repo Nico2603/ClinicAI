@@ -39,11 +39,40 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
     }
   });
 
+  // Hook adicional para dictado de nota original
+  const { 
+    isRecording: isRecordingOriginal, 
+    isSupported: isSpeechApiAvailable2, 
+    interimTranscript: interimTranscriptOriginal, 
+    error: transcriptErrorOriginal, 
+    startRecording: startRecordingOriginal, 
+    stopRecording: stopRecordingOriginal 
+  } = useLiveKitSpeech({
+    onTranscript: (transcript: string) => {
+      setOriginalNote(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
+    },
+    onError: (error: string) => {
+      console.error('Speech recognition error (original):', error);
+    }
+  });
+
+  // Debug logs
+  console.log('🎤 Speech API disponible:', isSpeechApiAvailable);
+  console.log('🎤 Speech API disponible 2:', isSpeechApiAvailable2);
+
   const handleToggleRecording = () => {
     if (isRecording) {
       stopRecording();
     } else {
       startRecording();
+    }
+  };
+
+  const handleToggleRecordingOriginal = () => {
+    if (isRecordingOriginal) {
+      stopRecordingOriginal();
+    } else {
+      startRecordingOriginal();
     }
   };
 
@@ -115,16 +144,67 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
             Nota Clínica Original
           </label>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {originalNote.length} caracteres
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {originalNote.length} caracteres
+            </span>
+            
+            {/* Debug info - temporal */}
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              API2: {isSpeechApiAvailable2 ? '✅' : '❌'}
+            </div>
+
+            {isSpeechApiAvailable2 && (
+              <Button
+                onClick={handleToggleRecordingOriginal}
+                variant="outline"
+                size="sm"
+                className={`flex items-center gap-2 ${
+                  isRecordingOriginal ? 'bg-red-50 text-red-600 border-red-300' : 'text-gray-600'
+                }`}
+              >
+                <MicrophoneIcon className="h-4 w-4" />
+                {isRecordingOriginal ? 'Detener' : 'Dictar'}
+              </Button>
+            )}
+            
+            {/* Botón de prueba forzado - temporal */}
+            {!isSpeechApiAvailable2 && (
+              <Button
+                onClick={handleToggleRecordingOriginal}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
+              >
+                <MicrophoneIcon className="h-4 w-4" />
+                Dictar Original (Forzado)
+              </Button>
+            )}
+          </div>
         </div>
-        <textarea
-          value={originalNote}
-          onChange={(e) => setOriginalNote(e.target.value)}
-          placeholder="Pegue aquí la nota clínica original que desea actualizar..."
-          className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
-        />
+        <div className="relative">
+          <textarea
+            value={originalNote}
+            onChange={(e) => setOriginalNote(e.target.value)}
+            placeholder="Pegue aquí la nota clínica original que desea actualizar..."
+            className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
+          />
+          {isRecordingOriginal && (
+            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
+              Grabando...
+            </div>
+          )}
+        </div>
+        {interimTranscriptOriginal && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+            Transcripción en progreso: {interimTranscriptOriginal}
+          </p>
+        )}
+        {transcriptErrorOriginal && (
+          <p className="text-sm text-red-500">
+            Error de transcripción: {transcriptErrorOriginal}
+          </p>
+        )}
       </div>
 
       {/* Entrada de Nueva Información */}
@@ -137,6 +217,15 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {newInformation.length} caracteres
             </span>
+            
+            {/* Debug info - temporal */}
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              API: {isSpeechApiAvailable ? '✅' : '❌'} 
+              LK: {!!process.env.NEXT_PUBLIC_LIVEKIT_URL ? '✅' : '❌'}
+              KEY: {!!process.env.NEXT_PUBLIC_LIVEKIT_API_KEY ? '✅' : '❌'}
+              DG: {!!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY ? '✅' : '❌'}
+            </div>
+
             {isSpeechApiAvailable && (
               <Button
                 onClick={handleToggleRecording}
@@ -148,6 +237,19 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
               >
                 <MicrophoneIcon className="h-4 w-4" />
                 {isRecording ? 'Detener' : 'Dictar'}
+              </Button>
+            )}
+            
+            {/* Botón de prueba forzado - temporal */}
+            {!isSpeechApiAvailable && (
+              <Button
+                onClick={handleToggleRecording}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 bg-yellow-50 text-yellow-600 border-yellow-300"
+              >
+                <MicrophoneIcon className="h-4 w-4" />
+                Dictar (Forzado)
               </Button>
             )}
           </div>
