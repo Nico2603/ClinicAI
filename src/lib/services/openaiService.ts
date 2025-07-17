@@ -98,7 +98,7 @@ export const generateNoteFromTemplate = async (
   validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   // Prompt optimizado
-  const prompt = `Completa esta nota médica usando SOLO la información del paciente proporcionada.
+  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
@@ -108,17 +108,39 @@ PLANTILLA (formato únicamente):
 ${templateContent}
 ---
 
-INSTRUCCIONES:
-1. Usa ÚNICAMENTE la información del paciente
-2. NO uses datos de ejemplo de la plantilla
-3. Si falta información, omite la sección o marca "No reportado"
-4. Mantén el formato estructurado de la plantilla
-5. Sé conciso pero completo
+INSTRUCCIONES CRÍTICAS:
+
+1. **FORMATO ES SAGRADO:**
+   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
+   - Si algo está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
+   - Si algo está en minúsculas, mantenlo en minúsculas.
+   - Si usa viñetas (-), mantén las viñetas.
+   - Si usa numeración (1., 2.), mantén la numeración o si son números romanos también mantenlo.
+   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
+
+2. **CONTENIDO:**
+   - Usa ÚNICAMENTE la información del paciente proporcionada.
+   - NO inventes datos que no estén en la información del paciente.
+   - Si falta información para una sección, no dejes nunca el ítem vacío ni coloques nunca que falta un dato solo OMITE ESTA PARTE Y NO LA COLOQUES, al final de todo pon observaciones y un listado de datos que faltan y allí los concatenas.
+   - Usa terminología médica precisa y profesional.
+   - Siempre colocarlo todo en el mismo orden de la plantilla.
+   - Pon especial cuidado en la parte de ítems subjetivos y análisis que no hay datos predeterminados allí se pone algo con un índice de redacción pero apegado a la información que tenemos del paciente SIN ALUCINAR NI INVENTAR NADA.
+
+3. **IMPORTANTE:**
+   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
+   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
+   - Reemplaza todos los campos con información real del paciente o OMITE y no pongas el ítem si no hay datos.
+
+4. **RESPUESTA:**
+   - Responde SOLO con la nota médica completada.
+   - No agregues comentarios, explicaciones, ni introducciones.
+
+La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.
 
 Genera la nota médica completada:`;
 
   try {
-    const systemMessage = "Asistente médico experto en notas clínicas. Usa solo información del paciente real, nunca datos de ejemplo de plantillas.";
+    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas, nunca datos de ejemplo de plantillas.";
     
     const messages = createMessages(systemMessage, prompt);
     
