@@ -19,7 +19,6 @@ export * from './useSimpleDatabase';
 export * from './useDarkMode';
 
 export * from './useDeepgramSpeech';
-export * from './useSimpleSpeech';
 
 // Hooks de manejo de sesiones y utilidades
 export * from './useSimpleLoading';
