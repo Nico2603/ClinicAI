@@ -8,8 +8,32 @@ export const Footer: React.FC = () => {
       <div className="container-app mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm">
         {/* Marca */}
         <div className="md:col-span-1 flex flex-col gap-2 text-center sm:text-left">
-          <span className="text-2xl font-bold gradient-text">Notas<span className="text-primary">AI</span></span>
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <div className="relative">
+              <svg viewBox="0 0 100 100" className="w-8 h-8 text-blue-600" fill="currentColor">
+                <path d="M20 30 Q20 20, 30 20 Q40 20, 40 30 L40 50 Q40 70, 60 70 Q80 70, 80 50 L80 30 Q80 20, 70 20 Q60 20, 60 30" 
+                      stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round"/>
+                <circle cx="30" cy="25" r="8" strokeWidth="3" stroke="currentColor" fill="none"/>
+                <circle cx="70" cy="25" r="8" strokeWidth="3" stroke="currentColor" fill="none"/>
+                <circle cx="60" cy="75" r="12" fill="currentColor"/>
+              </svg>
+            </div>
+            <span className="text-2xl font-bold">
+              <span className="text-blue-900 dark:text-blue-100">Clinic</span>
+              <span className="text-blue-600 dark:text-blue-400">AI</span>
+            </span>
+          </div>
           <span className="text-xs text-neutral-600 dark:text-neutral-400">© {new Date().getFullYear()} ClinicAI.<br/>Todos los derechos reservados.</span>
+          <div className="text-xs text-neutral-500 dark:text-neutral-500">
+            <a 
+              href="https://www.canva.com/design/DAGtWoipHRA/rhwQqdK_PmICWeoAVBYeVA/view?utm_content=DAGtWoipHRA&utm_campaign=designshare&utm_medium=embeds&utm_source=link" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 transition-colors"
+            >
+              Diseño por Maria del Mar Agudelo
+            </a>
+          </div>
         </div>
         {/* Legal */}
         <div className="flex flex-col gap-2 text-center sm:text-left">
@@ -26,7 +50,7 @@ export const Footer: React.FC = () => {
         </div>
       </div>
       <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-2 px-4 text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                  <span className="font-bold">AVISO LEGAL:</span> ClinicAI proporciona únicamente acompañamiento y asistencia basada en inteligencia artificial. No es un servicio de salud mental ni reemplaza la atención profesional.
+        <span className="font-bold">AVISO LEGAL:</span> ClinicAI proporciona únicamente acompañamiento y asistencia basada en inteligencia artificial. No es un servicio de salud mental ni reemplaza la atención profesional.
         <div className="mt-4 flex flex-col items-center gap-1">
           <span className="font-semibold text-neutral-700 dark:text-neutral-200 text-sm">Desarrollado por Nicolás Ceballos Brito</span>
           <div className="flex gap-4 mt-1">

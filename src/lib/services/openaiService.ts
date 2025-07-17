@@ -97,7 +97,7 @@ export const generateNoteFromTemplate = async (
   validateInput(templateContent, 10);
   validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Prompt optimizado - más conciso pero igual de efectivo
+  // Prompt optimizado
   const prompt = `Completa esta nota médica usando SOLO la información del paciente proporcionada.
 
 INFORMACIÓN DEL PACIENTE:

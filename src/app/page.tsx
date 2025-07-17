@@ -89,9 +89,41 @@ export default function HomePage() {
             {/* Columna izquierda - Información de la aplicación */}
             <div className="text-center lg:text-left space-y-8 w-full max-w-2xl">
               {/* Logo y título principal */}
-              <div>
-                <div className="inline-flex items-center justify-center mb-8 mx-auto lg:mx-0">
-                  <Logo size="xl" className="h-32" />
+              <div className="flex flex-col items-center gap-6 mb-12">
+                {/* Logo de Canva completo */}
+                <div className="w-full max-w-md">
+                  <div className="relative w-full overflow-hidden rounded-lg shadow-lg" style={{ 
+                    height: '0', 
+                    paddingTop: '40%'
+                  }}>
+                    <iframe 
+                      loading="lazy" 
+                      style={{ 
+                        position: 'absolute', 
+                        width: '100%', 
+                        height: '100%', 
+                        top: '0', 
+                        left: '0', 
+                        border: 'none', 
+                        padding: '0',
+                        margin: '0'
+                      }}
+                      src="https://www.canva.com/design/DAGtWoipHRA/rhwQqdK_PmICWeoAVBYeVA/view?embed" 
+                      allowFullScreen
+                      allow="fullscreen"
+                      title="ClinicAI Logo"
+                    />
+                  </div>
+                  <div className="text-center mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                    <a 
+                      href="https://www.canva.com/design/DAGtWoipHRA/rhwQqdK_PmICWeoAVBYeVA/view?utm_content=DAGtWoipHRA&utm_campaign=designshare&utm_medium=embeds&utm_source=link" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      ClinicAI
+                    </a> de Maria del Mar Agudelo
+                  </div>
                 </div>
                 <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8">
                   El futuro de las notas clínicas está aquí
