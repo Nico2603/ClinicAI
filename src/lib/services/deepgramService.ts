@@ -86,6 +86,8 @@ export class DeepgramService {
     const wsUrl = this.buildWebSocketUrl();
     
     return new Promise((resolve, reject) => {
+      // En el navegador, no se pueden enviar headers personalizados con WebSocket
+      // Deepgram permite autenticación mediante query parameter también
       this.websocket = new WebSocket(wsUrl);
 
       this.websocket.onopen = () => {
@@ -119,16 +121,17 @@ export class DeepgramService {
   private buildWebSocketUrl(): string {
     const baseUrl = 'wss://api.deepgram.com/v1/listen';
     const params = new URLSearchParams({
+      model: 'nova-2', // Especificar modelo explícitamente
       language: this.config.language,
-      encoding: this.config.encoding,
       sample_rate: this.config.sampleRate.toString(),
       channels: this.config.channels.toString(),
       interim_results: this.config.interimResults.toString(),
       punctuate: this.config.punctuate.toString(),
       smart_format: this.config.smartFormat.toString(),
+      token: this.config.apiKey,
     });
 
-    return `${baseUrl}?${params.toString()}&token=${this.config.apiKey}`;
+    return `${baseUrl}?${params.toString()}`;
   }
 
   private setupMediaRecorder(): void {
@@ -137,9 +140,7 @@ export class DeepgramService {
     }
 
     // Configuración más compatible con diferentes navegadores
-    const options: MediaRecorderOptions = {
-      audioBitsPerSecond: 16000,
-    };
+    let options: MediaRecorderOptions = {};
 
     // Intentar diferentes tipos MIME según la compatibilidad del navegador
     if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -148,6 +149,9 @@ export class DeepgramService {
       options.mimeType = 'audio/webm';
     } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
       options.mimeType = 'audio/mp4';
+    } else {
+      // Fallback sin especificar mimeType
+      console.warn('No se encontró un formato de audio compatible, usando configuración por defecto');
     }
 
     this.mediaRecorder = new MediaRecorder(this.audioStream, options);
@@ -228,8 +232,8 @@ export class DeepgramService {
 export const createDeepgramService = (apiKey: string, callbacks: DeepgramCallbacks = {}): DeepgramService => {
   const defaultConfig: DeepgramConfig = {
     apiKey,
-    language: 'es-419', // Español latinoamericano
-    encoding: 'linear16',
+    language: 'es', // Español - formato simplificado que es más compatible
+    encoding: 'webm', // Cambiar a webm que es más compatible con MediaRecorder
     sampleRate: 16000,
     channels: 1,
     interimResults: true,
