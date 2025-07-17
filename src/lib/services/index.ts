@@ -14,5 +14,8 @@ export * from './storageService';
 // Servicios de Deepgram
 export * from './deepgramService';
 
+// Servicios de LiveKit
+export * from './livekitService';
+
 // Re-exportar utilidades relacionadas
 export * from '../utils';

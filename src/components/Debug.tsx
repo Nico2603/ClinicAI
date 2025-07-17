@@ -12,7 +12,7 @@ declare global {
 }
 
 import { useState } from 'react';
-import { useDeepgramSpeech } from '../hooks/useDeepgramSpeech';
+import { useLiveKitSpeech } from '../hooks/useLiveKitSpeech';
 import { diagnosDeepgramIssues, diagnosDeepgramAdvanced, type DeepgramDiagnostic } from '../lib/utils/index';
 
 // Componente de debugging simplificado - Solo para desarrollo
@@ -30,7 +30,7 @@ export const Debug = () => {
     stopRecording,
     clearTranscripts,
     testConnection
-  } = useDeepgramSpeech({
+  } = useLiveKitSpeech({
     onTranscript: (transcript: string) => {
       console.log('📝 Transcripción recibida:', transcript);
     },
