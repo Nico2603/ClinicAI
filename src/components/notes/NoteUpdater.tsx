@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { updateClinicalNote } from '../../lib/services/openaiService';
-import { useSpeech } from '../../hooks/useSpeech';
 import { GroundingMetadata } from '../../types';
-import { SparklesIcon, LoadingSpinner, MicrophoneIcon } from '../ui/Icons';
+import { SparklesIcon, LoadingSpinner } from '../ui/Icons';
 import { Button } from '../ui/button';
 import NoteDisplay from './NoteDisplay';
 
@@ -21,54 +20,6 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
-
-  // Hook para nueva información
-  const { 
-    isRecording, 
-    isAvailable, 
-    error: transcriptError, 
-    startRecording, 
-    stopRecording 
-  } = useSpeech({
-    onTranscript: (transcript: string) => {
-      setNewInformation(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error: string) => {
-      console.error('Error de reconocimiento de voz:', error);
-    }
-  });
-
-  // Hook para nota original
-  const { 
-    isRecording: isRecordingOriginal, 
-    isAvailable: isAvailableOriginal, 
-    error: transcriptErrorOriginal, 
-    startRecording: startRecordingOriginal, 
-    stopRecording: stopRecordingOriginal 
-  } = useSpeech({
-    onTranscript: (transcript: string) => {
-      setOriginalNote(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error: string) => {
-      console.error('Error de reconocimiento de voz (original):', error);
-    }
-  });
-
-  const handleToggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const handleToggleRecordingOriginal = () => {
-    if (isRecordingOriginal) {
-      stopRecordingOriginal();
-    } else {
-      startRecordingOriginal();
-    }
-  };
 
   const handleUpdateNote = async () => {
     if (!originalNote.trim()) {
@@ -138,45 +89,16 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
             Nota Clínica Original
           </label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {originalNote.length} caracteres
-            </span>
-            
-            {isAvailableOriginal && (
-              <Button
-                onClick={handleToggleRecordingOriginal}
-                variant="outline"
-                size="sm"
-                className={`flex items-center gap-2 ${
-                  isRecordingOriginal ? 'bg-red-50 text-red-600 border-red-300' : 'text-gray-600'
-                }`}
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-                {isRecordingOriginal ? 'Detener' : 'Dictar'}
-              </Button>
-            )}
-          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {originalNote.length} caracteres
+          </span>
         </div>
-        <div className="relative">
-          <textarea
-            value={originalNote}
-            onChange={(e) => setOriginalNote(e.target.value)}
-            placeholder="Pegue aquí la nota clínica original que desea actualizar..."
-            className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
-          />
-          {isRecordingOriginal && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-              Grabando...
-            </div>
-          )}
-        </div>
-
-        {transcriptErrorOriginal && (
-          <p className="text-sm text-red-500">
-            Error de transcripción: {transcriptErrorOriginal}
-          </p>
-        )}
+        <textarea
+          value={originalNote}
+          onChange={(e) => setOriginalNote(e.target.value)}
+          placeholder="Pegue aquí la nota clínica original que desea actualizar..."
+          className="w-full h-48 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
+        />
       </div>
 
       {/* Entrada de Nueva Información */}
@@ -185,45 +107,16 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
             Nueva Información a Integrar
           </label>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {newInformation.length} caracteres
-            </span>
-            
-            {isAvailable && (
-              <Button
-                onClick={handleToggleRecording}
-                variant="outline"
-                size="sm"
-                className={`flex items-center gap-2 ${
-                  isRecording ? 'bg-red-50 text-red-600 border-red-300' : 'text-gray-600'
-                }`}
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-                {isRecording ? 'Detener' : 'Dictar'}
-              </Button>
-            )}
-          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {newInformation.length} caracteres
+          </span>
         </div>
-        <div className="relative">
-          <textarea
-            value={newInformation}
-            onChange={(e) => setNewInformation(e.target.value)}
-            placeholder="Ingrese la nueva información médica que desea integrar en la nota existente..."
-            className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
-          />
-          {isRecording && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-              Grabando...
-            </div>
-          )}
-        </div>
-
-        {transcriptError && (
-          <p className="text-sm text-red-500">
-            Error de transcripción: {transcriptError}
-          </p>
-        )}
+        <textarea
+          value={newInformation}
+          onChange={(e) => setNewInformation(e.target.value)}
+          placeholder="Ingrese la nueva información médica que desea integrar en la nota existente..."
+          className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-y bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-green-500 focus:ring-green-500"
+        />
       </div>
 
       {/* Botones de Acción */}

@@ -64,7 +64,6 @@ export const ERROR_MESSAGES = {
   REQUIRED_FIELD: 'Este campo es requerido.',
   TEMPLATE_ERROR: 'Error con la plantilla',
   NOTE_ERROR: 'Error al generar nota',
-  SPEECH_NOT_SUPPORTED: 'Dictado no compatible con este navegador.',
   API_KEY_MISSING: 'API key no configurada.',
   GENERIC_ERROR: 'Error inesperado. Intente nuevamente.',
 } as const;

@@ -2,9 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
-import { SaveIcon, PlusIcon, PencilSquareIcon, MicrophoneIcon } from '../ui/Icons';
-import { Button } from '../ui/button';
-import { useSpeech } from '../../hooks/useSpeech';
+import { SaveIcon, PlusIcon, PencilSquareIcon } from '../ui/Icons';
 
 interface NoteEditorProps {
   note: HistoricNote;
@@ -24,32 +22,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [originalInput, setOriginalInput] = useState(note.originalInput);
   const [content, setContent] = useState(note.content);
   const [isModified, setIsModified] = useState(false);
-
-  // Hook de reconocimiento de voz simplificado
-  const { 
-    isRecording, 
-    isAvailable: isSpeechApiAvailable, 
-    error: transcriptError, 
-    startRecording, 
-    stopRecording 
-  } = useSpeech({
-    onTranscript: (transcript: string) => {
-      const newText = originalInput + (originalInput.endsWith(' ') || originalInput === '' ? '' : ' ') + transcript + ' ';
-      setOriginalInput(newText);
-      setIsModified(newText !== note.originalInput || content !== note.content);
-    },
-    onError: (error: string) => {
-      console.error('Speech recognition error:', error);
-    }
-  });
-
-  const handleToggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
 
   const getTemplateName = (specialtyId?: string): string => {
     if (!specialtyId) return 'Plantilla desconocida';
@@ -140,19 +112,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             <span className="text-xs text-neutral-500 dark:text-neutral-400">
               {originalInput.length} caracteres
             </span>
-            {isSpeechApiAvailable && (
-              <Button
-                onClick={handleToggleRecording}
-                variant="outline"
-                size="sm"
-                className={`flex items-center gap-2 ${
-                  isRecording ? 'bg-red-50 text-red-600 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-600' : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-                {isRecording ? 'Detener' : 'Dictar'}
-              </Button>
-            )}
           </div>
         </div>
         <div className="relative">
@@ -163,17 +122,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             className="w-full p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-primary focus:ring-primary"
             placeholder="Información del paciente..."
           />
-          {isRecording && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs animate-pulse">
-              Grabando...
-            </div>
-          )}
         </div>
-        {transcriptError && (
-          <p className="text-sm text-red-500 mt-1">
-            Error de transcripción: {transcriptError}
-          </p>
-        )}
       </div>
 
       {/* Editor de contenido de la nota */}

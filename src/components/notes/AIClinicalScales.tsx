@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSpeech } from '../../hooks/useSpeech';
 import { generateMedicalScale } from '../../lib/services/openaiService';
-import { LoadingSpinner, SparklesIcon, MicrophoneIcon } from '../ui/Icons';
+import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
 
 interface AIClinicalScalesProps {
@@ -28,22 +27,6 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
-
-  // Hook de reconocimiento de voz simplificado
-  const { 
-    isRecording, 
-    isAvailable: isSpeechApiAvailable, 
-    error: transcriptError, 
-    startRecording, 
-    stopRecording 
-  } = useSpeech({
-    onTranscript: (transcript: string) => {
-      setScaleRequest(prev => prev + (prev.endsWith(' ') || prev === '' ? '' : ' ') + transcript + ' ');
-    },
-    onError: (error: string) => {
-      console.error('Speech recognition error:', error);
-    }
-  });
 
   // Auto-cargar contenido clínico cuando esté disponible
   useEffect(() => {
@@ -84,14 +67,6 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
     }
   }, [scaleRequest, autoAnalyzeContent, onScaleGenerated]);
 
-  const handleToggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
   const handleCopyResult = () => {
     if (!scaleResult) return;
     
@@ -108,13 +83,6 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
     setScaleResult('');
     setError(null);
   };
-
-  // Limpiar errores de transcripción cuando se inicia nueva grabación
-  useEffect(() => {
-    if (isRecording && transcriptError) {
-      setError(null);
-    }
-  }, [isRecording, transcriptError]);
 
   return (
     <div className={className}>
@@ -156,21 +124,6 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
                 className="w-full p-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
                 placeholder="Ej: 'Escala de Glasgow', 'APACHE II', 'Wells para TEP', 'Escala de Braden', etc."
               />
-              
-              {/* Botón de micrófono */}
-              {isSpeechApiAvailable && (
-                <button
-                  onClick={handleToggleRecording}
-                  className={`absolute bottom-3 right-3 p-2 rounded-full transition-all ${
-                    isRecording
-                      ? 'bg-red-500 text-white hover:bg-red-600'
-                      : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                  }`}
-                  title={isRecording ? 'Detener grabación' : 'Iniciar grabación de voz'}
-                >
-                  <MicrophoneIcon className="h-4 w-4" />
-                </button>
-              )}
             </div>
           </div>
 
@@ -204,10 +157,10 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
           </div>
 
           {/* Errores */}
-          {(error || transcriptError) && (
+          {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
               <p className="text-sm text-red-800 dark:text-red-200">
-                {error || transcriptError}
+                {error}
               </p>
             </div>
           )}
@@ -238,7 +191,7 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
           )}
 
           {/* Mensaje cuando no hay contenido */}
-          {!scaleResult && !isCalculating && !error && !transcriptError && (
+          {!scaleResult && !isCalculating && !error && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <SparklesIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>Especifica qué escala clínica deseas calcular</p>

@@ -4,7 +4,6 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ClientOnly from '@/components/ClientOnly'
-import { Debug } from '@/components/Debug';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -54,7 +53,6 @@ export default function RootLayout({
                 {/* Sidebar a la izquierda */}
                 {/* El Sidebar se inyecta desde el children en AuthenticatedApp, así que solo estructuramos el espacio */}
                 {children}
-                <Debug />
               </main>
             </AuthProvider>
           </Providers>
