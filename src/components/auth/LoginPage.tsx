@@ -9,7 +9,7 @@ const LoginPage: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-10 lg:p-12 text-center">
           {/* Logo más grande */}
           <div className="mb-6 md:mb-8">
-            <Logo size="xl" className="h-20 w-20 md:h-28 md:w-28 lg:h-32 lg:w-32 mx-auto mb-4 md:mb-6" />
+            <Logo className="h-20 md:h-28 lg:h-32 xl:h-36 w-auto mx-auto mb-4 md:mb-6" />
             
             {/* Frase principal llamativa */}
             <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-2 md:mb-3">
