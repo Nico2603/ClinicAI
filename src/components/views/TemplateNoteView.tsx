@@ -56,9 +56,9 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   }
 
   const tabs = [
-    { id: 'note', label: 'Generación de Nota', icon: '📝' },
-    { id: 'evidence', label: 'Evidencia Científica', icon: '🔬' },
-    { id: 'scales', label: 'Escalas Clínicas Calculadas por IA', icon: '📊' },
+    { id: 'note', label: 'Generación de Nota', shortLabel: 'Nota', icon: '📝' },
+    { id: 'evidence', label: 'Evidencia Científica', shortLabel: 'Evidencias', icon: '🔬' },
+    { id: 'scales', label: 'Escalas Clínicas Calculadas por IA', shortLabel: 'Escalas', icon: '📊' },
   ];
 
   return (
@@ -85,7 +85,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
 
       {/* Tabs Navigation */}
       <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6">
-        <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide">
+        <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -97,7 +97,8 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
               }`}
             >
               <span className="mr-1 sm:mr-2">{tab.icon}</span>
-              {tab.label}
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.shortLabel}</span>
             </button>
           ))}
         </nav>
