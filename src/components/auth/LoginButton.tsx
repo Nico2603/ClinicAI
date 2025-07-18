@@ -21,7 +21,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({ className = '' }) => {
       <button
         onClick={handleSignIn}
         disabled={isLoading}
-        className="flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full flex items-center justify-center px-6 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-base"
       >
         <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
           <path
@@ -41,11 +41,11 @@ const LoginButton: React.FC<LoginButtonProps> = ({ className = '' }) => {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        {isLoading ? 'Cargando...' : 'Continuar con Google'}
+        {isLoading ? 'Iniciando sesión...' : 'Continuar con Google'}
       </button>
       
       {error && (
-        <div className="text-red-600 text-sm text-center">
+        <div className="w-full p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-lg text-center">
           {error}
         </div>
       )}
