@@ -21,9 +21,9 @@ const LoginButton: React.FC<LoginButtonProps> = ({ className = '' }) => {
       <button
         onClick={handleSignIn}
         disabled={isLoading}
-        className="w-full flex items-center justify-center px-6 py-3 md:px-8 md:py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm md:text-base"
+        className="w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl flex items-center justify-center px-6 py-3 md:px-8 md:py-4 lg:px-10 lg:py-5 xl:px-12 xl:py-6 2xl:px-14 2xl:py-7 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl"
       >
-        <svg className="w-5 h-5 md:w-6 md:h-6 mr-3" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 xl:w-8 xl:h-8 2xl:w-10 2xl:h-10 mr-3 lg:mr-4 xl:mr-5" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -45,7 +45,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({ className = '' }) => {
       </button>
       
       {error && (
-        <div className="w-full p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-lg text-center">
+        <div className="w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl p-3 lg:p-4 xl:p-5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm lg:text-base xl:text-lg 2xl:text-xl rounded-lg text-center">
           {error}
         </div>
       )}
