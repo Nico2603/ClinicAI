@@ -28,8 +28,7 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
     startListening,
     stopListening,
     resetTranscript,
-    error,
-    isMobile
+    error
   } = useSpeechRecognition({ language });
 
   // Efecto para actualizar el valor cuando se recibe transcripción
@@ -51,21 +50,6 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
     }
   }, [isListening, startListening, stopListening]);
 
-  // En móviles, detener automáticamente después de cierto tiempo si no hay actividad
-  useEffect(() => {
-    if (isMobile && isListening) {
-      const timeout = setTimeout(() => {
-        if (isListening) {
-          stopListening();
-        }
-      }, 15000); // 15 segundos máximo en móviles
-
-      return () => clearTimeout(timeout);
-    }
-    
-    return undefined; // Retorno explícito para TypeScript
-  }, [isMobile, isListening, stopListening]);
-
   if (!isSupported) {
     return null; // No mostrar el botón si no es compatible
   }
@@ -83,7 +67,6 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
             : 'bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 border-neutral-300 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 hover:text-primary dark:hover:text-primary'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-          ${isMobile ? 'p-3' : 'p-2'} /* Botón más grande en móviles */
           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
           ${className}
         `}
@@ -93,7 +76,7 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
         {isListening ? (
           // Icono de micrófono activo (grabando)
           <svg 
-            className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'}`} 
+            className="h-5 w-5" 
             fill="currentColor" 
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -104,7 +87,7 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
         ) : (
           // Icono de micrófono inactivo
           <svg 
-            className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'}`} 
+            className="h-5 w-5" 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -120,37 +103,26 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
         )}
       </button>
 
-      {/* Indicador de transcripción en tiempo real - Solo en desktop o cuando hay interim */}
-      {(isListening || (!isMobile && interimTranscript)) && (
-        <div className={`absolute z-10 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg shadow-lg ${isMobile ? 'min-w-[200px]' : ''}`}>
+      {/* Indicador de transcripción en tiempo real */}
+      {(isListening || interimTranscript) && (
+        <div className="absolute z-10 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg shadow-lg">
           <div className="flex items-center space-x-2">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce"></div>
               <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
               <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
-            <span className={`text-blue-700 dark:text-blue-300 ${isMobile ? 'text-sm' : 'text-xs'}`}>
-              {!isMobile && interimTranscript ? interimTranscript : 
-               isMobile ? 'Grabando...' : 'Escuchando...'}
+            <span className="text-xs text-blue-700 dark:text-blue-300">
+              {interimTranscript || 'Escuchando...'}
             </span>
           </div>
-          {isMobile && (
-            <div className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-              Toca de nuevo para detener
-            </div>
-          )}
         </div>
       )}
 
       {/* Mostrar errores */}
       {error && (
-        <div className={`absolute z-10 mt-1 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg shadow-lg ${isMobile ? 'min-w-[250px]' : ''}`}>
-          <p className={`text-red-700 dark:text-red-300 ${isMobile ? 'text-sm' : 'text-xs'}`}>{error}</p>
-          {isMobile && error.includes('micrófono') && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-              Asegúrate de permitir el acceso al micrófono en la configuración del navegador
-            </p>
-          )}
+        <div className="absolute z-10 mt-1 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg shadow-lg">
+          <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
         </div>
       )}
     </>
