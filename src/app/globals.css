@@ -64,6 +64,7 @@ body {
 @media (max-width: 768px) {
   body {
     font-size: 14px;
+    line-height: 1.5;
   }
   
   * {
@@ -80,6 +81,29 @@ body {
   main {
     max-width: 100vw;
     overflow-x: hidden;
+  }
+  
+  /* Mejorar interacciones táctiles */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Optimizar inputs para móvil */
+  input, textarea, select {
+    font-size: 16px; /* Previene zoom en iOS */
+  }
+}
+
+/* Breakpoint específico para móviles muy pequeños */
+@media (max-width: 375px) {
+  body {
+    font-size: 13px;
+  }
+  
+  .container-app {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
 
@@ -162,11 +186,11 @@ body {
 /* Capa para componentes reutilizables */
 @layer components {
   .container-app {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8;
   }
   
   .btn {
-    @apply rounded-md px-4 py-2 inline-flex justify-center items-center transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply rounded-md px-3 sm:px-4 py-2 inline-flex justify-center items-center transition-all duration-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none touch-target;
   }
   
   .btn-primary {
@@ -245,29 +269,29 @@ body {
     animation: fadeIn 0.3s ease-out;
   }
 
-  /* Utilidades responsive específicas */
+  /* Utilidades responsive mejoradas */
   .responsive-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6;
   }
 
   .responsive-flex {
-    @apply flex flex-col sm:flex-row gap-3 sm:gap-4;
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4;
   }
 
   .responsive-text {
-    @apply text-sm sm:text-base;
+    @apply text-xs sm:text-sm md:text-base;
   }
 
   .responsive-heading {
-    @apply text-lg sm:text-xl md:text-2xl;
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
   }
 
   .responsive-padding {
-    @apply p-4 sm:p-6 md:p-8;
+    @apply p-3 sm:p-4 md:p-6 lg:p-8;
   }
 
   .responsive-margin {
-    @apply m-4 sm:m-6 md:m-8;
+    @apply m-3 sm:m-4 md:m-6 lg:m-8;
   }
 
   .mobile-optimized {
@@ -284,7 +308,57 @@ body {
   }
 
   .touch-friendly {
-    @apply p-3 sm:p-2 rounded-lg;
+    @apply p-2 sm:p-3 rounded-lg touch-target;
+  }
+
+  /* Nuevas utilidades para móvil */
+  .mobile-compact {
+    @apply space-y-2 sm:space-y-3 md:space-y-4;
+  }
+
+  .mobile-text {
+    @apply text-xs sm:text-sm leading-relaxed;
+  }
+
+  .mobile-heading {
+    @apply text-sm sm:text-base md:text-lg font-semibold;
+  }
+
+  .mobile-card {
+    @apply bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 sm:p-4 border border-neutral-200 dark:border-neutral-700;
+  }
+
+  .mobile-input {
+    @apply w-full p-2.5 sm:p-3 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-sm sm:text-base transition-colors;
+  }
+
+  .mobile-button {
+    @apply w-full sm:w-auto px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 touch-target;
+  }
+
+  .mobile-nav {
+    @apply space-y-1 p-2 sm:p-3;
+  }
+
+  .mobile-nav-item {
+    @apply w-full flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 touch-target;
+  }
+
+  /* Utilidades de espaciado específicas para móvil */
+  .mobile-spacing {
+    @apply space-y-3 sm:space-y-4 md:space-y-6;
+  }
+
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4;
+  }
+
+  .mobile-stack {
+    @apply flex flex-col space-y-2 sm:space-y-3;
+  }
+
+  .mobile-inline {
+    @apply flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0;
   }
 }
 

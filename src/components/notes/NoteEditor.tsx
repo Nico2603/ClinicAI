@@ -78,27 +78,32 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   };
 
   return (
-    <section className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h2 className="text-lg md:text-xl font-semibold text-primary mb-4 sm:mb-0 flex items-center">
-          <PencilSquareIcon className="h-6 w-6 mr-2" />
-          Editor de Nota
+    <section className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-3 sm:p-4 md:p-5">
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold text-primary flex items-center">
+          <PencilSquareIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-2 shrink-0" />
+          <span className="truncate">Editor de Nota</span>
         </h2>
-        <div className="text-sm text-neutral-600 dark:text-neutral-400">
+        <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 shrink-0">
           Creada: {formatDate(note.timestamp)}
         </div>
       </div>
 
       {/* Información de la nota */}
-      <div className="mb-6 p-4 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+      <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-neutral-50 dark:bg-neutral-700 rounded-lg">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary w-fit">
               {note.type === 'template' ? getTemplateName(note.specialty_id) : 'Nota General'}
             </span>
-          </div>
-          <div className="text-right text-sm text-neutral-500 dark:text-neutral-400">
-            Tipo: {note.type}
+            <div className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+              {isModified && (
+                <span className="inline-flex items-center text-orange-600 dark:text-orange-400">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mr-1.5"></span>
+                  Modificado
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

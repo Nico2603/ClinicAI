@@ -5,24 +5,32 @@ import React from 'react';
 export const Footer: React.FC = () => {
   return (
     <footer className="w-full bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors duration-300">
-      <div className="container-app mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+      <div className="container-app mx-auto max-w-7xl px-3 sm:px-4 lg:px-8 py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 text-xs sm:text-sm">
         {/* Marca */}
-        <div className="md:col-span-1 flex flex-col gap-2 text-center sm:text-left">
-          <span className="text-2xl font-bold gradient-text">Clinic<span className="text-primary">AI</span></span>
-          <span className="text-xs text-neutral-600 dark:text-neutral-400">© {new Date().getFullYear()} ClinicAI.<br/>Todos los derechos reservados.</span>
+        <div className="md:col-span-1 flex flex-col gap-1.5 sm:gap-2 text-center sm:text-left">
+          <span className="text-lg sm:text-2xl font-bold gradient-text">Clinic<span className="text-primary">AI</span></span>
+          <span className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+            © {new Date().getFullYear()} ClinicAI.<br className="sm:hidden"/>
+            <span className="hidden sm:inline"><br/></span>
+            Todos los derechos reservados.
+          </span>
         </div>
         {/* Legal */}
-        <div className="flex flex-col gap-2 text-center sm:text-left">
-          <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1">LEGAL</span>
-          <a href="/legal" className="hover:underline text-neutral-700 dark:text-neutral-300">Términos y Condiciones</a>
+        <div className="flex flex-col gap-1.5 sm:gap-2 text-center sm:text-left">
+          <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1 text-xs sm:text-sm">LEGAL</span>
+          <a href="/legal" className="hover:underline text-neutral-700 dark:text-neutral-300 text-xs sm:text-sm transition-colors">
+            Términos y Condiciones
+          </a>
         </div>
         {/* Contacto */}
-        <div className="flex flex-col gap-2 text-center sm:text-left">
-          <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1">CONTACTO</span>
-          <span className="text-neutral-700 dark:text-neutral-300">2093 Philadelphia Pike #9001</span>
-          <span className="text-neutral-700 dark:text-neutral-300">Claymont, DE, 19703, United States</span>
-          <span className="text-neutral-700 dark:text-neutral-300">+1 (347) 654 4961</span>
-          <span className="text-neutral-700 dark:text-neutral-300">talent@teilur.com</span>
+        <div className="flex flex-col gap-1.5 sm:gap-2 text-center sm:text-left">
+          <span className="font-semibold text-neutral-800 dark:text-neutral-100 mb-1 text-xs sm:text-sm">CONTACTO</span>
+          <div className="space-y-1 text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="leading-relaxed">2093 Philadelphia Pike #9001</div>
+            <div className="leading-relaxed">Claymont, DE, 19703, United States</div>
+            <div className="leading-relaxed">+1 (347) 654 4961</div>
+            <div className="leading-relaxed">talent@teilur.com</div>
+          </div>
         </div>
       </div>
       <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-2 px-4 text-xs text-neutral-500 dark:text-neutral-400 text-center">

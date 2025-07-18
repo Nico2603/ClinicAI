@@ -12,9 +12,9 @@ interface CustomTemplateManagerProps {
 
 // Componente de loading simple
 const LoadingState = memo(() => (
-  <div className="flex flex-col items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+  <div className="flex flex-col items-center justify-center p-6 sm:p-8">
+    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mb-2 sm:mb-3"></div>
+    <p className="mobile-text text-neutral-600 dark:text-neutral-400">
       Cargando plantillas...
     </p>
   </div>
@@ -22,11 +22,11 @@ const LoadingState = memo(() => (
 
 // Componente de estado vacío
 const EmptyState = memo(() => (
-  <div className="text-center py-8">
-    <p className="text-neutral-500 dark:text-neutral-400 text-sm">
+  <div className="text-center py-6 sm:py-8">
+    <p className="mobile-text text-neutral-500 dark:text-neutral-400">
       No tienes plantillas personalizadas aún.
     </p>
-    <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
+    <p className="mobile-text text-neutral-500 dark:text-neutral-400 mt-1">
       Crea tu primera plantilla para comenzar.
     </p>
   </div>
@@ -45,25 +45,25 @@ const DeleteConfirmDialog = memo(({
   if (!templateId) return null;
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-        <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="mobile-card max-w-md w-full">
+        <h3 className="mobile-heading text-neutral-900 dark:text-neutral-100 mb-4">
           ¿Eliminar plantilla?
         </h3>
-        <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+        <p className="mobile-text text-neutral-600 dark:text-neutral-400 mb-6">
           Esta acción no se puede deshacer. La plantilla será eliminada permanentemente.
         </p>
-        <div className="flex gap-3">
+        <div className="mobile-grid">
           <button
             onClick={() => onConfirm(templateId)}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+            className="mobile-button bg-red-600 text-white hover:bg-red-700"
           >
             <TrashIcon className="h-4 w-4 mr-2" />
             Eliminar
           </button>
           <button
             onClick={onCancel}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+            className="mobile-button border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600"
           >
             Cancelar
           </button>

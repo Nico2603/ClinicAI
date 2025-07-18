@@ -7,6 +7,7 @@ import { Logo } from '@/components/ui/Icons';
 import { FaGoogle, FaShieldAlt, FaBrain, FaUsers, FaClock } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import LoginPage from '@/components/auth/LoginPage';
 
 export default function HomePage() {
   const { user, isLoading, signIn, error: authError, mounted } = useAuth();
@@ -82,196 +83,79 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-8 w-full">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-3 sm:px-4 py-4 sm:py-8 w-full">
         <div className="container max-w-7xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-16 items-center justify-items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center justify-items-center">
             
             {/* Columna izquierda - Información de la aplicación */}
-            <div className="text-center lg:text-left space-y-8 w-full max-w-2xl">
+            <div className="text-center lg:text-left space-y-6 lg:space-y-8 w-full max-w-2xl order-2 lg:order-1">
               {/* Logo y título principal */}
               <div>
-                <div className="inline-flex items-center justify-center mb-8 mx-auto lg:mx-0">
-                  <Logo size="xl" className="h-32" />
+                <div className="inline-flex items-center justify-center mb-6 lg:mb-8 mx-auto lg:mx-0">
+                  <Logo size="xl" className="h-24 sm:h-32" />
                 </div>
-                <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-8">
+                <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-6 lg:mb-8 px-2">
                   El futuro de las notas clínicas está aquí
                 </p>
-                <p className="text-lg text-gray-500 dark:text-gray-400 max-w-lg mx-auto lg:mx-0">
+                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 max-w-lg mx-auto lg:mx-0 px-2">
                   Transforma tu práctica médica con inteligencia artificial avanzada. 
                   Crea notas clínicas precisas, completas y profesionales en segundos.
                 </p>
               </div>
 
               {/* Características principales */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <FaBrain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
+                  <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900 rounded-full mb-3 sm:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">IA Especializada</h3>
-                    <p className="text-gray-600 dark:text-gray-400">Entrenada específicamente para terminología médica</p>
-                  </div>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">Generación Instantánea</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Crea notas profesionales en segundos con IA especializada</p>
                 </div>
                 
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                      <FaClock className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
+                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
+                  <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900 rounded-full mb-3 sm:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Ahorro de Tiempo</h3>
-                    <p className="text-gray-600 dark:text-gray-400">Reduce el tiempo de documentación en un 80%</p>
-                  </div>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">Totalmente Seguro</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Cumplimiento HIPAA y encriptación de extremo a extremo</p>
                 </div>
                 
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                      <FaShieldAlt className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    </div>
+                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg p-4 sm:p-6 text-center hover:shadow-lg transition-shadow">
+                  <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900 rounded-full mb-3 sm:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Seguridad Total</h3>
-                    <p className="text-gray-600 dark:text-gray-400">Cumple con estándares HIPAA y protección de datos</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                      <FaUsers className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Multi-especialidad</h3>
-                    <p className="text-gray-600 dark:text-gray-400">Adaptado para todas las especialidades médicas</p>
-                  </div>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">IA Especializada</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Entrenada específicamente para terminología médica</p>
                 </div>
               </div>
 
               {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-6 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-3 gap-4 sm:gap-6 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-700">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">99%</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Precisión</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">99%</div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Precisión</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">2min</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Promedio por nota</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">2min</div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Promedio por nota</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">24/7</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Disponibilidad</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">24/7</div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Disponibilidad</div>
                 </div>
               </div>
             </div>
 
             {/* Columna derecha - Formulario de login */}
-            <div className="w-full max-w-lg mx-auto">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    Comienza ahora
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Únete a miles de profesionales que ya confían en ClinicAI
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <Button
-                    onClick={signIn}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-3"
-                    size="lg"
-                    disabled={isLoading}
-                  >
-                    <FaGoogle className="h-5 w-5" />
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        Cargando...
-                      </>
-                    ) : (
-                      'Iniciar sesión con Google'
-                    )}
-                  </Button>
-                  
-                  {displayError && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                      <div className="flex">
-                        <div className="text-red-400">
-                          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm text-red-800 dark:text-red-200">
-                            {displayError}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Al continuar, aceptas nuestros{' '}
-                      <a href="/legal" className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                        términos de servicio
-                      </a>{' '}
-                      y{' '}
-                      <a href="/legal" className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                        política de privacidad
-                      </a>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Beneficios adicionales */}
-                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 text-center">
-                    ¿Por qué elegir ClinicAI?
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Plantillas personalizables por especialidad</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Reconocimiento de voz integrado</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Historial completo de consultas</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Escalas clínicas automatizadas</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="w-full max-w-md mx-auto order-1 lg:order-2">
+              <LoginPage />
             </div>
           </div>
         </div>

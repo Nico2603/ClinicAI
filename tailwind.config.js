@@ -4,8 +4,17 @@ module.exports = {
   theme: {
     extend: {
       screens: {
-        'xs': '475px',
+        'xs': '375px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
         '3xl': '1600px',
+        // Breakpoints específicos para móvil
+        'mobile': {'max': '767px'},
+        'tablet': {'min': '768px', 'max': '1023px'},
+        'desktop': {'min': '1024px'},
       },
       colors: {
         border: "hsl(var(--border))",
@@ -50,13 +59,30 @@ module.exports = {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+        // Espaciado específico para móvil
+        'mobile-xs': '0.375rem', // 6px
+        'mobile-sm': '0.5rem',   // 8px  
+        'mobile-md': '0.75rem',  // 12px
+        'mobile-lg': '1rem',     // 16px
+        'mobile-xl': '1.25rem',  // 20px
       },
       minHeight: {
         'screen-safe': 'calc(100vh - 4rem)',
+        'touch-target': '44px',
+      },
+      minWidth: {
+        'touch-target': '44px',
       },
       maxWidth: {
         'screen-xl': '1280px',
-      }
+        'mobile': '100vw',
+      },
+      fontSize: {
+        'mobile-xs': ['0.75rem', { lineHeight: '1.5' }],    // 12px
+        'mobile-sm': ['0.875rem', { lineHeight: '1.5' }],   // 14px
+        'mobile-base': ['1rem', { lineHeight: '1.5' }],     // 16px
+        'mobile-lg': ['1.125rem', { lineHeight: '1.4' }],   // 18px
+      },
     }
   },
   darkMode: "class",

@@ -64,17 +64,17 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   return (
     <section 
       aria-labelledby="template-note-heading" 
-      className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5"
+      className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-3 sm:p-4 md:p-5"
     >
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 md:mb-4">
-        <h2 id="template-note-heading" className="text-base md:text-lg font-semibold text-primary mb-2 lg:mb-0">
-          Generador de Nota: <span className="font-bold">{selectedTemplate.name}</span>
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between mb-3 md:mb-4">
+        <h2 id="template-note-heading" className="text-sm sm:text-base md:text-lg font-semibold text-primary">
+          Generador de Nota: <span className="font-bold break-words">{selectedTemplate.name}</span>
         </h2>
         {activeTab === 'note' && (
-          <div className="lg:w-1/2 xl:w-1/3">
+          <div className="w-full sm:w-auto">
             <button
               onClick={onChangeTemplate}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 hover:border-primary/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary bg-primary/10 border border-primary/20 rounded-lg hover:bg-primary/20 hover:border-primary/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 touch-target"
             >
               <span className="mr-2">🔄</span>
               Cambiar plantilla
@@ -84,19 +84,19 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
-        <nav className="flex space-x-8">
+      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6">
+        <nav className="flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as 'note' | 'evidence' | 'scales')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap touch-target ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300'
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
+              <span className="mr-1 sm:mr-2">{tab.icon}</span>
               {tab.label}
             </button>
           ))}

@@ -89,113 +89,67 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   };
 
   const tabs = [
-    { id: 'notes', label: 'Historial de notas', icon: '📝', count: notesHistory.length },
-    { id: 'evidence', label: 'Historial de evidencias científicas', icon: '🔬', count: evidenceHistory.length },
-    { id: 'scales', label: 'Historial de escalas clínicas generadas por IA', icon: '📊', count: scalesHistory.length },
+    { id: 'notes', label: 'Notas', shortLabel: 'Notas', icon: '📝', count: notesHistory.length },
+    { id: 'evidence', label: 'Evidencias científicas', shortLabel: 'Evidencias', icon: '🔬', count: evidenceHistory.length },
+    { id: 'scales', label: 'Escalas clínicas generadas por IA', shortLabel: 'Escalas', icon: '📊', count: scalesHistory.length },
   ];
 
   const currentNotes = getCurrentNotes();
 
   const renderNotesList = (notes: HistoricNote[]) => {
     if (notes.length === 0) {
-      const emptyMessage = {
-        notes: 'No hay notas en el historial',
-        evidence: 'No hay consultas de evidencia científica en el historial',
-        scales: 'No hay escalas clínicas generadas en el historial'
-      };
-
-      const emptyDescription = {
-        notes: 'Las notas que generes se guardarán automáticamente aquí para acceso rápido.',
-        evidence: 'Las consultas de evidencia científica que realices se guardarán aquí.',
-        scales: 'Las escalas clínicas que generes con IA se guardarán aquí.'
-      };
-
       return (
-        <div className="text-center py-12">
-          <ClockIcon className="h-16 w-16 text-neutral-300 dark:text-neutral-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-            {emptyMessage[activeTab]}
-          </h3>
-          <p className="text-neutral-500 dark:text-neutral-400">
-            {emptyDescription[activeTab]}
+        <div className="text-center py-8 sm:py-12">
+          <ClockIcon className="h-12 w-12 sm:h-16 sm:w-16 text-neutral-400 mx-auto mb-3 sm:mb-4" />
+          <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-400">
+            No hay notas en el historial de esta categoría
           </p>
         </div>
       );
     }
 
     return (
-      <div className="space-y-4">
+      <div className="mobile-spacing">
         {notes.map((note) => (
-          <div
-            key={note.id}
-            className="bg-neutral-50 dark:bg-neutral-700 rounded-lg p-4 border border-neutral-200 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600 transition-colors"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div key={note.id} className="mobile-card hover:shadow-md transition-shadow">
+            <div className="mobile-inline mb-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary w-fit">
                     {getTypeLabel(note)}
                   </span>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="mobile-text text-neutral-500 dark:text-neutral-400">
                     {formatDate(note.timestamp)}
                   </span>
                 </div>
-                
-                <div className="text-sm text-neutral-700 dark:text-neutral-300 line-clamp-3">
-                  {note.content.length > 200 
-                    ? `${note.content.substring(0, 200)}...` 
-                    : note.content
-                  }
-                </div>
+                <p className="mobile-text text-neutral-800 dark:text-neutral-200 line-clamp-3">
+                  {note.content.length > 100 ? `${note.content.substring(0, 100)}...` : note.content}
+                </p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-2 sm:ml-4">
-                <button
-                  onClick={() => onLoadNoteInEditor(note)}
-                  className="inline-flex items-center px-3 py-2 border border-blue-300 dark:border-blue-600 text-sm font-medium rounded-md text-blue-700 dark:text-blue-300 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                  title="Cargar en editor de plantillas"
-                >
-                  <PencilSquareIcon className="h-4 w-4 mr-1" />
-                  Editor
-                </button>
-                
-                <button
-                  onClick={() => onLoadNoteInUpdater(note)}
-                  className="inline-flex items-center px-3 py-2 border border-green-300 dark:border-green-600 text-sm font-medium rounded-md text-green-700 dark:text-green-300 bg-white dark:bg-neutral-800 hover:bg-green-50 dark:hover:bg-green-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                  title="Cargar en actualizador"
-                >
-                  <EditIcon className="h-4 w-4 mr-1" />
-                  Actualizar
-                </button>
-                
-                {confirmingDelete === note.id ? (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => confirmDelete(note.id)}
-                      className="inline-flex items-center px-2 py-2 border border-red-300 dark:border-red-600 text-xs font-medium rounded-md text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                      title="Confirmar eliminación"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={cancelDelete}
-                      className="inline-flex items-center px-2 py-2 border border-neutral-300 dark:border-neutral-600 text-xs font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500 transition-colors"
-                      title="Cancelar"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleDeleteClick(note.id)}
-                    className="inline-flex items-center px-3 py-2 border border-red-300 dark:border-red-600 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                    title="Eliminar nota"
-                  >
-                    <TrashIcon className="h-4 w-4 mr-1" />
-                    Eliminar
-                  </button>
-                )}
-              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+              <button
+                onClick={() => onLoadNoteInEditor(note)}
+                className="mobile-button bg-primary text-white hover:bg-primary/90"
+              >
+                <PencilSquareIcon className="h-4 w-4 mr-2 shrink-0" />
+                Editar
+              </button>
+              <button
+                onClick={() => onLoadNoteInUpdater(note)}
+                className="mobile-button bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
+                <EditIcon className="h-4 w-4 mr-2 shrink-0" />
+                Actualizar
+              </button>
+              <button
+                onClick={() => handleDeleteClick(note.id)}
+                className="mobile-button bg-red-600 text-white hover:bg-red-700"
+              >
+                <TrashIcon className="h-4 w-4 mr-2 shrink-0" />
+                Eliminar
+              </button>
             </div>
           </div>
         ))}
@@ -204,48 +158,41 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   };
 
   return (
-    <section 
-      aria-labelledby="history-heading" 
-      className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-4 md:p-5"
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 md:mb-4">
-        <h2 id="history-heading" className="text-base md:text-lg font-semibold text-primary mb-2 sm:mb-0 flex items-center">
-          <ClockIcon className="h-6 w-6 mr-2" />
-          Historial
+    <section className="mobile-card">
+      <div className="mobile-inline mb-4 sm:mb-6">
+        <h2 className="mobile-heading text-primary">
+          📚 Historial de Notas
         </h2>
-        
         {historicNotes.length > 0 && (
           <button
             onClick={onClearHistory}
-            className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+            className="mobile-button bg-red-600 text-white hover:bg-red-700"
           >
-            <TrashIcon className="h-4 w-4 mr-2" />
-            Limpiar Historial
+            <TrashIcon className="h-4 w-4 mr-2 shrink-0" />
+            <span className="hidden sm:inline">Limpiar historial</span>
+            <span className="sm:hidden">Limpiar</span>
           </button>
         )}
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
-        <nav className="flex space-x-8 overflow-x-auto">
+      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6">
+        <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as 'notes' | 'evidence' | 'scales')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+              className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap touch-target ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300'
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
+              <span className="mr-1 sm:mr-2">{tab.icon}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.shortLabel}</span>
               {tab.count > 0 && (
-                <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                  activeTab === tab.id 
-                    ? 'bg-primary/20 text-primary' 
-                    : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-400'
-                }`}>
+                <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary">
                   {tab.count}
                 </span>
               )}
@@ -254,8 +201,36 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </nav>
       </div>
 
-      {/* Tab Content */}
+      {/* Content */}
       {renderNotesList(currentNotes)}
+
+      {/* Confirmation Dialog */}
+      {confirmingDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="mobile-card max-w-md w-full">
+            <h3 className="mobile-heading text-neutral-900 dark:text-neutral-100 mb-4">
+              ¿Eliminar nota?
+            </h3>
+            <p className="mobile-text text-neutral-600 dark:text-neutral-400 mb-6">
+              Esta acción no se puede deshacer. La nota será eliminada permanentemente.
+            </p>
+            <div className="mobile-grid">
+              <button
+                onClick={() => confirmDelete(confirmingDelete)}
+                className="mobile-button bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+              <button
+                onClick={cancelDelete}
+                className="mobile-button border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-600"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }; 

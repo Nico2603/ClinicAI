@@ -42,11 +42,11 @@ const TextareaWithSpeech = forwardRef<HTMLTextAreaElement, TextareaWithSpeechPro
   };
 
   return (
-    <div className="relative">
-      {/* Label opcional */}
+    <div className="w-full">
+      {/* Label y contador en la parte superior */}
       {label && (
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <div className="flex justify-between items-center mb-1.5 sm:mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300">
             {label}
           </label>
           {showCharacterCount && (
@@ -56,18 +56,18 @@ const TextareaWithSpeech = forwardRef<HTMLTextAreaElement, TextareaWithSpeechPro
           )}
         </div>
       )}
-      
-      {/* Container del textarea con botón */}
+
       <div className="relative">
         <textarea
           ref={ref}
           value={value}
           onChange={onChange}
           className={`
-            w-full p-3 pr-12 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y 
+            w-full p-2.5 sm:p-3 pr-10 sm:pr-12 border border-neutral-300 dark:border-neutral-600 rounded-lg resize-y 
             bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 
             placeholder-neutral-500 dark:placeholder-neutral-400 
             focus:border-primary focus:ring-primary transition-colors
+            text-sm sm:text-base leading-relaxed
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
             ${className}
           `}
@@ -78,7 +78,7 @@ const TextareaWithSpeech = forwardRef<HTMLTextAreaElement, TextareaWithSpeechPro
         />
         
         {/* Botón de micrófono posicionado absolutamente */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3">
           <SpeechButton
             value={value}
             onChange={handleSpeechChange}

@@ -199,9 +199,13 @@ const AuthenticatedApp: React.FC = React.memo(() => {
       <Sidebar {...sidebarProps} />
       <div className="md:ml-64 flex flex-col">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
-          <h1 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4">
-            {viewTitle}
-          </h1>
+          {/* Espacio para el botón hamburguesa en móvil */}
+          <div className="flex items-center w-full">
+            <div className="w-12 md:w-0 shrink-0"></div>
+            <h1 className="text-sm md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4 flex-1 text-center md:text-left">
+              {viewTitle}
+            </h1>
+          </div>
           <UserProfile />
         </header>
 

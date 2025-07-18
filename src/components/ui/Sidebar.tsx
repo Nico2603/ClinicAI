@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Theme, ActiveView, HistoricNote, UserTemplate } from '../../types';
-import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, ClockIcon, EditIcon, LightBulbIcon, CalculatorIcon, SearchIcon, Logo } from './Icons';
+import { SunIcon, MoonIcon, DocumentTextIcon, PencilSquareIcon, ClockIcon, EditIcon, Logo } from './Icons';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -29,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -40,10 +41,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const navItems = [
-    { id: 'templates', label: 'Plantillas', icon: <DocumentTextIcon className="h-5 w-5" /> },
-    { id: 'nota-plantilla', label: 'Nueva nota', icon: <PencilSquareIcon className="h-5 w-5" /> },
-    { id: 'note-updater', label: 'Actualizar nota', icon: <EditIcon className="h-5 w-5" /> },
-    { id: 'historial-notas', label: 'Historial', icon: <ClockIcon className="h-5 w-5" /> },
+    { id: 'templates', label: 'Plantillas', icon: <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" /> },
+    { id: 'nota-plantilla', label: 'Nueva nota', icon: <PencilSquareIcon className="h-4 w-4 sm:h-5 sm:w-5" /> },
+    { id: 'note-updater', label: 'Actualizar nota', icon: <EditIcon className="h-4 w-4 sm:h-5 sm:w-5" /> },
+    { id: 'historial-notas', label: 'Historial', icon: <ClockIcon className="h-4 w-4 sm:h-5 sm:w-5" /> },
   ];
 
   const handleNavClick = (view: ActiveView) => {
@@ -93,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     ${isMobile ? 'fixed' : 'fixed'} 
     top-0 left-0 bottom-0
     ${isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-    w-64
+    ${isMobile ? 'w-72' : 'w-64'}
     bg-white dark:bg-neutral-900 
     text-neutral-800 dark:text-neutral-200 
     flex flex-col h-screen
@@ -105,14 +106,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Relocated to top-left */}
       {isMobile && (
         <button
           onClick={toggleSidebar}
-          className="fixed top-4 right-4 z-50 p-2 rounded-lg bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+          className="fixed top-3 left-3 z-50 p-2 rounded-lg bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors touch-target"
           aria-label="Abrir menú"
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
@@ -129,17 +130,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <aside className={sidebarClasses}>
         {/* Header */}
-        <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+        <div className="p-2 sm:p-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
           <div className="flex items-center justify-center w-full">
-            <Logo size="md" className="h-8" />
+            <Logo size="md" className="h-6 sm:h-8" />
           </div>
           {isMobile && (
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors touch-target"
               aria-label="Cerrar menú"
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -147,17 +148,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-grow p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-grow p-2 sm:p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <div key={item.id}>
               <button
                 onClick={() => handleNavClick(item.id as ActiveView)}
                 className={`
-                  w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg
-                  text-sm font-medium
+                  w-full flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg
+                  text-xs sm:text-sm font-medium
                   transition-all duration-200 ease-in-out group
                   focus:outline-none focus:ring-2 focus:ring-offset-2 
                   dark:focus:ring-offset-neutral-900 focus:ring-primary
+                  touch-target
                   ${
                     activeView === item.id
                       ? 'bg-primary text-white shadow-md'
@@ -167,27 +169,27 @@ const Sidebar: React.FC<SidebarProps> = ({
                 aria-current={activeView === item.id ? 'page' : undefined}
               >
                 {React.cloneElement(item.icon, { 
-                  className: `h-5 w-5 ${activeView === item.id ? 'text-white' : 'text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors'}`
+                  className: `h-4 w-4 sm:h-5 sm:w-5 ${activeView === item.id ? 'text-white' : 'text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors'}`
                 })}
-                <span className="truncate">{item.label}</span>
+                <span className="truncate text-xs sm:text-sm">{item.label}</span>
               </button>
             </div>
           ))}
         </nav>
 
         {/* Theme Toggle */}
-        <div className="p-3 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="p-2 sm:p-3 border-t border-neutral-200 dark:border-neutral-700">
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary"
+            className="w-full flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ease-in-out hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 focus:ring-primary touch-target"
             aria-label={theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
           >
             {theme === 'light' ? (
-              <MoonIcon className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
+              <MoonIcon className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-500 dark:text-neutral-400" />
             ) : (
-              <SunIcon className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
+              <SunIcon className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-500 dark:text-neutral-400" />
             )}
-            <span className="truncate">
+            <span className="truncate text-xs sm:text-sm">
               {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
             </span>
           </button>
