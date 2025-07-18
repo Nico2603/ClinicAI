@@ -62,6 +62,8 @@ const SpeechButton: React.FC<SpeechButtonProps> = ({
 
       return () => clearTimeout(timeout);
     }
+    
+    return undefined; // Retorno explícito para TypeScript
   }, [isMobile, isListening, stopListening]);
 
   if (!isSupported) {
