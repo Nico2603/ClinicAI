@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GroundingMetadata, UserTemplate } from '../types';
+import { GroundingMetadata, UserTemplate, MissingDataInfo, GenerationResult } from '../types';
 import { generateNoteFromTemplate } from '../lib/services/openaiService';
 import { notesService } from '../lib/services/databaseService';
 import { ERROR_MESSAGES } from '../lib/constants';
@@ -30,8 +30,22 @@ const GENERATION_STEPS: ProgressStep[] = [
   },
   {
     id: 'integrating',
-    label: 'Integrando resultado',
-    description: 'Estamos coordinando la integración de todo para generar tu nota médica perfecta',
+    label: 'Integrando componentes',
+    description: 'Estamos coordinando la integración de todos los componentes',
+    completed: false,
+    active: false,
+  },
+  {
+    id: 'verifying',
+    label: 'Verificando formato',
+    description: 'Verificando que la nota sea 100% fiel al formato de la plantilla',
+    completed: false,
+    active: false,
+  },
+  {
+    id: 'extracting-missing',
+    label: 'Identificando datos faltantes',
+    description: 'Analizando qué información falta para completar la plantilla',
     completed: false,
     active: false,
   },
@@ -41,6 +55,7 @@ export const useTemplateNotes = () => {
   const [patientInfo, setPatientInfo] = useState<string>('');
   const [generatedNote, setGeneratedNote] = useState<string>('');
   const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
+  const [missingData, setMissingData] = useState<MissingDataInfo | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(GENERATION_STEPS);
@@ -90,6 +105,7 @@ export const useTemplateNotes = () => {
     setIsGenerating(true);
     setGeneratedNote('');
     setGroundingMetadata(undefined);
+    setMissingData(undefined);
     resetProgress();
 
     try {
@@ -107,8 +123,16 @@ export const useTemplateNotes = () => {
       updateProgress(2);
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Paso 4: Integrando resultado
+      // Paso 4: Integrando componentes
       updateProgress(3);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Paso 5: Verificando formato
+      updateProgress(4);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Paso 6: Identificando datos faltantes
+      updateProgress(5);
       
       const result = await generateNoteFromTemplate(template.name, template.content, patientInfo);
       
@@ -117,6 +141,7 @@ export const useTemplateNotes = () => {
       
       setGeneratedNote(result.text);
       setGroundingMetadata(result.groundingMetadata);
+      setMissingData(result.missingData);
 
       // Guardar en Supabase (best-effort, no bloquea la UI)
       if (userId) {
@@ -157,6 +182,7 @@ export const useTemplateNotes = () => {
     setPatientInfo('');
     setGeneratedNote('');
     setGroundingMetadata(undefined);
+    setMissingData(undefined);
     setError(null);
     resetProgress();
   }, [resetProgress]);
@@ -166,6 +192,7 @@ export const useTemplateNotes = () => {
     setPatientInfo,
     generatedNote,
     groundingMetadata,
+    missingData,
     isGenerating,
     error,
     generateNote,

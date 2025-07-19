@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CopyIcon, EditIcon, CheckIcon } from '../ui/Icons';
-import { GroundingMetadata, GroundingChunk } from '../../types';
+import { GroundingMetadata, GroundingChunk, MissingDataInfo } from '../../types';
 
 interface NoteDisplayProps {
   note: string;
@@ -8,9 +8,10 @@ interface NoteDisplayProps {
   title?: string;
   isLoading?: boolean;
   groundingMetadata?: GroundingMetadata;
+  missingData?: MissingDataInfo;
 }
 
-const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "Resultado Generado", isLoading = false, groundingMetadata }) => {
+const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "Resultado Generado", isLoading = false, groundingMetadata, missingData }) => {
   const [editableNote, setEditableNote] = useState(note);
   const [originalNote, setOriginalNote] = useState(note);
   const [isUppercase, setIsUppercase] = useState(false);
@@ -81,6 +82,38 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
             )
           ))}
         </ul>
+      </div>
+    );
+  };
+  
+  const renderMissingData = () => {
+    if (!missingData || !missingData.summary || missingData.summary.includes('Información completa')) {
+      return null;
+    }
+
+    return (
+      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-700">
+        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center">
+          <span className="mr-2">📊</span>
+          Datos Faltantes:
+        </h4>
+        <div className="text-xs text-amber-700 dark:text-amber-300 whitespace-pre-wrap leading-relaxed">
+          {missingData.summary}
+        </div>
+        {missingData.missingFields && missingData.missingFields.length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">
+              Campos específicos pendientes:
+            </p>
+            <ul className="list-disc list-inside text-xs space-y-1 text-amber-700 dark:text-amber-300">
+              {missingData.missingFields.map((field, index) => (
+                <li key={index} className="break-words">
+                  {field}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   };
@@ -160,6 +193,7 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
         </div>
       )}
       {renderGroundingSources()}
+      {renderMissingData()}
     </div>
   );
 };

@@ -11,7 +11,9 @@ import {
   EvidenceConsultationRequest,
   EvidenceSearchResult,
   ClinicalFinding,
-  ClinicalRecommendation
+  ClinicalRecommendation,
+  GenerationResult,
+  MissingDataInfo
 } from '../../types';
 
 // =============================================================================
@@ -92,7 +94,7 @@ export const generateNoteFromTemplate = async (
   specialtyName: string,
   templateContent: string,
   patientInfo: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+): Promise<GenerationResult> => {
   validateApiKey();
   validateInput(templateContent, 10);
   validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
@@ -115,9 +117,9 @@ export const generateNoteFromTemplate = async (
     const templateStructureResult = await analyzeTemplateStructure(templateContent);
     const templateStructure = templateStructureResult.text;
     
-    // Paso 4: Integrar todos los componentes en la nota final
-    console.log('🔗 Paso 4: Integrando componentes en nota final...');
-    const finalNoteResult = await generateModularNote(
+    // Paso 4: Integrar todos los componentes en la nota inicial
+    console.log('🔗 Paso 4: Integrando componentes en nota inicial...');
+    const initialNoteResult = await generateModularNote(
       templateContent,
       patientInfo,
       subjectiveInfo,
@@ -125,10 +127,35 @@ export const generateNoteFromTemplate = async (
       templateStructure
     );
     
+    // Paso 5: Verificar fidelidad al formato de la plantilla
+    console.log('✅ Paso 5: Verificando fidelidad al formato...');
+    const verifiedNoteResult = await verifyFormatCompliance(
+      templateContent,
+      initialNoteResult.text,
+      templateStructure
+    );
+    
+    // Paso 6: Extraer datos faltantes para mostrar por separado
+    console.log('📊 Paso 6: Identificando datos faltantes...');
+    const missingDataResult = await extractMissingData(
+      templateContent,
+      patientInfo,
+      verifiedNoteResult.text
+    );
+    
+    // Procesar los datos faltantes
+    const missingDataText = missingDataResult.text;
+    const missingData: MissingDataInfo = {
+      missingFields: missingDataText.includes('Información completa') ? [] : 
+        missingDataText.split('\n').filter(line => line.trim() && !line.includes(':')).map(line => line.trim()),
+      summary: missingDataText
+    };
+    
     console.log('✅ Generación modular completada exitosamente');
     
     return {
-      text: finalNoteResult.text,
+      text: verifiedNoteResult.text,
+      missingData: missingData,
       groundingMetadata: {
         groundingChunks: [
           {
@@ -147,6 +174,18 @@ export const generateNoteFromTemplate = async (
             web: {
               uri: 'internal://template-structure',
               title: 'Estructura de Plantilla Analizada'
+            }
+          },
+          {
+            web: {
+              uri: 'internal://format-verification',
+              title: 'Verificación de Formato'
+            }
+          },
+          {
+            web: {
+              uri: 'internal://missing-data-analysis',
+              title: 'Análisis de Datos Faltantes'
             }
           }
         ]
@@ -844,6 +883,158 @@ Describe la estructura identificada de forma clara y organizada, preparada para 
 };
 
 /**
+ * Extrae información sobre datos faltantes basado en la plantilla y la información disponible
+ */
+export const extractMissingData = async (
+  templateContent: string,
+  patientInfo: string,
+  generatedNote: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  validateApiKey();
+  validateInput(templateContent, 10);
+  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
+  validateInput(generatedNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
+
+  const prompt = `Eres un especialista en análisis de completitud de notas clínicas. Tu tarea es identificar qué datos faltan al comparar una plantilla con la información disponible del paciente.
+
+PLANTILLA ORIGINAL:
+---
+${templateContent}
+---
+
+INFORMACIÓN DEL PACIENTE DISPONIBLE:
+---
+${patientInfo}
+---
+
+NOTA GENERADA:
+---
+${generatedNote}
+---
+
+Tu tarea es:
+1. **COMPARAR** la plantilla con la información disponible del paciente
+2. **IDENTIFICAR** campos, secciones o datos específicos que aparecen en la plantilla pero no están disponibles en la información del paciente
+3. **LISTAR** de manera clara y concisa los datos faltantes
+4. **PRIORIZAR** los datos faltantes por importancia clínica
+
+INSTRUCCIONES ESPECÍFICAS:
+- Identifica datos faltantes específicos (ej: "Signos vitales", "Antecedentes familiares", "Exámenes paraclínicos")
+- NO incluyas datos que sí están disponibles en la información del paciente
+- Agrupa los datos faltantes por categorías (Anamnesis, Examen físico, Paraclínicos, etc.)
+- Usa un lenguaje claro y profesional
+- Enfócate en datos clínicamente relevantes
+
+FORMATO DE RESPUESTA:
+Lista clara de datos faltantes organizados por categorías. Si no faltan datos importantes, indica "Información completa para la plantilla utilizada".`;
+
+  try {
+    const systemMessage = "Especialista en análisis de completitud de historias clínicas. Identificas datos faltantes de manera precisa y organizada.";
+    
+    const messages = createMessages(systemMessage, prompt);
+    
+    const params = {
+      model: OPENAI_MODEL,
+      messages,
+      temperature: 0.3,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
+      top_p: 0.8
+    };
+    
+    const response = await openai.chat.completions.create(params);
+    const result = response.choices[0]?.message?.content || '';
+    
+    if (!result.trim()) {
+      throw new Error('No se pudo extraer información de datos faltantes');
+    }
+    
+    return {
+      text: result,
+      groundingMetadata: { groundingChunks: [] }
+    };
+  } catch (error) {
+    throw handleOpenAIError(error, 'extracción de datos faltantes');
+  }
+};
+
+/**
+ * Verifica que la nota generada sea 100% fiel al formato de la plantilla
+ */
+export const verifyFormatCompliance = async (
+  templateContent: string,
+  generatedNote: string,
+  templateStructure: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  validateApiKey();
+  validateInput(templateContent, 10);
+  validateInput(generatedNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
+  validateInput(templateStructure, 10);
+
+  const prompt = `Eres un especialista en verificación de formato de notas clínicas. Tu tarea es asegurar que la nota generada sea 100% fiel al formato de la plantilla original.
+
+PLANTILLA ORIGINAL (FORMATO MODELO):
+---
+${templateContent}
+---
+
+ESTRUCTURA DE PLANTILLA ANALIZADA:
+---
+${templateStructure}
+---
+
+NOTA GENERADA PARA VERIFICAR:
+---
+${generatedNote}
+---
+
+Tu tarea es:
+1. **VERIFICAR** que la nota sigue EXACTAMENTE el formato de la plantilla
+2. **COMPROBAR** encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
+3. **VALIDAR** que el orden de las secciones coincida con la plantilla
+4. **CORREGIR** cualquier desviación del formato original
+5. **PRESERVAR** todo el contenido médico, solo ajustando el formato
+
+INSTRUCCIONES CRÍTICAS:
+- La nota DEBE ser idéntica en formato a la plantilla
+- Mantén EXACTAMENTE las mayúsculas/minúsculas de la plantilla
+- Conserva las viñetas (-), numeración (1., 2., I., II.) según la plantilla
+- Respeta las sangrías y espaciado de la plantilla original
+- NO cambies el contenido médico, solo el formato
+- Si la nota ya está perfecta, devuélvela sin cambios
+
+FORMATO DE RESPUESTA:
+Responde ÚNICAMENTE con la nota médica con formato 100% fiel a la plantilla, lista para usar.`;
+
+  try {
+    const systemMessage = "Especialista en verificación y corrección de formato de documentos médicos. Aseguras fidelidad exacta al formato de plantilla sin alterar contenido clínico.";
+    
+    const messages = createMessages(systemMessage, prompt);
+    
+    const params = {
+      model: OPENAI_MODEL,
+      messages,
+      temperature: 0.1, // Temperatura muy baja para máxima fidelidad
+      max_tokens: AI_CONFIG.MAX_TOKENS,
+      top_p: 0.7
+    };
+    
+    const response = await openai.chat.completions.create(params);
+    const result = response.choices[0]?.message?.content || '';
+    
+    if (!result.trim()) {
+      throw new Error('No se pudo verificar el formato de la nota');
+    }
+    
+    return {
+      text: result,
+      groundingMetadata: { groundingChunks: [] }
+    };
+  } catch (error) {
+    throw handleOpenAIError(error, 'verificación de formato de nota');
+  }
+};
+
+/**
  * Función coordinadora que integra todos los componentes para generar la nota final
  */
 export const generateModularNote = async (
@@ -899,7 +1090,7 @@ INSTRUCCIONES CRÍTICAS:
 - Completa otros campos con información del paciente disponible
 - NO inventes información que no esté en los datos proporcionados
 - OMITE secciones sin información disponible
-- Al final, bajo "OBSERVACIONES:", lista datos que faltan
+- NO incluyas observaciones, comentarios o datos faltantes dentro de la nota
 
 FORMATO DE RESPUESTA:
 Responde ÚNICAMENTE con la nota médica completada, lista para usar.`;

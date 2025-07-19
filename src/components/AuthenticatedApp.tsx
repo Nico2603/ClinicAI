@@ -62,6 +62,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     setPatientInfo,
     generatedNote: generatedTemplateNote,
     groundingMetadata: templateNoteGrounding,
+    missingData: templateMissingData,
     isGenerating: isGeneratingTemplateNote,
     error: templateError,
     generateNote,
@@ -260,6 +261,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
               onUpdateNote={updateGeneratedTemplateNote}
               isGenerating={isGeneratingTemplateNote}
               groundingMetadata={templateNoteGrounding}
+              missingData={templateMissingData}
               onChangeTemplate={() => setActiveView('templates')}
               onClearError={() => {
                 clearGlobalError();

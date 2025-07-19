@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { UserTemplate, GroundingMetadata } from '@/types';
+import { UserTemplate, GroundingMetadata, MissingDataInfo } from '@/types';
 import { NoteDisplay, SparklesIcon, LoadingSpinner, AIClinicalScales, EvidenceBasedConsultation, TextareaWithSpeech, ProgressBar, ProgressStep } from '../';
 import { Button } from '../ui/button';
 
@@ -12,6 +12,7 @@ interface TemplateNoteViewProps {
   onUpdateNote: (note: string) => void;
   isGenerating: boolean;
   groundingMetadata?: GroundingMetadata;
+  missingData?: MissingDataInfo;
   onChangeTemplate: () => void;
   onClearError: () => void;
   onEvidenceGenerated?: (evidence: string) => void;
@@ -29,6 +30,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   onUpdateNote,
   isGenerating,
   groundingMetadata,
+  missingData,
   onChangeTemplate,
   onClearError,
   onEvidenceGenerated,
@@ -170,6 +172,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
                 title="Nota Generada"
                 isLoading={isGenerating}
                 groundingMetadata={groundingMetadata}
+                missingData={missingData}
               />
             </div>
           )}

@@ -117,6 +117,21 @@ export interface GroundingMetadata {
   groundingChunks?: GroundingChunk[];
 }
 
+// =============================================================================
+// TIPOS PARA DATOS FALTANTES
+// =============================================================================
+
+export interface MissingDataInfo {
+  missingFields: string[];
+  summary: string;
+}
+
+export interface GenerationResult {
+  text: string;
+  missingData?: MissingDataInfo;
+  groundingMetadata?: GroundingMetadata;
+}
+
 export interface Candidate {
   groundingMetadata?: GroundingMetadata;
 }
