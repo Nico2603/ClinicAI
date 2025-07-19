@@ -857,7 +857,7 @@ export const generateModularNote = async (
   validateInput(templateContent, 10);
   validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  const prompt = `Eres un especialista en generación de notas clínicas que integra múltiples componentes especializados. Tu tarea es crear la nota final perfecta.
+  const prompt = `Eres un especialista en generación de notas clínicas que integra múltiples componentes especializados. Tu tarea es crear la nota siendo 100% fiel a la estructura de  los apartados de información que componen la plantilla original.
 
 PLANTILLA ORIGINAL (solo para referencia de formato):
 ---
