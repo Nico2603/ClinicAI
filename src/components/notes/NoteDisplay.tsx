@@ -50,42 +50,6 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
     setIsUppercase(!isUppercase);
   };
   
-  const renderGroundingSources = () => {
-    if (!groundingMetadata || !groundingMetadata.groundingChunks || groundingMetadata.groundingChunks.length === 0) {
-      return null;
-    }
-
-    const webChunks = groundingMetadata.groundingChunks.filter(chunk => chunk.web && chunk.web.uri);
-
-    if (webChunks.length === 0) return null;
-
-    return (
-      <div className="mt-4 p-3 bg-neutral-100 dark:bg-neutral-700/50 rounded-md border border-neutral-200 dark:border-neutral-600">
-        <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
-          Fuentes (Google Search):
-        </h4>
-        <ul className="list-disc list-inside text-xs space-y-1">
-          {webChunks.map((chunk: GroundingChunk, index: number) => (
-            // chunk.web and chunk.web.uri are guaranteed by the filter above
-            chunk.web && chunk.web.uri && ( 
-              <li key={index} className="break-words">
-                <a 
-                  href={chunk.web.uri} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline dark:text-primary-light break-all"
-                  title={chunk.web.title || chunk.web.uri}
-                >
-                  {chunk.web.title || chunk.web.uri}
-                </a>
-              </li>
-            )
-          ))}
-        </ul>
-      </div>
-    );
-  };
-  
   const renderMissingData = () => {
     if (!missingData || !missingData.summary || missingData.summary.includes('Información completa')) {
       return null;
@@ -192,7 +156,6 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
           <pre className="whitespace-pre-wrap text-xs md:text-sm text-neutral-700 dark:text-neutral-200 bg-neutral-50 dark:bg-neutral-700/40 p-3 md:p-4 rounded-md min-w-0">{editableNote}</pre>
         </div>
       )}
-      {renderGroundingSources()}
       {renderMissingData()}
     </div>
   );
