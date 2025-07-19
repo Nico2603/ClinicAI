@@ -31,6 +31,7 @@ export { Header } from './ui/Header';
 export { Footer } from './ui/Footer';
 export { Logo } from './ui/Logo';
 export { ProgressBar } from './ui/ProgressBar';
+export type { ProgressStep } from './ui/ProgressBar';
 export { default as SpeechButton } from './ui/SpeechButton';
 export { default as TextareaWithSpeech } from './ui/TextareaWithSpeech';
 export { LoadingFallback } from './ui/LoadingFallback';
