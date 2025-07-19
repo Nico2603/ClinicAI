@@ -44,8 +44,8 @@ const GENERATION_STEPS: ProgressStep[] = [
   },
   {
     id: 'extracting-missing',
-    label: 'Identificando datos faltantes',
-    description: 'Analizando qué información falta para completar la plantilla',
+    label: 'Dando los últimos toques',
+    description: 'Finalizando la generación de tu nota médica perfecta',
     completed: false,
     active: false,
   },
@@ -109,34 +109,35 @@ export const useTemplateNotes = () => {
     resetProgress();
 
     try {
-      // Simular progreso paso a paso
+      // Progreso gradual y realista
       
-      // Paso 1: Extrayendo información subjetiva
+      // Paso 1: Extrayendo información subjetiva (2-3 segundos)
       updateProgress(0);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Pequeña pausa para mostrar el progreso
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Paso 2: Generando análisis clínico
+      // Paso 2: Generando análisis clínico (3-4 segundos)
       updateProgress(1);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Paso 3: Analizando estructura
+      // Paso 3: Analizando estructura (2-3 segundos)
       updateProgress(2);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // Paso 4: Integrando componentes
+      // Paso 4: Integrando componentes (2 segundos)
       updateProgress(3);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Paso 5: Verificando formato
+      // Paso 5: Verificando formato (1.5 segundos)
       updateProgress(4);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Paso 6: Identificando datos faltantes
+      // Paso 6: Procesando (se queda aquí mientras se ejecuta la generación real)
       updateProgress(5);
       
+      // Ejecutar la generación real - esto puede tomar tiempo variable
       const result = await generateNoteFromTemplate(template.name, template.content, patientInfo);
       
-      // Completar el progreso
+      // Solo después de completar la generación, marcar como completado
       completeProgress();
       
       setGeneratedNote(result.text);

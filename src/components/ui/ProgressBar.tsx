@@ -21,7 +21,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   currentStepIndex,
   className = '' 
 }) => {
-  const progressPercentage = ((currentStepIndex + 1) / steps.length) * 100;
+  // Para el último paso, no mostrar 100% sino un porcentaje menor para indicar "procesando"
+  const isLastStep = currentStepIndex === steps.length - 1;
+  const progressPercentage = isLastStep 
+    ? 85 // Se queda en 85% para mostrar que está procesando
+    : ((currentStepIndex + 1) / steps.length) * 100;
 
   return (
     <div className={`w-full ${className}`}>
@@ -100,7 +104,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       {/* Porcentaje */}
       <div className="mt-3 text-center">
         <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          {Math.round(progressPercentage)}% completado
+          {isLastStep ? 'Procesando...' : `${Math.round(progressPercentage)}% completado`}
         </span>
       </div>
     </div>
