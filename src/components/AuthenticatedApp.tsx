@@ -68,6 +68,8 @@ const AuthenticatedApp: React.FC = React.memo(() => {
     updateNote: updateGeneratedTemplateNote,
     clearError: clearTemplateError,
     resetState: resetTemplateState,
+    progressSteps,
+    currentStepIndex,
   } = useTemplateNotes();
 
   // Gestión del historial con userId memoizado
@@ -277,6 +279,8 @@ const AuthenticatedApp: React.FC = React.memo(() => {
                   content: scale,
                 });
               }}
+              progressSteps={progressSteps}
+              currentStepIndex={currentStepIndex}
             />
           )}
 

@@ -36,4 +36,6 @@ export { Footer } from './ui/Footer';
 export { Header } from './ui/Header';
 export * from './ui/Icons';
 export * from './ui/LoadingFallback';
+export { ProgressBar } from './ui/ProgressBar';
+export type { ProgressStep } from './ui/ProgressBar';
 export { default as Sidebar } from './ui/Sidebar'; 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { UserTemplate, GroundingMetadata } from '@/types';
-import { NoteDisplay, SparklesIcon, LoadingSpinner, AIClinicalScales, EvidenceBasedConsultation, TextareaWithSpeech } from '../';
+import { NoteDisplay, SparklesIcon, LoadingSpinner, AIClinicalScales, EvidenceBasedConsultation, TextareaWithSpeech, ProgressBar, ProgressStep } from '../';
 import { Button } from '../ui/button';
 
 interface TemplateNoteViewProps {
@@ -16,6 +16,8 @@ interface TemplateNoteViewProps {
   onClearError: () => void;
   onEvidenceGenerated?: (evidence: string) => void;
   onScaleGenerated?: (scale: string) => void;
+  progressSteps?: ProgressStep[];
+  currentStepIndex?: number;
 }
 
 export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
@@ -31,6 +33,8 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   onClearError,
   onEvidenceGenerated,
   onScaleGenerated,
+  progressSteps = [],
+  currentStepIndex = -1,
 }) => {
   const [activeTab, setActiveTab] = useState<'note' | 'evidence' | 'scales'>('note');
 
@@ -129,33 +133,35 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={onGenerateNote}
-              disabled={isGenerating || !patientInfo.trim()}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isGenerating ? (
-                <>
-                  <LoadingSpinner className="h-4 w-4 mr-2" />
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="h-4 w-4 mr-2" />
-                  Generar Nota
-                </>
-              )}
-            </button>
-            {onClearError && (
+          {/* Barra de progreso durante la generación */}
+          {isGenerating && progressSteps.length > 0 ? (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+              <ProgressBar 
+                steps={progressSteps}
+                currentStepIndex={currentStepIndex}
+                className="max-w-md mx-auto"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={onClearError}
-                className="inline-flex items-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                onClick={onGenerateNote}
+                disabled={isGenerating || !patientInfo.trim()}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Limpiar
+                <SparklesIcon className="h-4 w-4 mr-2" />
+                Generar Nota
               </button>
-            )}
-          </div>
+              {onClearError && (
+                <button
+                  onClick={onClearError}
+                  className="inline-flex items-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
 
           {generatedNote && (
             <div className="mt-6">
