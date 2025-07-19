@@ -17,7 +17,7 @@ export const MAX_TEMPLATE_CONTENT_LENGTH = 50000;
 // =============================================================================
 
 // Modelo único para toda la aplicación - simplicidad
-export const OPENAI_MODEL = 'gpt-4o-mini';
+export const OPENAI_MODEL = 'gpt-4o-2024-08-06';
 
 // Configuración simple
 export const AI_CONFIG = {
