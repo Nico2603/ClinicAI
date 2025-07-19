@@ -85,7 +85,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
       </div>
 
       {/* Entrada de Nota Original */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-tutorial="note-input">
         <TextareaWithSpeech
           value={originalNote}
           onChange={(e) => setOriginalNote(e.target.value)}
@@ -117,6 +117,7 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
         <Button
           onClick={handleUpdateNote}
           disabled={isProcessing || !originalNote.trim() || !newInformation.trim()}
+          data-tutorial="update-note"
           className="flex-1 min-w-[200px] bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {isProcessing ? (

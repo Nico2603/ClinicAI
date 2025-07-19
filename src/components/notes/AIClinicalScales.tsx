@@ -131,6 +131,7 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
             <Button
               onClick={handleCalculateScale}
               disabled={isCalculating || !scaleRequest.trim() || !autoAnalyzeContent?.trim()}
+              data-tutorial="scales-generate"
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 flex items-center gap-2"
             >
               {isCalculating ? (

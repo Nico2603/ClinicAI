@@ -131,6 +131,7 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
             <Button
               onClick={() => handleAnalyzeContent()}
               disabled={isAnalyzing || !clinicalContent.trim()}
+              data-tutorial="evidence-generate"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 flex items-center gap-2"
             >
               {isAnalyzing ? (

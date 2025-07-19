@@ -128,7 +128,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-700" data-tutorial="history-actions">
               <button
                 onClick={() => onLoadNoteInEditor(note)}
                 className="mobile-button bg-primary text-white hover:bg-primary/90"
@@ -176,7 +176,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6">
+      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6" data-tutorial="history-tabs">
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button

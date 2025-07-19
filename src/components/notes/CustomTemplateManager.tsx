@@ -230,6 +230,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         <button
           onClick={handleStartCreating}
           disabled={isProcessing || isLoading}
+          data-tutorial="create-template"
           className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
@@ -347,7 +348,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" data-tutorial="templates-list">
           {activeTemplates.map((template) => (
             <TemplateItem
               key={template.id}

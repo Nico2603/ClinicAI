@@ -9,7 +9,8 @@ import {
   useAppState, 
   useTemplateNotes, 
   useHistoryManager, 
-  useTemplateManager 
+  useTemplateManager,
+  useTutorial 
 } from '../hooks';
 
 // Constants
@@ -28,10 +29,26 @@ import {
 } from './';
 import { NoteEditor } from './notes/NoteEditor';
 import { HistoricNote, UserTemplate } from '../types';
+import TutorialOverlay from './TutorialOverlay';
 
 const AuthenticatedApp: React.FC = React.memo(() => {
   const { user } = useAuth();
   const [theme, toggleTheme] = useDarkMode();
+  
+  // Tutorial
+  const {
+    isActive: isTutorialActive,
+    currentStep,
+    currentStepIndex: tutorialStepIndex,
+    totalSteps,
+    isFirstStep,
+    isLastStep,
+    startTutorial,
+    stopTutorial,
+    nextStep,
+    prevStep,
+    skipTutorial
+  } = useTutorial();
   
   // Estado de la aplicación
   const {
@@ -181,6 +198,13 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   // Memoizar el título de la vista
   const viewTitle = useMemo(() => getViewTitle(activeView), [getViewTitle, activeView]);
 
+  // Cambiar vista automáticamente cuando el tutorial avanza
+  useEffect(() => {
+    if (isTutorialActive && currentStep && currentStep.view !== activeView) {
+      setActiveView(currentStep.view);
+    }
+  }, [isTutorialActive, currentStep, activeView, setActiveView]);
+
   // Memoizar las props para los componentes hijos
   const sidebarProps = useMemo(() => ({
     activeView,
@@ -208,8 +232,20 @@ const AuthenticatedApp: React.FC = React.memo(() => {
             <h1 className="text-sm md:text-lg font-semibold text-neutral-800 dark:text-neutral-100 truncate mr-4 flex-1 text-center md:text-left">
               {viewTitle}
             </h1>
+            
+            {/* Botón de Tutorial */}
+            <button
+              onClick={startTutorial}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mr-4"
+              aria-label="Iniciar tutorial"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Tutorial
+            </button>
           </div>
-          <UserProfile />
+          <UserProfile data-tutorial="user-profile" />
         </header>
 
         <main className="flex-1 p-3 md:p-4 space-y-4 md:space-y-6">
@@ -322,6 +358,21 @@ const AuthenticatedApp: React.FC = React.memo(() => {
         </main>
         <Footer />
       </div>
+
+      {/* Tutorial Overlay */}
+      {isTutorialActive && currentStep && (
+        <TutorialOverlay
+          step={currentStep}
+          isFirstStep={isFirstStep}
+          isLastStep={isLastStep}
+          currentStepIndex={tutorialStepIndex}
+          totalSteps={totalSteps}
+          onNext={nextStep}
+          onPrev={prevStep}
+          onSkip={skipTutorial}
+          onClose={stopTutorial}
+        />
+      )}
     </div>
   );
 });

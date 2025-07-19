@@ -90,7 +90,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6">
+      <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6" data-tutorial="note-tabs">
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
@@ -120,7 +120,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Ingrese la información del paciente que desea incluir en la nota.
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2" data-tutorial="patient-info">
               <TextareaWithSpeech
                 id="patient-info"
                 value={patientInfo}
@@ -149,6 +149,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
               <button
                 onClick={onGenerateNote}
                 disabled={isGenerating || !patientInfo.trim()}
+                data-tutorial="generate-note"
                 className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <SparklesIcon className="h-4 w-4 mr-2" />
@@ -180,7 +181,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       )}
 
       {/* Pestaña de Evidencia Científica - Siempre renderizada, solo oculta */}
-      <div className={`space-y-6 ${activeTab === 'evidence' ? 'block' : 'hidden'}`}>
+      <div className={`space-y-6 ${activeTab === 'evidence' ? 'block' : 'hidden'}`} data-tutorial="evidence-tab">
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
           <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
             🔬 Recomendaciones Basadas en Evidencia Científica
@@ -203,7 +204,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       </div>
 
       {/* Pestaña de Escalas Clínicas - Siempre renderizada, solo oculta */}
-      <div className={`space-y-6 ${activeTab === 'scales' ? 'block' : 'hidden'}`}>
+      <div className={`space-y-6 ${activeTab === 'scales' ? 'block' : 'hidden'}`} data-tutorial="scales-tab">
         <AIClinicalScales 
           onScaleGenerated={(scaleText: string) => {
             if (onScaleGenerated) {

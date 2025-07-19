@@ -153,6 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div key={item.id}>
               <button
                 onClick={() => handleNavClick(item.id as ActiveView)}
+                data-nav-item={item.id}
                 className={`
                   w-full flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg
                   text-xs sm:text-sm font-medium
