@@ -912,7 +912,7 @@ Responde ÚNICAMENTE con la nota médica completada, lista para usar.`;
     const params = {
       model: OPENAI_MODEL,
       messages,
-      temperature: 0.3, // Temperatura controlada para integración precisa
+      temperature: 0.2, // Temperatura controlada para integración precisa
       max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.9
     };
