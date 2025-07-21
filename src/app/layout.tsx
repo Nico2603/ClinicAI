@@ -4,6 +4,7 @@ import './globals.css'
 import Providers from '@/components/Providers'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ClientOnly from '@/components/ClientOnly'
+import LogSetup from '@/components/LogSetup'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -47,6 +48,7 @@ export default function RootLayout({
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
           </div>
         }>
+          <LogSetup />
           <Providers>
             <AuthProvider>
               <main className="flex-1 flex flex-row w-full">

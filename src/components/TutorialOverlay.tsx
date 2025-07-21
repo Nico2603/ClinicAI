@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { TutorialStep } from '../hooks/useTutorial';
 import { Button } from './ui/button';
+import { devLog } from '@/lib/utils/logFilter';
 
 interface TutorialOverlayProps {
   step: TutorialStep;
@@ -42,7 +43,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const getTargetPosition = useCallback((): ElementPosition | null => {
     const element = document.querySelector(step.target);
     if (!element) {
-      console.warn(`Tutorial: Elemento con selector "${step.target}" no encontrado`);
+      // Solo mostrar warning en desarrollo, es normal que algunos elementos no estén presentes
+      devLog(`Tutorial: Elemento con selector "${step.target}" no encontrado en la vista actual`);
       return null;
     }
 

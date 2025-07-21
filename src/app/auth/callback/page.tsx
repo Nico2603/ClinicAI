@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { handleAuthError, delay, isClient } from '@/lib/utils';
+import { auth } from '@/lib/supabase';
+import { handleAuthError } from '@/lib/utils/authErrorHandler';
+import { quickAuthDebug } from '@/lib/utils/authDebugger';
+import { devLog, prodLog } from '@/lib/utils/logFilter';
+import { delay, isClient } from '@/lib/utils';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -14,7 +17,7 @@ export default function AuthCallbackPage() {
       if (!isClient()) return;
 
       try {
-        // Primero verificar si hay parámetros de error en la URL
+        // Verificar si hay parámetros de error en la URL
         const urlParams = new URLSearchParams(window.location.search);
         const errorParam = urlParams.get('error');
         const errorDescription = urlParams.get('error_description');
@@ -27,59 +30,67 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Procesar tokens del hash
+        // Detectar tipo de flujo
+        const authCode = urlParams.get('code');
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (!accessToken) {
-          console.error('No se recibió access_token en el callback');
-          setError('No se recibieron los tokens de autenticación');
-          await delay(2000);
-          router.replace('/?error=no_tokens');
-          return;
+        
+        if (authCode) {
+          devLog('🔐 Flujo PKCE detectado - Supabase procesará automáticamente...');
+          prodLog('🔐 Procesando autenticación...');
+        } else if (accessToken) {
+          devLog('🔐 Flujo implícito detectado - Supabase procesará automáticamente...');
+          prodLog('🔐 Procesando autenticación...');
         }
 
-        // Dar tiempo a Supabase para procesar la autenticación
-        await delay(1000);
+        // Esperar a que Supabase procese la autenticación automáticamente
+        // (detectSessionInUrl: true se encarga de todo)
+        await delay(2000);
 
-        // Verificar que la sesión se haya establecido con retry
+        // Ejecutar diagnóstico después de que Supabase procese todo
+        if (process.env.NODE_ENV === 'development') {
+          devLog('🔍 Ejecutando diagnóstico post-procesamiento...');
+          quickAuthDebug();
+        }
+        
+        // Verificar que la sesión se haya establecido
         let session = null;
         let sessionError = null;
         
-        for (let i = 0; i < 3; i++) {
-          const { data: { session: sessionData }, error: sessionErr } = await supabase.auth.getSession();
+        for (let i = 0; i < 5; i++) {
+          const { session: sessionData, error: sessionErr } = await auth.getSession();
           session = sessionData;
           sessionError = sessionErr;
           
-          if (session) break;
-          if (i < 2) await delay(1000); // Esperar antes del siguiente intento
+          if (session) {
+            prodLog('✅ Autenticación completada exitosamente');
+            devLog('✅ Sesión establecida correctamente:', session.user?.email);
+            // Limpiar URL de parámetros sensibles
+            window.history.replaceState({}, document.title, window.location.pathname);
+            router.replace('/');
+            return;
+          }
+          
+          if (i < 4) await delay(1000); // Esperar antes del siguiente intento
         }
 
+        // Si llegamos aquí, hubo un problema
         if (sessionError) {
-          console.error('Error al obtener sesión:', sessionError);
-          setError(handleAuthError(sessionError));
-          await delay(2000);
-          router.replace('/?error=session_error');
-          return;
+          console.error('❌ Error al obtener sesión:', sessionError);
+          const authError = handleAuthError(sessionError);
+          setError(authError.message);
+        } else {
+          console.error('❌ No se pudo establecer la sesión después del callback');
+          setError('No se pudo establecer la sesión de usuario');
         }
-
-        if (session) {
-          // Sesión establecida correctamente
-          console.log('Sesión establecida correctamente:', session.user.email);
-          router.replace('/');
-          return;
-        }
-
-        // Sin sesión después del callback
-        console.error('No se pudo obtener la sesión luego del callback');
-        setError('No se pudo establecer la sesión');
+        
         await delay(2000);
-        router.replace('/?error=no_session');
+        router.replace('/?error=session_failed');
 
       } catch (error) {
         console.error('Error en el callback de autenticación:', error);
-        setError(handleAuthError(error));
+        const authError = handleAuthError(error);
+        setError(authError.message);
         await delay(2000);
         router.replace('/?error=callback_failed');
       }
