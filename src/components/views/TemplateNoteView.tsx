@@ -193,6 +193,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
         </div>
         
         <EvidenceBasedConsultation 
+          key={`evidence-${selectedTemplate?.id || 'no-template'}`}
           onConsultationGenerated={(consultationText) => {
             if (onEvidenceGenerated) {
               onEvidenceGenerated(consultationText);

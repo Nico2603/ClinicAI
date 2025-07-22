@@ -636,12 +636,18 @@ export const generateSimplifiedEvidenceConsultation = async (
   validateApiKey();
   validateInput(clinicalContent, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
+  // Limpiar y validar contenido clínico
+  const cleanContent = clinicalContent.trim();
+  if (cleanContent.length < 10) {
+    throw new Error('El contenido clínico debe tener al menos 10 caracteres para generar evidencia.');
+  }
+
   // Prompt optimizado para consulta simplificada
   const prompt = `Analiza este contenido clínico y proporciona recomendaciones basadas en evidencia científica.
 
 CONTENIDO CLÍNICO:
 ---
-${clinicalContent}
+${cleanContent}
 ---
 
 INSTRUCCIONES:
@@ -667,18 +673,52 @@ Proporciona análisis completo con recomendaciones prácticas para la toma de de
       top_p: 0.9
     };
     
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
+    // Agregar timeout específico para evidencia científica
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 segundos
     
-    if (!result.trim()) {
-      throw new Error('No se pudo generar contenido válido');
+    try {
+      const response = await openai.chat.completions.create(params, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const result = response.choices[0]?.message?.content || '';
+      
+      if (!result.trim()) {
+        throw new Error('No se pudo generar contenido de evidencia válido. Intenta con información clínica más detallada.');
+      }
+      
+      // Validar que el resultado contenga contenido útil
+      if (result.length < 50) {
+        throw new Error('La respuesta de evidencia es demasiado corta. Intenta con más información clínica.');
+      }
+      
+      return {
+        text: result,
+        groundingMetadata: { groundingChunks: [] }
+      };
+    } catch (abortError: unknown) {
+      clearTimeout(timeoutId);
+      if (abortError instanceof Error && abortError.name === 'AbortError') {
+        throw new Error('La generación de evidencia tomó demasiado tiempo. Intenta con contenido clínico más breve.');
+      }
+      throw abortError;
+    }
+  } catch (error) {
+    // Manejo específico de errores para evidencia científica
+    if (error instanceof Error) {
+      if (error.message.includes('content_filter')) {
+        throw new Error('El contenido clínico contiene información que no puede procesarse. Revisa el texto e intenta nuevamente.');
+      }
+      if (error.message.includes('safety')) {
+        throw new Error('Por seguridad, no se puede procesar este contenido clínico. Intenta reformular la información.');
+      }
+      if (error.message.includes('too_many_requests')) {
+        throw new Error('Demasiadas solicitudes de evidencia. Espera un momento antes de intentar nuevamente.');
+      }
     }
     
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
     throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
   }
 };
