@@ -35,7 +35,15 @@ class TemplateCacheService {
   private userKey = '';
 
   constructor() {
-    this.cleanup();
+    // Solo hacer cleanup si estamos en el cliente
+    if (this.isClient()) {
+      this.cleanup();
+    }
+  }
+
+  // Verificar si estamos en el cliente (browser)
+  private isClient(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
   }
 
   // Configurar cache para usuario específico
@@ -47,6 +55,8 @@ class TemplateCacheService {
 
   // Obtener plantillas del cache (SIN incrementar contadores automáticamente)
   getTemplates(): UserTemplate[] | null {
+    if (!this.isClient()) return null;
+    
     try {
       const cached = localStorage.getItem(this.config.storageKey);
       if (!cached) return null;
@@ -89,6 +99,8 @@ class TemplateCacheService {
 
   // Método específico para registrar el acceso a una plantilla individual
   recordTemplateAccess(templateId: string): void {
+    if (!this.isClient()) return;
+    
     try {
       const existing = this.getCacheData();
       const entry = existing[templateId];
@@ -107,6 +119,8 @@ class TemplateCacheService {
 
   // Guardar plantillas en cache
   setTemplates(templates: UserTemplate[]): void {
+    if (!this.isClient()) return;
+    
     try {
       const now = Date.now();
       const cacheData: Record<string, CacheEntry<UserTemplate>> = {};
@@ -138,6 +152,8 @@ class TemplateCacheService {
 
   // Añadir una plantilla individual al cache
   addTemplate(template: UserTemplate): void {
+    if (!this.isClient()) return;
+    
     try {
       const existing = this.getCacheData();
       const now = Date.now();
@@ -162,6 +178,8 @@ class TemplateCacheService {
 
   // Actualizar una plantilla en el cache (SIN incrementar contador automáticamente)
   updateTemplate(template: UserTemplate): void {
+    if (!this.isClient()) return;
+    
     try {
       const existing = this.getCacheData();
       
@@ -186,6 +204,8 @@ class TemplateCacheService {
 
   // Eliminar una plantilla del cache
   removeTemplate(templateId: string): void {
+    if (!this.isClient()) return;
+    
     try {
       const existing = this.getCacheData();
       
@@ -202,6 +222,8 @@ class TemplateCacheService {
 
   // Verificar si el cache es válido y reciente
   isCacheValid(): boolean {
+    if (!this.isClient()) return false;
+    
     try {
       const cached = localStorage.getItem(this.config.storageKey);
       if (!cached) return false;
@@ -251,6 +273,16 @@ class TemplateCacheService {
     mostUsed: string;
     hitRate?: number;
   } {
+    if (!this.isClient()) {
+      return {
+        totalTemplates: 0,
+        cacheSize: '0 KB',
+        oldestEntry: 'N/A',
+        newestEntry: 'N/A',
+        mostUsed: 'N/A'
+      };
+    }
+    
     try {
       const existing = this.getCacheData();
       const templates = Object.values(existing);
@@ -304,6 +336,8 @@ class TemplateCacheService {
 
   // Resetear contadores de acceso (útil para debugging)
   resetAccessCounters(): void {
+    if (!this.isClient()) return;
+    
     try {
       const existing = this.getCacheData();
       
@@ -330,6 +364,8 @@ class TemplateCacheService {
 
   // Limpiar cache completamente
   clear(): void {
+    if (!this.isClient()) return;
+    
     try {
       localStorage.removeItem(this.config.storageKey);
       localStorage.removeItem(this.usageStatsKey);
@@ -342,6 +378,8 @@ class TemplateCacheService {
   // --- Métodos privados ---
 
   private getCacheData(): Record<string, CacheEntry<UserTemplate>> {
+    if (!this.isClient()) return {};
+    
     try {
       const cached = localStorage.getItem(this.config.storageKey);
       if (!cached) return {};
@@ -354,6 +392,8 @@ class TemplateCacheService {
   }
 
   private saveCache(data: Record<string, CacheEntry<UserTemplate>>): void {
+    if (!this.isClient()) return;
+    
     const cacheData = {
       version: this.config.version,
       data,
@@ -382,6 +422,8 @@ class TemplateCacheService {
   }
 
   private updateUsageStats(templates: UserTemplate[]): void {
+    if (!this.isClient()) return;
+    
     try {
       const stats: TemplateUsageStats[] = templates.map(template => ({
         templateId: template.id,
@@ -398,6 +440,8 @@ class TemplateCacheService {
 
   private cleanup(): void {
     // Limpiar caches antiguos o corruptos al inicializar
+    if (!this.isClient()) return;
+    
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {

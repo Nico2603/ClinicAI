@@ -131,11 +131,13 @@ export const useHistoryManager = (userId: string | null) => {
       setError('Error al eliminar de la base de datos, usando almacenamiento local');
       
       // Fallback a localStorage
-      const currentHistory = getUserStoredHistoricNotes(userId);
-      const updatedHistory = currentHistory.filter(note => note.id !== noteId);
-      
-      localStorage.setItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`, JSON.stringify(updatedHistory));
-      setHistoricNotes(updatedHistory);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const currentHistory = getUserStoredHistoricNotes(userId);
+        const updatedHistory = currentHistory.filter(note => note.id !== noteId);
+        
+        localStorage.setItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`, JSON.stringify(updatedHistory));
+        setHistoricNotes(updatedHistory);
+      }
     }
   }, [userId]);
 
@@ -157,7 +159,9 @@ export const useHistoryManager = (userId: string | null) => {
       setError('Error al limpiar la base de datos, usando almacenamiento local');
       
       // Fallback a localStorage
-      localStorage.removeItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.removeItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`);
+      }
       setHistoricNotes([]);
     }
   }, [userId]);

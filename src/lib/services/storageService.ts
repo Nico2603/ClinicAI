@@ -24,16 +24,27 @@ const getUserHistoryKey = (userId: string): string => `notasai_history_${userId}
 // Empty templates object since predefined templates were removed
 const EMPTY_TEMPLATES: Templates = {};
 
+// Helper function to check if we're in the browser
+const isClient = (): boolean => {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+};
+
 export const getThemePreference = (): Theme => {
+  if (!isClient()) return Theme.Light;
+  
   const storedTheme = localStorage.getItem(THEME_KEY) as Theme | null;
   return storedTheme || Theme.Light; // Default to light theme
 };
 
 export const setThemePreference = (theme: Theme): void => {
+  if (!isClient()) return;
+  
   localStorage.setItem(THEME_KEY, theme);
 };
 
 export const getStoredTemplates = (): Templates => {
+  if (!isClient()) return { ...EMPTY_TEMPLATES };
+  
   const storedTemplates = localStorage.getItem(TEMPLATES_KEY);
   if (storedTemplates) {
     try {
@@ -48,6 +59,8 @@ export const getStoredTemplates = (): Templates => {
 };
 
 export const saveTemplates = (templates: Templates): void => {
+  if (!isClient()) return;
+  
   try {
     localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
   } catch (error) {
@@ -56,6 +69,8 @@ export const saveTemplates = (templates: Templates): void => {
 };
 
 export const getStoredHistoricNotes = (): HistoricNote[] => {
+  if (!isClient()) return [];
+  
   const storedHistory = localStorage.getItem(HISTORY_KEY);
   if (storedHistory) {
     try {
@@ -69,6 +84,8 @@ export const getStoredHistoricNotes = (): HistoricNote[] => {
 };
 
 export const saveHistoricNotes = (notes: HistoricNote[]): void => {
+  if (!isClient()) return;
+  
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(notes));
   } catch (error) {
@@ -89,6 +106,8 @@ export const addHistoricNoteEntry = (newNote: HistoricNote): HistoricNote[] => {
 
 // User-specific storage functions
 export const getUserStoredTemplates = (userId: string): Templates => {
+  if (!isClient()) return { ...EMPTY_TEMPLATES };
+  
   const storedTemplates = localStorage.getItem(getUserTemplatesKey(userId));
   if (storedTemplates) {
     try {
@@ -102,6 +121,8 @@ export const getUserStoredTemplates = (userId: string): Templates => {
 };
 
 export const saveUserTemplates = (userId: string, templates: Templates): void => {
+  if (!isClient()) return;
+  
   try {
     localStorage.setItem(getUserTemplatesKey(userId), JSON.stringify(templates));
   } catch (error) {
@@ -110,6 +131,8 @@ export const saveUserTemplates = (userId: string, templates: Templates): void =>
 };
 
 export const getUserStoredHistoricNotes = (userId: string): HistoricNote[] => {
+  if (!isClient()) return [];
+  
   const storedHistory = localStorage.getItem(getUserHistoryKey(userId));
   if (storedHistory) {
     try {
@@ -123,6 +146,8 @@ export const getUserStoredHistoricNotes = (userId: string): HistoricNote[] => {
 };
 
 export const saveUserHistoricNotes = (userId: string, notes: HistoricNote[]): void => {
+  if (!isClient()) return;
+  
   try {
     localStorage.setItem(getUserHistoryKey(userId), JSON.stringify(notes));
   } catch (error) {
@@ -142,11 +167,15 @@ export const addUserHistoricNoteEntry = (userId: string, newNote: HistoricNote):
 
 // Utility function to clear user data (for logout)
 export const clearUserData = (userId: string): void => {
+  if (!isClient()) return;
+  
   localStorage.removeItem(getUserTemplatesKey(userId));
   localStorage.removeItem(getUserHistoryKey(userId));
 };
 
 export const getUserFavoriteTemplates = (userId: string): FavoriteTemplate[] => {
+  if (!isClient()) return [];
+  
   const stored = localStorage.getItem(getUserFavoritesKey(userId));
   if (stored) {
     try {
@@ -160,6 +189,8 @@ export const getUserFavoriteTemplates = (userId: string): FavoriteTemplate[] => 
 };
 
 export const saveUserFavoriteTemplates = (userId: string, templates: FavoriteTemplate[]): void => {
+  if (!isClient()) return;
+  
   try {
     localStorage.setItem(getUserFavoritesKey(userId), JSON.stringify(templates));
   } catch (error) {
@@ -187,6 +218,8 @@ export const removeUserFavoriteTemplate = (userId: string, favId: string): Favor
 
 // Funciones de limpieza completa para manejo de sesiones
 export const clearAllUserData = (userId?: string): void => {
+  if (!isClient()) return;
+  
   try {
     if (userId) {
       // Limpiar datos específicos del usuario
@@ -206,6 +239,8 @@ export const clearAllUserData = (userId?: string): void => {
 };
 
 export const clearAllApplicationData = (): void => {
+  if (!isClient()) return;
+  
   try {
     // Obtener todas las claves que empiecen con 'notasai_'
     const keysToRemove: string[] = [];
@@ -226,6 +261,8 @@ export const clearAllApplicationData = (): void => {
 };
 
 export const clearAllSessionData = (): void => {
+  if (!isClient()) return;
+  
   try {
     // Limpiar sessionStorage
     const sessionKeysToRemove: string[] = [];

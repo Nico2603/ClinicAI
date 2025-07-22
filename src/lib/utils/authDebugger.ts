@@ -2,13 +2,29 @@
 
 export const debugAuthFlow = {
   // Analizar la URL del callback
-  analyzeCallbackUrl: (url: string = window.location.href) => {
-    const urlObj = new URL(url);
+  analyzeCallbackUrl: (url?: string) => {
+    // Verificar si estamos en el cliente
+    if (typeof window === 'undefined') {
+      console.log('🚫 window no disponible (SSR)');
+      return {
+        fullUrl: '',
+        pathname: '',
+        queryParams: {},
+        hashParams: {},
+        hasCode: false,
+        hasAccessToken: false,
+        hasError: false,
+        flowType: 'Unknown'
+      };
+    }
+
+    const targetUrl = url || window.location.href;
+    const urlObj = new URL(targetUrl);
     const queryParams = Object.fromEntries(urlObj.searchParams.entries());
     const hashParams = Object.fromEntries(new URLSearchParams(urlObj.hash.substring(1)).entries());
     
     const analysis = {
-      fullUrl: url,
+      fullUrl: targetUrl,
       pathname: urlObj.pathname,
       queryParams,
       hashParams,
@@ -57,7 +73,7 @@ export const debugAuthFlow = {
 
   // Verificar almacenamiento local
   checkLocalStorage: () => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       console.log('🚫 localStorage no disponible (SSR)');
       return null;
     }
