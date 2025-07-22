@@ -20,7 +20,6 @@ interface TemplateNoteViewProps {
   onPatientInfoChange: (info: string) => void;
   generatedNote: string;
   onGenerateNote: () => void;
-  onUpdateNote: (note: string) => void;
   isGenerating: boolean;
   groundingMetadata?: GroundingMetadata;
   missingData?: MissingDataInfo;
@@ -38,7 +37,6 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
   onPatientInfoChange,
   generatedNote,
   onGenerateNote,
-  onUpdateNote,
   isGenerating,
   groundingMetadata,
   missingData,
@@ -205,7 +203,7 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
         
         <EvidenceBasedConsultation 
           key={`evidence-${selectedTemplate?.id || 'no-template'}`}
-          onConsultationGenerated={(consultationText) => {
+          onEvidenceGenerated={(consultationText: string) => {
             if (onEvidenceGenerated) {
               onEvidenceGenerated(consultationText);
             }

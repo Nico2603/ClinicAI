@@ -312,7 +312,6 @@ const AuthenticatedApp: React.FC = React.memo(() => {
               onPatientInfoChange={setPatientInfo}
               generatedNote={generatedTemplateNote}
               onGenerateNote={handleGenerateTemplateNote}
-              onUpdateNote={updateGeneratedTemplateNote}
               isGenerating={isGeneratingTemplateNote}
               groundingMetadata={templateNoteGrounding}
               missingData={templateMissingData}
