@@ -49,7 +49,7 @@ export const useSimpleNotes = () => {
       setNotes([]);
       setError(null);
     }
-  }, [user?.id]); // Removed fetchNotes dependency to prevent infinite loops
+  }, [user?.id, fetchNotes]);
 
   const createNote = useCallback(async (noteData: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) throw new Error('Usuario no autenticado');

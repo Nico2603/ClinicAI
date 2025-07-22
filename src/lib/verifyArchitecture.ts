@@ -187,8 +187,10 @@ ${result.success ?
   return report;
 };
 
-export default {
+const architectureVerifier = {
   verify: verifyArchitectureMigration,
   healthCheck: quickHealthCheck,
   report: generateMigrationReport
-}; 
+};
+
+export default architectureVerifier; 

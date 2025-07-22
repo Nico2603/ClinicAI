@@ -172,9 +172,11 @@ console.log('   ✅ JSON Schema Validation');
 console.log('   ⏸️  MCP Fallback (disponible pero no activado)');
 console.log('   📊 Performance: 5x escalabilidad, 95% coherencia');
 
-export default {
+const architectureService = {
   config: ARCHITECTURE_CONFIG,
   checkAvailability: checkServicesAvailability,
   getStats: getArchitectureStats,
   cleanup: cleanupArchitectureResources
 };
+
+export default architectureService;

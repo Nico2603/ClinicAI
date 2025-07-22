@@ -144,7 +144,7 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
   }, []);
 
   // Función para usar escala predefinida
-  const usePresetScale = useCallback((scaleName: string) => {
+  const handlePresetScale = useCallback((scaleName: string) => {
     const template = `Evalúa la escala ${scaleName} basándote en la siguiente información clínica:\n\n${autoAnalyzeContent || '[Información clínica a completar]'}`;
     setScaleRequest(template);
   }, [autoAnalyzeContent]);
@@ -194,7 +194,7 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
           {commonScales.slice(0, 8).map((scale) => (
             <button
               key={scale}
-              onClick={() => usePresetScale(scale)}
+              onClick={() => handlePresetScale(scale)}
               className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full transition-colors"
             >
               {scale}

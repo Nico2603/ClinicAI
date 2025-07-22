@@ -486,8 +486,10 @@ export const getEnhancedServiceStats = async (): Promise<{
   }
 };
 
-export default {
+const enhancedOpenAIService = {
   generateNoteWithFunctionCalling,
   evaluateScaleWithFunctionCalling,
   getEnhancedServiceStats
-}; 
+};
+
+export default enhancedOpenAIService; 

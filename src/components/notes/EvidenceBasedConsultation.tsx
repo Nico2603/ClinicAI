@@ -136,7 +136,7 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
   }, []);
 
   // Función para usar tema predefinido
-  const usePresetTopic = useCallback((topic: string) => {
+  const handlePresetTopic = useCallback((topic: string) => {
     const template = `${topic}\n\n${autoAnalyzeContent || '[Información clínica específica]'}`;
     setClinicalContent(template);
   }, [autoAnalyzeContent]);
@@ -186,7 +186,7 @@ const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
           {consultationTopics.slice(0, 6).map((topic) => (
             <button
               key={topic}
-              onClick={() => usePresetTopic(topic)}
+              onClick={() => handlePresetTopic(topic)}
               className="px-3 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 rounded-full transition-colors"
               title={topic}
             >

@@ -559,7 +559,7 @@ export const generateSpecialtySpecificSchema = (specialty: string): object => {
   return baseSchema;
 };
 
-export default {
+const medicalNoteSchemas = {
   MEDICAL_NOTE_RESPONSE_SCHEMA,
   CLINICAL_SCALE_RESPONSE_SCHEMA,
   TEMPLATE_STRUCTURE_SCHEMA,
@@ -569,4 +569,6 @@ export default {
   validateClinicalScaleResponse,
   generateDynamicMedicalNoteSchema,
   generateSpecialtySpecificSchema
-}; 
+};
+
+export default medicalNoteSchemas; 
