@@ -1,6 +1,18 @@
+/**
+ * ClínicAI - Asistente de IA para Notas Clínicas
+ * 
+ * Autor: Nicolas Ceballos Brito
+ * Portfolio: https://nico2603.github.io/PersonalPage/
+ * GitHub: https://github.com/Nico2603
+ * LinkedIn: https://www.linkedin.com/in/nicolas-ceballos-brito/
+ * 
+ * Desarrollado para Teilur.ai
+ */
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+// Importar el servicio migrado que ahora usa Assistants automáticamente
 import { generateMedicalScale } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -29,177 +41,242 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
-  // Auto-cargar contenido clínico cuando esté disponible
+  // Nuevos estados para mostrar información de la nueva arquitectura
+  const [generationMethod, setGenerationMethod] = useState<string>('');
+  const [isUsingNewArchitecture, setIsUsingNewArchitecture] = useState<boolean>(false);
+
+  // Escalas clínicas más comunes (predefinidas)
+  const commonScales = [
+    'Escala de Glasgow',
+    'NIHSS (National Institutes of Health Stroke Scale)',
+    'Escala de RASS (Richmond Agitation-Sedation Scale)',
+    'Escala de Braden',
+    'Escala de dolor EVA',
+    'Mini Mental State Examination (MMSE)',
+    'PHQ-9 (Cuestionario de Salud del Paciente)',
+    'GAD-7 (Escala de Ansiedad Generalizada)',
+    'Escala de Hamilton para la Depresión',
+    'APACHE II',
+    'SOFA (Sequential Organ Failure Assessment)',
+    'Escala de Norton',
+    'Escala de Morse (riesgo de caídas)',
+    'CURB-65',
+    'Wells Score (TEP)',
+    'Escala de Aldrete'
+  ];
+
+  // Auto-cargar contenido si está disponible
   useEffect(() => {
-    if (autoAnalyzeContent && autoAnalyzeContent.trim() && enableAutoAnalysis && !autoLoaded) {
+    if (autoAnalyzeContent && enableAutoAnalysis && !autoLoaded) {
+      setScaleRequest(autoAnalyzeContent);
       setAutoLoaded(true);
     }
   }, [autoAnalyzeContent, enableAutoAnalysis, autoLoaded]);
 
-  // Función para calcular la escala usando IA
-  const handleCalculateScale = useCallback(async () => {
+  // Función para calcular escala usando la nueva arquitectura
+  const calculateScale = useCallback(async () => {
     if (!scaleRequest.trim()) {
-      setError("Por favor, especifica qué escala clínica deseas calcular.");
+      setError('Por favor ingresa información clínica y especifica qué escala evaluar');
       return;
     }
 
-    if (!autoAnalyzeContent?.trim()) {
-      setError("No hay información clínica disponible para calcular la escala.");
-      return;
-    }
-
-    setIsCalculating(true);
     setError(null);
+    setIsCalculating(true);
     setScaleResult('');
+    setGenerationMethod('');
+    setIsUsingNewArchitecture(false);
 
     try {
-      const result = await generateMedicalScale(autoAnalyzeContent, scaleRequest.trim());
+      console.log('🔄 Calculando escala con nueva arquitectura...');
+      setIsUsingNewArchitecture(true);
+
+      // La función generateMedicalScale ahora usa automáticamente Assistants
+      const result = await generateMedicalScale(autoAnalyzeContent || scaleRequest, scaleRequest.trim());
+      
+      // Detectar qué método se usó basado en los metadatos
+      const methodUsed = result.groundingMetadata?.groundingChunks?.[0]?.web?.title || 'Método moderno';
+      setGenerationMethod(methodUsed);
+      
+      console.log(`✅ Escala calculada usando: ${methodUsed}`);
+      
       setScaleResult(result.text);
       
-      // Notificar al componente padre si se proporciona el callback
+      // Notificar al componente padre si existe el callback
       if (onScaleGenerated) {
         onScaleGenerated(result.text);
       }
-    } catch (error) {
-      console.error('Error calculating clinical scale:', error);
-      setError(`Error al calcular la escala clínica: ${error instanceof Error ? error.message : String(error)}`);
+      
+    } catch (err) {
+      console.error('Error calculando escala:', err);
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Error desconocido al calcular la escala';
+      setError(`Error: ${errorMessage}`);
+      setScaleResult('');
+      setIsUsingNewArchitecture(false);
     } finally {
       setIsCalculating(false);
     }
   }, [scaleRequest, autoAnalyzeContent, onScaleGenerated]);
 
-  const handleCopyResult = () => {
+  // Función para copiar resultado
+  const copyToClipboard = useCallback(async () => {
     if (!scaleResult) return;
-    
-    navigator.clipboard.writeText(scaleResult)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => console.error('Error al copiar:', err));
-  };
 
-  const handleClearAll = () => {
+    try {
+      await navigator.clipboard.writeText(scaleResult);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Error copiando al portapapeles:', err);
+    }
+  }, [scaleResult]);
+
+  // Función para limpiar todo
+  const clearAll = useCallback(() => {
     setScaleRequest('');
     setScaleResult('');
     setError(null);
-  };
+    setCopied(false);
+    setAutoLoaded(false);
+    setGenerationMethod('');
+    setIsUsingNewArchitecture(false);
+  }, []);
+
+  // Función para usar escala predefinida
+  const usePresetScale = useCallback((scaleName: string) => {
+    const template = `Evalúa la escala ${scaleName} basándote en la siguiente información clínica:\n\n${autoAnalyzeContent || '[Información clínica a completar]'}`;
+    setScaleRequest(template);
+  }, [autoAnalyzeContent]);
 
   return (
-    <div className={className}>
-      <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 mb-4">
-        <div className="flex items-center space-x-2 mb-3">
-          <div className="flex-shrink-0">
-            <SparklesIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-            Escalas Clínicas Calculadas por Inteligencia Artificial
+    <div className={`space-y-4 ${className}`}>
+      {/* Header mejorado con información de arquitectura */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SparklesIcon className="h-5 w-5 text-blue-500" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Escalas Clínicas IA
           </h3>
+          {isUsingNewArchitecture && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+              🤖 Nueva Arquitectura
+            </span>
+          )}
         </div>
         
-        <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-4">
-          Solicita cualquier escala clínica y la IA la calculará automáticamente usando la información clínica disponible.
-        </p>
-
-        {/* Análisis automático realizado */}
-        {autoLoaded && (
-          <div className="bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg p-3 mb-4">
-            <p className="text-sm text-emerald-800 dark:text-emerald-200 flex items-center">
-              <SparklesIcon className="h-4 w-4 mr-2" />
-              Información clínica cargada automáticamente para cálculo de escalas
-            </p>
+        {scaleResult && (
+          <div className="flex gap-2">
+            <Button
+              onClick={copyToClipboard}
+              className="text-sm"
+              variant={copied ? "default" : "outline"}
+            >
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </Button>
+            <Button
+              onClick={clearAll}
+              variant="outline"
+              className="text-sm"
+            >
+              Limpiar
+            </Button>
           </div>
         )}
+      </div>
 
-        {/* Área de entrada para solicitud de escala */}
-        <div className="space-y-4">
-          <div>
-            <TextareaWithSpeech
-              value={scaleRequest}
-              onChange={(e) => setScaleRequest(e.target.value)}
-              rows={3}
-              placeholder="Ej: 'Escala de Glasgow', 'APACHE II', 'Wells para TEP', 'Escala de Braden', etc."
-              label="¿Qué escala clínica deseas calcular?"
-              showCharacterCount={false}
-              speechLanguage="es-ES"
-              className="focus:border-emerald-500 focus:ring-emerald-500"
-            />
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={handleCalculateScale}
-              disabled={isCalculating || !scaleRequest.trim() || !autoAnalyzeContent?.trim()}
-              data-tutorial="scales-generate"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 flex items-center gap-2"
+      {/* Escalas comunes */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Escalas frecuentes (click para usar):
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {commonScales.slice(0, 8).map((scale) => (
+            <button
+              key={scale}
+              onClick={() => usePresetScale(scale)}
+              className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full transition-colors"
             >
-              {isCalculating ? (
-                <>
-                  <LoadingSpinner className="h-4 w-4" />
-                  Calculando...
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="h-4 w-4" />
-                  Calcular Escala
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleClearAll}
-              variant="outline"
-              className="px-6 py-2"
-            >
-              Limpiar Todo
-            </Button>
-          </div>
-
-          {/* Errores */}
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">
-                {error}
-              </p>
-            </div>
-          )}
-
-          {/* Resultado de la escala */}
-          {scaleResult && (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-md font-semibold text-gray-900 dark:text-white">
-                  Resultado de la Escala Clínica
-                </h4>
-                <Button
-                  onClick={handleCopyResult}
-                  variant="outline"
-                  size="sm"
-                  className="text-sm"
-                >
-                  {copied ? 'Copiado ✓' : 'Copiar'}
-                </Button>
-              </div>
-              
-              <div className="prose dark:prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                  {scaleResult}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mensaje cuando no hay contenido */}
-          {!scaleResult && !isCalculating && !error && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <SparklesIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Especifica qué escala clínica deseas calcular</p>
-              <p className="text-xs mt-1">La IA calculará automáticamente usando la información clínica disponible</p>
-            </div>
-          )}
+              {scale}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Área de input mejorada */}
+      <div>
+        <label htmlFor="scale-request" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Información clínica y escala a evaluar:
+        </label>
+                 <TextareaWithSpeech
+           id="scale-request"
+           value={scaleRequest}
+           onChange={(e) => setScaleRequest(e.target.value)}
+           placeholder="Ejemplo: Evalúa la Escala de Glasgow en un paciente que presenta apertura ocular al estímulo verbal, respuesta verbal confusa y obedece órdenes motoras..."
+           className="min-h-32"
+           disabled={isCalculating}
+         />
+      </div>
+
+      {/* Botón de cálculo mejorado */}
+      <Button
+        onClick={calculateScale}
+        disabled={isCalculating || !scaleRequest.trim()}
+        className="w-full flex items-center justify-center gap-2"
+      >
+                 {isCalculating ? (
+           <>
+             <LoadingSpinner className="h-4 w-4" />
+             <span>Calculando con IA...</span>
+           </>
+         ) : (
+          <>
+            <SparklesIcon className="h-4 w-4" />
+            <span>Calcular Escala</span>
+          </>
+        )}
+      </Button>
+
+      {/* Información del método usado (nuevo) */}
+      {generationMethod && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm text-blue-700 dark:text-blue-300">
+              Generado usando: {generationMethod}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Manejo de errores */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Resultado de la escala */}
+      {scaleResult && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">
+              Resultado de la Escala:
+            </h4>
+            {isUsingNewArchitecture && (
+              <span className="text-xs text-green-600 dark:text-green-400">
+                ✨ Generado con nueva arquitectura
+              </span>
+            )}
+          </div>
+          
+          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono">
+              {scaleResult}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

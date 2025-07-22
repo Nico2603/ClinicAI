@@ -1,71 +1,89 @@
+/**
+ * ClínicAI - Asistente de IA para Notas Clínicas
+ * 
+ * Autor: Nicolas Ceballos Brito
+ * Portfolio: https://nico2603.github.io/PersonalPage/
+ * GitHub: https://github.com/Nico2603
+ * LinkedIn: https://www.linkedin.com/in/nicolas-ceballos-brito/
+ * 
+ * Desarrollado para Teilur.ai
+ */
+
 import { useState, useCallback } from 'react';
 import { GroundingMetadata, UserTemplate, MissingDataInfo, GenerationResult } from '../types';
-import { generateNoteFromTemplate } from '../lib/services/openaiService';
+import { generateNoteWithAssistant } from '../lib/services/assistantsService';
+import { generateNoteWithFunctionCalling } from '../lib/services/enhancedOpenAIService';
+import { optimizeTemplateSet, preloadTemplateCache } from '../lib/services/contextManager';
 import { notesService } from '../lib/services/databaseService';
 import { ERROR_MESSAGES } from '../lib/constants';
 import { ProgressStep } from '../components/ui/ProgressBar';
+import { useSimpleUserTemplates } from './useSimpleDatabase';
 
-// Definir las etapas del proceso de generación
-const GENERATION_STEPS: ProgressStep[] = [
+// Definir las etapas del proceso de generación mejorado
+const ENHANCED_GENERATION_STEPS: ProgressStep[] = [
   {
-    id: 'extracting',
-    label: 'Extrayendo información subjetiva',
-    description: 'Se está extrayendo la información subjetiva del paciente',
+    id: 'initializing',
+    label: 'Inicializando sistema inteligente',
+    description: 'Preparando Assistants de OpenAI y optimizando contexto',
     completed: false,
     active: false,
   },
   {
-    id: 'analyzing',
-    label: 'Generando análisis clínico',
-    description: 'Se está generando el análisis clínico mejorado',
+    id: 'context-optimization',
+    label: 'Optimizando contexto para múltiples plantillas',
+    description: 'Analizando y priorizando plantillas disponibles',
     completed: false,
     active: false,
   },
   {
-    id: 'structuring',
-    label: 'Analizando estructura',
-    description: 'Se está analizando y preservando la estructura de la plantilla',
+    id: 'assistant-processing',
+    label: 'Procesando con Assistant especializado',
+    description: 'El Assistant médico está generando tu nota con máxima precisión',
     completed: false,
     active: false,
   },
   {
-    id: 'integrating',
-    label: 'Integrando componentes',
-    description: 'Estamos coordinando la integración de todos los componentes',
+    id: 'quality-validation',
+    label: 'Validando calidad y estructura',
+    description: 'Verificando fidelidad al formato y coherencia médica',
     completed: false,
     active: false,
   },
   {
-    id: 'verifying',
-    label: 'Verificando formato',
-    description: 'Verificando que la nota sea 100% fiel al formato de la plantilla',
+    id: 'finalizing',
+    label: 'Finalizando nota médica',
+    description: 'Aplicando últimos ajustes y preparando resultado final',
     completed: false,
     active: false,
-  },
-  {
-    id: 'extracting-missing',
-    label: 'Dando los últimos toques',
-    description: 'Finalizando la generación de tu nota médica perfecta',
-    completed: false,
-    active: false,
-  },
+  }
 ];
 
 export const useTemplateNotes = () => {
+  // Estados principales
   const [patientInfo, setPatientInfo] = useState<string>('');
   const [generatedNote, setGeneratedNote] = useState<string>('');
-  const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>(undefined);
-  const [missingData, setMissingData] = useState<MissingDataInfo | undefined>(undefined);
+  const [groundingMetadata, setGroundingMetadata] = useState<GroundingMetadata | undefined>();
+  const [missingData, setMissingData] = useState<MissingDataInfo | undefined>();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(GENERATION_STEPS);
+
+  // Estados de progreso mejorados
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(ENHANCED_GENERATION_STEPS);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
 
-  // Función para actualizar el progreso
+  // Estados adicionales para la nueva arquitectura
+  const [generationMethod, setGenerationMethod] = useState<'assistant' | 'function_calling' | 'traditional'>('assistant');
+  const [contextOptimization, setContextOptimization] = useState<any>(null);
+  const [tokensUsed, setTokensUsed] = useState<number>(0);
+
+  // Hook para plantillas del usuario
+  const { userTemplates } = useSimpleUserTemplates();
+
+  // Utilidades de progreso
   const updateProgress = useCallback((stepIndex: number) => {
     setCurrentStepIndex(stepIndex);
-    setProgressSteps(steps => 
-      steps.map((step, index) => ({
+    setProgressSteps(prevSteps => 
+      prevSteps.map((step, index) => ({
         ...step,
         completed: index < stepIndex,
         active: index === stepIndex,
@@ -73,21 +91,19 @@ export const useTemplateNotes = () => {
     );
   }, []);
 
-  // Función para completar el progreso
   const completeProgress = useCallback(() => {
-    setProgressSteps(steps => 
-      steps.map(step => ({
+    setProgressSteps(prevSteps => 
+      prevSteps.map(step => ({
         ...step,
         completed: true,
         active: false,
       }))
     );
-    setCurrentStepIndex(GENERATION_STEPS.length - 1);
+    setCurrentStepIndex(ENHANCED_GENERATION_STEPS.length);
   }, []);
 
-  // Función para resetear el progreso
   const resetProgress = useCallback(() => {
-    setProgressSteps(GENERATION_STEPS.map(step => ({
+    setProgressSteps(ENHANCED_GENERATION_STEPS.map(step => ({
       ...step,
       completed: false,
       active: false,
@@ -95,6 +111,7 @@ export const useTemplateNotes = () => {
     setCurrentStepIndex(-1);
   }, []);
 
+  // Función principal de generación con nueva arquitectura
   const generateNote = useCallback(async (template: UserTemplate, userId: string) => {
     if (!patientInfo.trim()) {
       setError(ERROR_MESSAGES.REQUIRED_FIELD);
@@ -106,89 +123,187 @@ export const useTemplateNotes = () => {
     setGeneratedNote('');
     setGroundingMetadata(undefined);
     setMissingData(undefined);
+    setGenerationMethod('assistant');
+    setContextOptimization(null);
+    setTokensUsed(0);
     resetProgress();
 
     try {
-      // Progreso gradual y realista
-      
-      // Paso 1: Extrayendo información subjetiva (2-3 segundos)
+      console.log('🚀 Iniciando generación con nueva arquitectura...');
+
+      // Paso 1: Inicialización y precarga de cache
       updateProgress(0);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Paso 2: Generando análisis clínico (3-4 segundos)
+      if (userTemplates.length > 0) {
+        await preloadTemplateCache(userTemplates);
+      }
+
+      // Paso 2: Optimización de contexto
       updateProgress(1);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log('🔄 Optimizando contexto para múltiples plantillas...');
       
-      // Paso 3: Analizando estructura (2-3 segundos)
-      updateProgress(2);
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      const optimization = await optimizeTemplateSet(
+        userTemplates,
+        patientInfo,
+        template.id
+      );
       
-      // Paso 4: Integrando componentes (2 segundos)
-      updateProgress(3);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setContextOptimization(optimization);
+      setTokensUsed(optimization.tokensUsed);
       
-      // Paso 5: Verificando formato (1.5 segundos)
-      updateProgress(4);
+      console.log(`📊 Contexto optimizado: ${optimization.recommendation}`);
       await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Paso 3: Generación con Assistant (método preferido)
+      updateProgress(2);
+      let result: any;
       
-      // Paso 6: Procesando (se queda aquí mientras se ejecuta la generación real)
-      updateProgress(5);
+      try {
+        // Estrategia 1: Assistant API (preferida)
+        console.log('🤖 Generando con OpenAI Assistant...');
+        result = await generateNoteWithAssistant(
+          template.content,
+          patientInfo,
+          template.name
+        );
+        
+        setGenerationMethod('assistant');
+        console.log('✅ Generación exitosa con Assistant');
+        
+      } catch (assistantError) {
+        console.warn('⚠️ Assistant falló, intentando Function Calling...', assistantError);
+        
+        // Estrategia 2: Function Calling como fallback
+        result = await generateNoteWithFunctionCalling(
+          template.content,
+          patientInfo,
+          template.name,
+          userTemplates
+        );
+        
+        setGenerationMethod(result.method || 'function_calling');
+        console.log(`✅ Generación exitosa con ${result.method}`);
+      }
+
+      // Paso 4: Validación de calidad
+      updateProgress(3);
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Ejecutar la generación real - esto puede tomar tiempo variable
-      const result = await generateNoteFromTemplate(template.name, template.content, patientInfo);
+      // Validación básica del resultado
+      if (!result.text || result.text.length < 50) {
+        throw new Error('La nota generada es demasiado corta o está vacía');
+      }
+
+      // Paso 5: Finalización
+      updateProgress(4);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Solo después de completar la generación, marcar como completado
       completeProgress();
       
+      // Actualizar estados con resultados
       setGeneratedNote(result.text);
       setGroundingMetadata(result.groundingMetadata);
       setMissingData(result.missingData);
 
+      console.log(`🎉 Generación completada con método: ${generationMethod}`);
+      console.log(`📊 Tokens usados: ${result.tokensUsed || optimization.tokensUsed}`);
+
       // Guardar en Supabase (best-effort, no bloquea la UI)
       if (userId) {
-        notesService.createNote({
-          title: `Nota ${new Date().toLocaleString()}`,
-          content: result.text,
-          user_id: userId,
-          user_template_id: template.id,
-          is_private: true,
-          tags: [],
-        }).catch((dbErr) => {
-          console.error('Error al guardar la nota en Supabase:', dbErr);
-        });
+        try {
+                     await notesService.createNote({
+             title: `Nota ${template.name} - ${new Date().toLocaleString()}`,
+             content: result.text,
+             user_id: userId,
+             user_template_id: template.id,
+             diagnosis: 'Generado automáticamente',
+             treatment: 'Ver contenido de la nota',
+             is_private: true,
+             tags: [],
+           }).catch(dbError => {
+            console.warn('⚠️ Error guardando en BD (no crítico):', dbError);
+          });
+        } catch (dbError) {
+          console.warn('⚠️ Error guardando nota (no crítico):', dbError);
+        }
       }
 
       return result.text;
-    } catch (err) {
-      console.error(err);
-      const errorMessage = err instanceof Error ? err.message : "Ocurrió un error desconocido al generar la nota.";
-      setError(errorMessage);
-      setGeneratedNote(`Error: ${errorMessage}`);
+
+    } catch (error) {
+      console.error('❌ Error en generación:', error);
+      
+      // Resetear progreso en caso de error
       resetProgress();
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Error desconocido en la generación';
+      
+      setError(`Error generando nota: ${errorMessage}`);
       return null;
     } finally {
       setIsGenerating(false);
     }
-  }, [patientInfo, updateProgress, completeProgress, resetProgress]);
+  }, [
+    patientInfo, 
+    userTemplates, 
+    updateProgress, 
+    completeProgress, 
+    resetProgress,
+    generationMethod
+  ]);
 
-  const updateNote = useCallback((newNote: string) => {
-    setGeneratedNote(newNote);
+  // Función para actualizar notas existentes
+  const updateNote = useCallback(async (originalNote: string, newInformation: string) => {
+    if (!originalNote.trim() || !newInformation.trim()) {
+      setError('Se requiere tanto la nota original como la nueva información');
+      return null;
+    }
+
+    setError(null);
+    setIsGenerating(true);
+
+    try {
+      // Importar dinámicamente para evitar dependencias circulares
+      const { updateClinicalNote } = await import('../lib/services/openaiService');
+      
+      const result = await updateClinicalNote(originalNote, newInformation);
+      setGeneratedNote(result.text);
+      setGroundingMetadata(result.groundingMetadata);
+      
+      return result.text;
+    } catch (error) {
+      console.error('Error actualizando nota:', error);
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.NOTE_ERROR;
+      setError(errorMessage);
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
   }, []);
 
+  // Limpiar errores
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
+  // Resetear todo el estado
   const resetState = useCallback(() => {
     setPatientInfo('');
     setGeneratedNote('');
     setGroundingMetadata(undefined);
     setMissingData(undefined);
     setError(null);
+    setGenerationMethod('assistant');
+    setContextOptimization(null);
+    setTokensUsed(0);
     resetProgress();
   }, [resetProgress]);
 
   return {
+    // Estados principales
     patientInfo,
     setPatientInfo,
     generatedNote,
@@ -196,11 +311,29 @@ export const useTemplateNotes = () => {
     missingData,
     isGenerating,
     error,
+
+    // Estados de progreso
+    progressSteps,
+    currentStepIndex,
+
+    // Estados adicionales de la nueva arquitectura
+    generationMethod,
+    contextOptimization,
+    tokensUsed,
+
+    // Funciones
     generateNote,
     updateNote,
     clearError,
     resetState,
-    progressSteps,
-    currentStepIndex,
+
+    // Estadísticas y utilidades
+    getGenerationStats: () => ({
+      method: generationMethod,
+      tokensUsed,
+      contextOptimization: contextOptimization?.recommendation || 'No disponible',
+      templatesAnalyzed: userTemplates.length,
+      isOptimized: !!contextOptimization
+    })
   };
 }; 

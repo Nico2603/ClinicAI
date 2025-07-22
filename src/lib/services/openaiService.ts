@@ -1,3 +1,14 @@
+/**
+ * ClínicAI - Asistente de IA para Notas Clínicas
+ * 
+ * Autor: Nicolas Ceballos Brito
+ * Portfolio: https://nico2603.github.io/PersonalPage/
+ * GitHub: https://github.com/Nico2603
+ * LinkedIn: https://www.linkedin.com/in/nicolas-ceballos-brito/
+ * 
+ * Desarrollado para Teilur.ai
+ */
+
 import { OpenAI } from 'openai';
 import {
   OPENAI_MODEL,
@@ -10,11 +21,12 @@ import {
   ClinicalAnalysisResult,
   EvidenceConsultationRequest,
   EvidenceSearchResult,
-  ClinicalFinding,
-  ClinicalRecommendation,
   GenerationResult,
-  MissingDataInfo
 } from '../../types';
+
+// Importar los nuevos servicios mejorados
+import { generateNoteWithAssistant, generateScaleWithAssistant } from './assistantsService';
+import { generateNoteWithFunctionCalling, evaluateScaleWithFunctionCalling } from './enhancedOpenAIService';
 
 // =============================================================================
 // CONFIGURACIÓN SIMPLIFICADA
@@ -27,7 +39,7 @@ if (!API_KEY) {
   console.error("La aplicación podría no funcionar correctamente sin esta clave.");
 }
 
-// Cliente OpenAI simple
+// Cliente OpenAI simple (mantenido para funciones legacy)
 const openai = new OpenAI({
   apiKey: API_KEY || '',
   dangerouslyAllowBrowser: true,
@@ -87,9 +99,12 @@ const handleOpenAIError = (error: unknown, context: string): Error => {
 };
 
 // =============================================================================
-// SERVICIOS PRINCIPALES
+// SERVICIOS PRINCIPALES MIGRADOS A NUEVA ARQUITECTURA
 // =============================================================================
 
+/**
+ * FUNCIÓN PRINCIPAL MIGRADA: Genera nota médica usando nueva arquitectura con Assistants
+ */
 export const generateNoteFromTemplate = async (
   specialtyName: string,
   templateContent: string,
@@ -100,103 +115,59 @@ export const generateNoteFromTemplate = async (
   validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
   try {
-    console.log('🔄 Iniciando generación modular de nota clínica...');
+    console.log('🔄 Redirigiendo a nueva arquitectura con Assistants...');
     
-    // Paso 1: Extraer información subjetiva del paciente
-    console.log('📋 Paso 1: Extrayendo información subjetiva...');
-    const subjectiveResult = await extractSubjectiveInformation(patientInfo);
-    const subjectiveInfo = subjectiveResult.text;
+    // Estrategia 1: Usar Assistant API (nueva arquitectura preferida)
+    try {
+      const assistantResult = await generateNoteWithAssistant(
+        templateContent,
+        patientInfo,
+        specialtyName
+      );
+      
+      console.log('✅ Generación exitosa con Assistant API');
+      return {
+        text: assistantResult.text,
+        groundingMetadata: assistantResult.groundingMetadata,
+        missingData: assistantResult.missingData || {
+          missingFields: [],
+          summary: "Información completa disponible"
+        }
+      };
+      
+    } catch (assistantError) {
+      console.warn('⚠️ Assistant falló, intentando Function Calling...', assistantError);
+      
+      // Estrategia 2: Function Calling como fallback
+      const functionCallingResult = await generateNoteWithFunctionCalling(
+        templateContent,
+        patientInfo,
+        specialtyName,
+        [] // Sin plantillas adicionales en este contexto
+      );
+      
+      console.log(`✅ Generación exitosa con ${functionCallingResult.method}`);
+      return {
+        text: functionCallingResult.text,
+        groundingMetadata: functionCallingResult.groundingMetadata,
+        missingData: functionCallingResult.missingData || {
+          missingFields: [],
+          summary: "Información completa disponible"
+        }
+      };
+    }
     
-    // Paso 2: Generar análisis clínico mejorado
-    console.log('🔬 Paso 2: Generando análisis clínico...');
-    const clinicalAnalysisResult = await generateClinicalAnalysis(patientInfo, subjectiveInfo);
-    const clinicalAnalysis = clinicalAnalysisResult.text;
-    
-    // Paso 3: Analizar estructura de la plantilla
-    console.log('📝 Paso 3: Analizando estructura de plantilla...');
-    const templateStructureResult = await analyzeTemplateStructure(templateContent);
-    const templateStructure = templateStructureResult.text;
-    
-    // Paso 4: Integrar todos los componentes en la nota inicial
-    console.log('🔗 Paso 4: Integrando componentes en nota inicial...');
-    const initialNoteResult = await generateModularNote(
-      templateContent,
-      patientInfo,
-      subjectiveInfo,
-      clinicalAnalysis,
-      templateStructure
-    );
-    
-    // Paso 5: Verificar fidelidad al formato de la plantilla
-    console.log('✅ Paso 5: Verificando fidelidad al formato...');
-    const verifiedNoteResult = await verifyFormatCompliance(
-      templateContent,
-      initialNoteResult.text,
-      templateStructure
-    );
-    
-    // Paso 6: Extraer datos faltantes para mostrar por separado
-    console.log('📊 Paso 6: Identificando datos faltantes...');
-    const missingDataResult = await extractMissingData(
-      templateContent,
-      patientInfo,
-      verifiedNoteResult.text
-    );
-    
-    // Procesar los datos faltantes
-    const missingDataText = missingDataResult.text;
-    const missingData: MissingDataInfo = {
-      missingFields: missingDataText.includes('Información completa') ? [] : 
-        missingDataText.split('\n').filter(line => line.trim() && !line.includes(':')).map(line => line.trim()),
-      summary: missingDataText
-    };
-    
-    console.log('✅ Generación modular completada exitosamente');
-    
-    return {
-      text: verifiedNoteResult.text,
-      missingData: missingData,
-      groundingMetadata: {
-        groundingChunks: [
-          {
-            web: {
-              uri: 'internal://subjective-extraction',
-              title: 'Información Subjetiva Extraída'
-            }
-          },
-          {
-            web: {
-              uri: 'internal://clinical-analysis',
-              title: 'Análisis Clínico Mejorado'
-            }
-          },
-          {
-            web: {
-              uri: 'internal://template-structure',
-              title: 'Estructura de Plantilla Analizada'
-            }
-          },
-          {
-            web: {
-              uri: 'internal://format-verification',
-              title: 'Verificación de Formato'
-            }
-          },
-          {
-            web: {
-              uri: 'internal://missing-data-analysis',
-              title: 'Análisis de Datos Faltantes'
-            }
-          }
-        ]
-      }
-    };
   } catch (error) {
-    console.error('❌ Error en generación modular:', error);
-    throw handleOpenAIError(error, 'generación modular de nota con plantilla');
+    console.error('❌ Error en nueva arquitectura, usando método legacy...', error);
+    
+    // Fallback al método original como último recurso
+    return await generateNoteFromTemplateLegacy(specialtyName, templateContent, patientInfo);
   }
 };
 
+/**
+ * FUNCIÓN MIGRADA: Genera escala médica usando nueva arquitectura
+ */
 export const generateMedicalScale = async (
   clinicalInput: string,
   scaleName: string
@@ -205,7 +176,132 @@ export const generateMedicalScale = async (
   validateInput(clinicalInput, VALIDATION_RULES.MIN_TEXT_LENGTH);
   validateInput(scaleName, 2);
 
-  // Prompt optimizado para escalas médicas
+  try {
+    console.log('🔄 Generando escala con nueva arquitectura...');
+    
+    // Estrategia 1: Assistant especializado en escalas
+    try {
+      return await generateScaleWithAssistant(clinicalInput, scaleName);
+    } catch (assistantError) {
+      console.warn('⚠️ Assistant para escalas falló, usando Function Calling...', assistantError);
+      
+      // Estrategia 2: Function Calling como fallback
+      return await evaluateScaleWithFunctionCalling(clinicalInput, scaleName);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en nueva arquitectura para escalas, usando método legacy...', error);
+    
+    // Fallback al método original
+    return await generateMedicalScaleLegacy(clinicalInput, scaleName);
+  }
+};
+
+// =============================================================================
+// FUNCIONES LEGACY (MANTENIDAS PARA COMPATIBILIDAD)
+// =============================================================================
+
+/**
+ * Método legacy para generar notas (usado como último fallback)
+ */
+const generateNoteFromTemplateLegacy = async (
+  specialtyName: string,
+  templateContent: string,
+  patientInfo: string
+): Promise<GenerationResult> => {
+  console.log('🔄 Usando método legacy de generación...');
+
+  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
+
+INFORMACIÓN DEL PACIENTE:
+"${patientInfo}"
+
+PLANTILLA (formato únicamente):
+---
+${templateContent}
+---
+
+INSTRUCCIONES CRÍTICAS:
+
+1. **FORMATO ES SAGRADO:**
+   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
+   - Si algo está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
+   - Si algo está en minúsculas, mantenlo en minúsculas.
+   - Si usa viñetas (-), mantén las viñetas.
+   - Si usa numeración (1., 2.), mantén la numeración o si son números romanos también mantenlo.
+   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
+
+2. **CONTENIDO:**
+   - Usa ÚNICAMENTE la información del paciente proporcionada.
+   - NO inventes datos que no estén en la información del paciente.
+   - Si falta información para una sección, OMITE ESTA PARTE Y NO LA COLOQUES.
+   - Usa terminología médica precisa y profesional.
+   - Siempre colocarlo todo en el mismo orden de la plantilla.
+
+3. **IMPORTANTE:**
+   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
+   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
+   - Reemplaza todos los campos con información real del paciente o OMITE si no hay datos.
+
+4. **RESPUESTA:**
+   - Responde SOLO con la nota médica completada.
+   - No agregues comentarios, explicaciones, ni introducciones.
+
+La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.
+
+Genera la nota médica completada:`;
+
+  try {
+    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas, nunca datos de ejemplo de plantillas.";
+    
+    const messages = createMessages(systemMessage, prompt);
+    
+    const params = {
+      model: OPENAI_MODEL,
+      messages,
+      temperature: AI_CONFIG.TEMPERATURE,
+      max_tokens: AI_CONFIG.MAX_TOKENS,
+      top_p: 0.9
+    };
+    
+    const response = await openai.chat.completions.create(params);
+    const generatedText = response.choices[0]?.message?.content || '';
+    
+    if (!generatedText.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+
+    return {
+      text: generatedText,
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'internal://legacy-generation',
+              title: 'Método legacy de generación'
+            }
+          }
+        ]
+      },
+      missingData: {
+        missingFields: [],
+        summary: "Método legacy - datos faltantes no analizados"
+      }
+    };
+  } catch (error) {
+    throw handleOpenAIError(error, 'generación de nota con plantilla (legacy)');
+  }
+};
+
+/**
+ * Método legacy para escalas médicas
+ */
+const generateMedicalScaleLegacy = async (
+  clinicalInput: string,
+  scaleName: string
+): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
+  console.log('🔄 Usando método legacy para escalas...');
+
   const prompt = `Evalúa la escala "${scaleName}" con la información clínica disponible.
 
 INFORMACIÓN CLÍNICA:
@@ -251,12 +347,25 @@ LIMITACIONES: [Datos faltantes que afectan la evaluación]`;
     
     return {
       text: result,
-      groundingMetadata: { groundingChunks: [] }
+      groundingMetadata: { 
+        groundingChunks: [
+          {
+            web: {
+              uri: 'internal://legacy-scale',
+              title: 'Evaluación legacy de escala'
+            }
+          }
+        ] 
+      }
     };
   } catch (error) {
-    throw handleOpenAIError(error, 'generación de escala médica');
+    throw handleOpenAIError(error, 'generación de escala médica (legacy)');
   }
 };
+
+// =============================================================================
+// FUNCIONES MANTENIDAS SIN CAMBIOS (NO REQUIEREN MIGRACIÓN)
+// =============================================================================
 
 export const updateClinicalNote = async (
   originalNote: string,
@@ -266,7 +375,6 @@ export const updateClinicalNote = async (
   validateInput(originalNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
   validateInput(newInformation, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Prompt optimizado para actualización de notas
   const prompt = `Eres un asistente médico experto especializado en actualizar notas clínicas existentes con nueva información. Tu tarea es integrar de forma inteligente la nueva información en la nota clínica original manteniendo coherencia, estilo médico profesional y estructura adecuada.
 
 NOTA ORIGINAL:
@@ -311,7 +419,7 @@ ${newInformation}
 Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es sobre el estado actual del paciente, integra esa información en esa sección manteniendo el formato y estilo existente.`;
 
   try {
-    const systemMessage = "Especialista en actualización selectiva de notas clínicas. Preserva estructura original, modifica solo lo necesario.";
+    const systemMessage = "Experto en actualización de notas clínicas. Integras información nueva preservando formato y coherencia médica.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -324,16 +432,20 @@ Si la nota original tiene una sección "EVOLUCIÓN:" y la nueva información es 
     };
     
     const response = await openai.chat.completions.create(params);
-    const generatedText = response.choices[0]?.message?.content || '';
+    const result = response.choices[0]?.message?.content || '';
     
-    return { 
-      text: generatedText, 
-      groundingMetadata: undefined
+    if (!result.trim()) {
+      throw new Error('No se pudo generar contenido válido');
+    }
+    
+    return {
+      text: result,
+      groundingMetadata: { groundingChunks: [] }
     };
   } catch (error) {
-    throw handleOpenAIError(error, 'actualización selectiva de nota clínica');
+    throw handleOpenAIError(error, 'actualización de nota clínica');
   }
-}; 
+};
 
 export const analyzeClinicalContent = async (
   request: EvidenceConsultationRequest
@@ -341,7 +453,6 @@ export const analyzeClinicalContent = async (
   validateApiKey();
   validateInput(request.clinicalContent, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Prompt optimizado para análisis clínico
   const prompt = `Analiza este contenido clínico y genera recomendaciones basadas en evidencia.
 
 CONTENIDO CLÍNICO:
@@ -418,7 +529,6 @@ export const searchEvidenceBasedRecommendations = async (
   validateApiKey();
   validateInput(query, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Prompt optimizado para búsqueda de evidencia
   const prompt = `Busca evidencia científica para: "${query}"
 
 ${clinicalContext ? `CONTEXTO CLÍNICO:
@@ -500,149 +610,17 @@ export const generateEvidenceBasedConsultation = async (
   }
 };
 
-export const formatEvidenceBasedReport = async (
-  analysisResult: ClinicalAnalysisResult,
-  evidenceSearch?: EvidenceSearchResult,
-  includeReferences: boolean = true
-): Promise<string> => {
-  let report = `**CONSULTA CLÍNICA BASADA EN EVIDENCIA**\n\n`;
-  
-  // Timestamp
-  report += `Fecha del análisis: ${new Date(analysisResult.analysisTimestamp).toLocaleString('es-ES')}\n`;
-  report += `Confianza del análisis: ${Math.round(analysisResult.confidence * 100)}%\n\n`;
-
-  // Hallazgos clínicos principales
-  if (analysisResult.findings.length > 0) {
-    report += `**HALLAZGOS CLÍNICOS IDENTIFICADOS:**\n`;
-    analysisResult.findings.forEach((finding, index) => {
-      report += `${index + 1}. **${finding.category.toUpperCase()}**: ${finding.description}\n`;
-      if (finding.severity) {
-        report += `   - Severidad: ${finding.severity}\n`;
-      }
-      report += `   - Confianza: ${Math.round(finding.confidence * 100)}%\n\n`;
-    });
-  }
-
-  // Banderas rojas
-  if (analysisResult.redFlags.length > 0) {
-    report += `**🚩 BANDERAS ROJAS - ATENCIÓN INMEDIATA:**\n`;
-    analysisResult.redFlags.forEach(flag => {
-      report += `• ${flag}\n`;
-    });
-    report += `\n`;
-  }
-
-  // Recomendaciones principales
-  if (analysisResult.recommendations.length > 0) {
-    report += `**RECOMENDACIONES BASADAS EN EVIDENCIA:**\n\n`;
-    
-    // Agrupar por urgencia
-    const immediateRecs = analysisResult.recommendations.filter(r => r.urgency === 'immediate');
-    const urgentRecs = analysisResult.recommendations.filter(r => r.urgency === 'urgent');
-    const routineRecs = analysisResult.recommendations.filter(r => r.urgency === 'routine');
-
-    if (immediateRecs.length > 0) {
-      report += `**INMEDIATAS:**\n`;
-      immediateRecs.forEach((rec, index) => {
-        report += `${index + 1}. **${rec.title}**\n`;
-        report += `   ${rec.description}\n`;
-        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n`;
-        if (rec.contraindications && rec.contraindications.length > 0) {
-          report += `   - Contraindicaciones: ${rec.contraindications.join(', ')}\n`;
-        }
-        report += `\n`;
-      });
-    }
-
-    if (urgentRecs.length > 0) {
-      report += `**URGENTES:**\n`;
-      urgentRecs.forEach((rec, index) => {
-        report += `${index + 1}. **${rec.title}**\n`;
-        report += `   ${rec.description}\n`;
-        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n\n`;
-      });
-    }
-
-    if (routineRecs.length > 0) {
-      report += `**RUTINARIAS:**\n`;
-      routineRecs.forEach((rec, index) => {
-        report += `${index + 1}. **${rec.title}**\n`;
-        report += `   ${rec.description}\n`;
-        report += `   - Fuerza: ${rec.strength} | Calidad evidencia: ${rec.evidenceQuality}\n\n`;
-      });
-    }
-  }
-
-  // Diagnósticos diferenciales
-  if (analysisResult.differentialDiagnoses.length > 0) {
-    report += `**DIAGNÓSTICOS DIFERENCIALES A CONSIDERAR:**\n`;
-    analysisResult.differentialDiagnoses.forEach(dx => {
-      report += `• ${dx}\n`;
-    });
-    report += `\n`;
-  }
-
-  // Plan diagnóstico sugerido
-  if (analysisResult.suggestedWorkup.length > 0) {
-    report += `**PLAN DIAGNÓSTICO SUGERIDO:**\n`;
-    analysisResult.suggestedWorkup.forEach(study => {
-      report += `• ${study}\n`;
-    });
-    report += `\n`;
-  }
-
-  // Referencias principales (si se incluyen)
-  if (includeReferences && analysisResult.recommendations.length > 0) {
-    const allSources = analysisResult.recommendations
-      .flatMap(rec => rec.sources)
-      .filter((source, index, self) => 
-        index === self.findIndex(s => s.title === source.title)
-      );
-
-    if (allSources.length > 0) {
-      report += `**REFERENCIAS PRINCIPALES:**\n`;
-      allSources.forEach((source, index) => {
-        report += `${index + 1}. ${source.title}`;
-        if (source.authors && source.authors.length > 0) {
-          report += ` - ${source.authors.join(', ')}`;
-        }
-        if (source.journal && source.year) {
-          report += ` (${source.journal}, ${source.year})`;
-        }
-        report += ` [Nivel evidencia: ${source.evidenceLevel}]\n`;
-      });
-      report += `\n`;
-    }
-  }
-
-  // Evidencia adicional si existe
-  if (evidenceSearch && evidenceSearch.recommendations.length > 0) {
-    report += `**EVIDENCIA ADICIONAL ENCONTRADA:**\n`;
-    evidenceSearch.recommendations.forEach((rec, index) => {
-      report += `${index + 1}. ${rec.title}: ${rec.description}\n`;
-    });
-    report += `\n`;
-  }
-
-  // Disclaimer
-  report += `**IMPORTANTE:**\n${analysisResult.disclaimerText}\n`;
-
-  return report;
-}; 
-
 export const generateSimplifiedEvidenceConsultation = async (
   clinicalContent: string
 ): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
   validateApiKey();
   validateInput(clinicalContent, VALIDATION_RULES.MIN_TEXT_LENGTH);
 
-  // Limpiar y validar contenido clínico
   const cleanContent = clinicalContent.trim();
   if (cleanContent.length < 10) {
     throw new Error('El contenido clínico debe tener al menos 10 caracteres para generar evidencia.');
   }
 
-  // Prompt optimizado para consulta simplificada
   const prompt = `Analiza este contenido clínico y proporciona recomendaciones basadas en evidencia científica.
 
 CONTENIDO CLÍNICO:
@@ -673,9 +651,8 @@ Proporciona análisis completo con recomendaciones prácticas para la toma de de
       top_p: 0.9
     };
     
-    // Agregar timeout específico para evidencia científica
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 segundos
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
     
     try {
       const response = await openai.chat.completions.create(params, {
@@ -689,7 +666,6 @@ Proporciona análisis completo con recomendaciones prácticas para la toma de de
         throw new Error('No se pudo generar contenido de evidencia válido. Intenta con información clínica más detallada.');
       }
       
-      // Validar que el resultado contenga contenido útil
       if (result.length < 50) {
         throw new Error('La respuesta de evidencia es demasiado corta. Intenta con más información clínica.');
       }
@@ -706,558 +682,28 @@ Proporciona análisis completo con recomendaciones prácticas para la toma de de
       throw abortError;
     }
   } catch (error) {
-    // Manejo específico de errores para evidencia científica
-    if (error instanceof Error) {
-      if (error.message.includes('content_filter')) {
-        throw new Error('El contenido clínico contiene información que no puede procesarse. Revisa el texto e intenta nuevamente.');
-      }
-      if (error.message.includes('safety')) {
-        throw new Error('Por seguridad, no se puede procesar este contenido clínico. Intenta reformular la información.');
-      }
-      if (error.message.includes('too_many_requests')) {
-        throw new Error('Demasiadas solicitudes de evidencia. Espera un momento antes de intentar nuevamente.');
-      }
-    }
-    
-    throw handleOpenAIError(error, 'generación de consulta basada en evidencia simplificada');
+    throw handleOpenAIError(error, 'generación de consulta simplificada basada en evidencia');
   }
 };
 
 // =============================================================================
-// FUNCIONES MODULARES PARA GENERACIÓN DE NOTAS
+// METADATA Y UTILIDADES
 // =============================================================================
 
-/**
- * Extrae y organiza la información subjetiva del paciente
- * (síntomas, molestias, lo que describe el paciente)
- */
-export const extractSubjectiveInformation = async (
-  patientInfo: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
-
-  const prompt = `Eres un médico especialista en redacción clínica. Recibirás una historia clínica narrada de forma continua que puede incluir información sobre ingreso, evolución, diagnósticos, análisis, subjetivo y objetivo mezclados, paraclínicos, imágenes.
-
-INFORMACIÓN DEL PACIENTE:
----
-${patientInfo}
----
-
-Tu tarea es:
-1. LEER todo el texto cuidadosamente.
-2. IDENTIFICAR y EXTRAER el fragmento que corresponde al **SUBJETIVO** del paciente: entendiéndolo como lo que es explícitamente referido por el paciente tal como síntomas, molestias, lo que describe el paciente, sin interpretaciones ni diagnósticos.
-3. ORGANIZAR cada parte en frases claras y coherentes, manteniendo la lógica médica.
-4. NO AÑADIR datos nuevos que no estén en el texto original.
-5. NO INVENTAR diagnósticos ni signos clínicos adicionales.
-6. NO utilizar información externa.
-
-INSTRUCCIONES ESPECÍFICAS:
-- Extrae ÚNICAMENTE lo que el paciente reporta subjetivamente
-- Mantén las palabras exactas del paciente cuando sea posible
-- Organiza los síntomas de forma cronológica si aplica
-- Incluye características de los síntomas (intensidad, duración, factores que mejoran/empeoran)
-- Si no hay información subjetiva clara, indica "No se especifica información subjetiva del paciente"
-
-FORMATO DE RESPUESTA:
-Responde SOLO con la información subjetiva extraída y organizada, sin comentarios adicionales.`;
-
-  try {
-    const systemMessage = "Especialista en extracción de información subjetiva de historias clínicas. Preservas exactamente lo que reporta el paciente sin añadir interpretaciones.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.3, // Temperatura baja para preservar exactitud
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.8
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo extraer información subjetiva válida');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'extracción de información subjetiva');
-  }
-};
-
-/**
- * Genera análisis clínico mejorado basado en la información del paciente
- */
-export const generateClinicalAnalysis = async (
-  patientInfo: string,
-  subjectiveInfo?: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
-
-  const prompt = `Eres un médico especialista en redacción clínica. Tu tarea es generar un análisis clínico profesional basado en la información del paciente.
-
-INFORMACIÓN COMPLETA DEL PACIENTE:
----
-${patientInfo}
----
-
-${subjectiveInfo ? `INFORMACIÓN SUBJETIVA IDENTIFICADA:
----
-${subjectiveInfo}
----` : ''}
-
-Tu tarea es:
-1. IDENTIFICAR y EXTRAER el fragmento que corresponde al **ANÁLISIS CLÍNICO**: interpretaciones, hipótesis diagnósticas, conclusiones del médico.
-2. En el apartado de análisis clínico, vas a mejorar la redacción basado en la literatura y el lenguaje técnico médico, conservando el hilo conductor narrado.
-3. Conservar la estructura del diagnóstico propuesto y encaminándolo hacia el plan de manejo propuesto acorde con los diagnósticos.
-4. Conservar la lógica médica.
-5. NO AÑADIR datos nuevos que no estén en el texto original.
-6. NO INVENTAR diagnósticos ni signos clínicos adicionales.
-7. NO utilizar información externa al caso.
-
-INSTRUCCIONES ESPECÍFICAS:
-- Mejora la redacción técnica manteniendo el contenido original
-- Usa terminología médica precisa y actualizada
-- Mantén la coherencia diagnóstica
-- Estructura el análisis de forma lógica (presentación → interpretación → diagnóstico → plan)
-- Si no hay análisis clínico claro, indica "Información insuficiente para análisis clínico detallado"
-
-FORMATO DE RESPUESTA:
-Responde SOLO con el análisis clínico mejorado, sin comentarios adicionales.`;
-
-  try {
-    const systemMessage = "Especialista en análisis clínico y redacción médica técnica. Mejoras la presentación profesional manteniendo fidelidad al contenido original.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.4, // Temperatura moderada para mejorar redacción sin cambiar contenido
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.9
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo generar análisis clínico válido');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de análisis clínico');
-  }
-};
-
-/**
- * Analiza y preserva la estructura de la plantilla
- */
-export const analyzeTemplateStructure = async (
-  templateContent: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(templateContent, 10);
-
-  const prompt = `Eres un especialista en análisis de estructuras de plantillas médicas. Tu tarea es analizar la estructura de una plantilla y extraer su formato exacto.
-
-PLANTILLA A ANALIZAR:
----
-${templateContent}
----
-
-Tu tarea es:
-1. IDENTIFICAR la estructura exacta de la plantilla (encabezados, subsecciones, formato)
-2. PRESERVAR todos los elementos de formato: mayúsculas/minúsculas, viñetas, numeración, sangrías
-3. IGNORAR completamente cualquier dato de ejemplo o ficticios en la plantilla
-4. EXTRAER el esquema puro de la estructura
-
-INSTRUCCIONES ESPECÍFICAS:
-- Identifica cada sección y subsección
-- Preserva el formato exacto (MAYÚSCULAS, minúsculas, viñetas -, números 1., 2., etc.)
-- Ignora datos de ejemplo como "[Nombre del paciente]", "Juan Pérez", etc.
-- Mantén la jerarquía y el orden de las secciones
-- Identifica campos que requieren información del paciente vs campos fijos
-
-FORMATO DE RESPUESTA:
-Describe la estructura identificada de forma clara y organizada, preparada para ser usada como guía de formato.`;
-
-  try {
-    const systemMessage = "Especialista en análisis de estructuras de documentos médicos. Extraes el formato puro ignorando datos de ejemplo.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.2, // Temperatura muy baja para preservar estructura exacta
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.7
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo analizar la estructura de la plantilla');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'análisis de estructura de plantilla');
-  }
-};
-
-/**
- * Extrae información sobre datos faltantes basado en la plantilla y la información disponible
- */
-export const extractMissingData = async (
-  templateContent: string,
-  patientInfo: string,
-  generatedNote: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(templateContent, 10);
-  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
-  validateInput(generatedNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
-
-  const prompt = `Eres un especialista en análisis de completitud de notas clínicas. Tu tarea es identificar qué datos faltan al comparar una plantilla con la información disponible del paciente.
-
-PLANTILLA ORIGINAL:
----
-${templateContent}
----
-
-INFORMACIÓN DEL PACIENTE DISPONIBLE:
----
-${patientInfo}
----
-
-NOTA GENERADA:
----
-${generatedNote}
----
-
-Tu tarea es:
-1. **COMPARAR** la plantilla con la información disponible del paciente
-2. **IDENTIFICAR** campos, secciones o datos específicos que aparecen en la plantilla pero no están disponibles en la información del paciente
-3. **LISTAR** de manera clara y concisa los datos faltantes
-4. **PRIORIZAR** los datos faltantes por importancia clínica
-
-INSTRUCCIONES ESPECÍFICAS:
-- Identifica datos faltantes específicos (ej: "Signos vitales", "Antecedentes familiares", "Exámenes paraclínicos")
-- NO incluyas datos que sí están disponibles en la información del paciente
-- Agrupa los datos faltantes por categorías (Anamnesis, Examen físico, Paraclínicos, etc.)
-- Usa un lenguaje claro y profesional
-- Enfócate en datos clínicamente relevantes
-
-FORMATO DE RESPUESTA:
-Lista clara de datos faltantes organizados por categorías. Si no faltan datos importantes, indica "Información completa para la plantilla utilizada".`;
-
-  try {
-    const systemMessage = "Especialista en análisis de completitud de historias clínicas. Identificas datos faltantes de manera precisa y organizada.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.3,
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.8
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo extraer información de datos faltantes');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'extracción de datos faltantes');
-  }
-};
-
-/**
- * Verifica que la nota generada sea 100% fiel al formato de la plantilla
- */
-export const verifyFormatCompliance = async (
-  templateContent: string,
-  generatedNote: string,
-  templateStructure: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(templateContent, 10);
-  validateInput(generatedNote, VALIDATION_RULES.MIN_TEXT_LENGTH);
-  validateInput(templateStructure, 10);
-
-  const prompt = `Eres un especialista en verificación de formato de notas clínicas. Tu tarea es asegurar que la nota generada sea 100% fiel al formato de la plantilla original.
-
-PLANTILLA ORIGINAL (FORMATO MODELO):
----
-${templateContent}
----
-
-ESTRUCTURA DE PLANTILLA ANALIZADA:
----
-${templateStructure}
----
-
-NOTA GENERADA PARA VERIFICAR:
----
-${generatedNote}
----
-
-Tu tarea es:
-1. **VERIFICAR** que la nota sigue EXACTAMENTE el formato de la plantilla
-2. **COMPROBAR** encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías
-3. **VALIDAR** que el orden de las secciones coincida con la plantilla
-4. **CORREGIR** cualquier desviación del formato original
-5. **PRESERVAR** todo el contenido médico, solo ajustando el formato
-
-INSTRUCCIONES CRÍTICAS:
-- La nota DEBE ser idéntica en formato a la plantilla
-- Mantén EXACTAMENTE las mayúsculas/minúsculas de la plantilla
-- Conserva las viñetas (-), numeración (1., 2., I., II.) según la plantilla
-- Respeta las sangrías y espaciado de la plantilla original
-- NO cambies el contenido médico, solo el formato
-- Si la nota ya está perfecta, devuélvela sin cambios
-
-FORMATO DE RESPUESTA:
-Responde ÚNICAMENTE con la nota médica con formato 100% fiel a la plantilla, lista para usar.`;
-
-  try {
-    const systemMessage = "Especialista en verificación y corrección de formato de documentos médicos. Aseguras fidelidad exacta al formato de plantilla sin alterar contenido clínico.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.1, // Temperatura muy baja para máxima fidelidad
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.7
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo verificar el formato de la nota');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'verificación de formato de nota');
-  }
-};
-
-/**
- * Función coordinadora que integra todos los componentes para generar la nota final
- */
-export const generateModularNote = async (
-  templateContent: string,
-  patientInfo: string,
-  subjectiveInfo: string,
-  clinicalAnalysis: string,
-  templateStructure: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(templateContent, 10);
-  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
-
-  const prompt = `Eres un especialista en generación de notas clínicas que integra múltiples componentes especializados. Tu tarea es crear la nota siendo 100% fiel a la estructura de  los apartados de información que componen la plantilla original.
-
-PLANTILLA ORIGINAL (solo para referencia de formato):
----
-${templateContent}
----
-
-ESTRUCTURA DE PLANTILLA ANALIZADA:
----
-${templateStructure}
----
-
-INFORMACIÓN SUBJETIVA DEL PACIENTE:
----
-${subjectiveInfo}
----
-
-ANÁLISIS CLÍNICO MEJORADO:
----
-${clinicalAnalysis}
----
-
-INFORMACIÓN COMPLETA DEL PACIENTE:
----
-${patientInfo}
----
-
-Tu tarea es:
-1. **INTEGRAR** toda la información de forma coherente siguiendo la estructura de la plantilla
-2. **COLOCAR** cada componente en la sección apropiada de la plantilla
-3. **COMPLETAR** campos faltantes usando únicamente la información del paciente disponible
-4. **PRESERVAR** el formato exacto de la plantilla
-5. **OMITIR** secciones donde no hay información disponible (sin indicar que falta)
-6. **CREAR** una nota médica profesional y completa
-
-INSTRUCCIONES CRÍTICAS:
-- Usa la estructura de plantilla como guía de formato EXACTO
-- Integra la información subjetiva en las secciones apropiadas
-- Coloca el análisis clínico en las secciones de evaluación/diagnóstico
-- Completa otros campos con información del paciente disponible
-- NO inventes información que no esté en los datos proporcionados
-- OMITE secciones sin información disponible
-- NO incluyas observaciones, comentarios o datos faltantes dentro de la nota
-
-FORMATO DE RESPUESTA:
-Responde ÚNICAMENTE con la nota médica completada, lista para usar.`;
-
-  try {
-    const systemMessage = "Especialista en integración de componentes clínicos para generar notas médicas finales perfectas. Combinas información especializada manteniendo formato profesional.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: 0.2, // Temperatura controlada para integración precisa
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.9
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const result = response.choices[0]?.message?.content || '';
-    
-    if (!result.trim()) {
-      throw new Error('No se pudo generar la nota integrada');
-    }
-    
-    return {
-      text: result,
-      groundingMetadata: { groundingChunks: [] }
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de nota integrada');
-  }
-};
-
-/**
- * Función de respaldo con implementación original (por si se necesita fallback)
- */
-export const generateNoteFromTemplateFallback = async (
-  specialtyName: string,
-  templateContent: string,
-  patientInfo: string
-): Promise<{ text: string; groundingMetadata?: GroundingMetadata }> => {
-  validateApiKey();
-  validateInput(templateContent, 10);
-  validateInput(patientInfo, VALIDATION_RULES.MIN_TEXT_LENGTH);
-
-  // Prompt optimizado original
-  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
-
-INFORMACIÓN DEL PACIENTE:
-"${patientInfo}"
-
-PLANTILLA (formato únicamente):
----
-${templateContent}
----
-
-INSTRUCCIONES CRÍTICAS:
-
-1. **FORMATO ES SAGRADO:**
-   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
-   - Si algo está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
-   - Si algo está en minúsculas, mantenlo en minúsculas.
-   - Si usa viñetas (-), mantén las viñetas.
-   - Si usa numeración (1., 2.), mantén la numeración o si son números romanos también mantenlo.
-   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
-
-2. **CONTENIDO:**
-   - Usa ÚNICAMENTE la información del paciente proporcionada.
-   - NO inventes datos que no estén en la información del paciente.
-   - Si falta información para una sección, no dejes nunca el ítem vacío ni coloques nunca que falta un dato solo OMITE ESTA PARTE Y NO LA COLOQUES, al final de todo pon observaciones y un listado de datos que faltan y allí los concatenas.
-   - Usa terminología médica precisa y profesional.
-   - Siempre colocarlo todo en el mismo orden de la plantilla.
-   - Pon especial cuidado en la parte de ítems subjetivos y análisis que no hay datos predeterminados allí se pone algo con un índice de redacción pero apegado a la información que tenemos del paciente SIN ALUCINAR NI INVENTAR NADA.
-
-3. **IMPORTANTE:**
-   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
-   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
-   - Reemplaza todos los campos con información real del paciente o OMITE y no pongas el ítem si no hay datos.
-
-4. **RESPUESTA:**
-   - Responde SOLO con la nota médica completada.
-   - No agregues comentarios, explicaciones, ni introducciones.
-
-La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.
-
-Genera la nota médica completada:`;
-
-  try {
-    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas, nunca datos de ejemplo de plantillas.";
-    
-    const messages = createMessages(systemMessage, prompt);
-    
-    const params = {
-      model: OPENAI_MODEL,
-      messages,
-      temperature: AI_CONFIG.TEMPERATURE,
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      top_p: 0.9
-    };
-    
-    const response = await openai.chat.completions.create(params);
-    const generatedText = response.choices[0]?.message?.content || '';
-    
-    if (!generatedText.trim()) {
-      throw new Error('No se pudo generar contenido válido');
-    }
-
-    return { 
-      text: generatedText, 
-      groundingMetadata: undefined
-    };
-  } catch (error) {
-    throw handleOpenAIError(error, 'generación de nota con plantilla (fallback)');
-  }
-};
-
-// =============================================================================
-// UTILIDADES
-// =============================================================================
-
-export const validateOpenAIConfiguration = (): boolean => {
-  return Boolean(API_KEY);
-};
-
-export const getOpenAIModelInfo = () => {
-  return {
-    model: OPENAI_MODEL,
-    config: AI_CONFIG,
-  };
-}; 
+export const getServiceInfo = () => ({
+  version: '2.0.0',
+  architecture: 'hybrid',
+  preferredMethod: 'assistants',
+  fallbackMethods: ['function_calling', 'legacy'],
+  capabilities: [
+    'OpenAI Assistants API',
+    'Function Calling con JSON Schema',
+    'Gestión inteligente de contexto',
+    'Fallback automático',
+    'Compatibilidad legacy'
+  ],
+  description: 'Servicio híbrido con migración a Assistants API manteniendo compatibilidad hacia atrás'
+});
+
+console.log('✅ OpenAI Service migrado a nueva arquitectura híbrida');
+console.log('🔄 Usando Assistants API como método preferido con fallbacks automáticos'); 

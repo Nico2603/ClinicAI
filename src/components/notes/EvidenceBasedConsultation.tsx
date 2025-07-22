@@ -1,6 +1,18 @@
+/**
+ * ClínicAI - Asistente de IA para Notas Clínicas
+ * 
+ * Autor: Nicolas Ceballos Brito
+ * Portfolio: https://nico2603.github.io/PersonalPage/
+ * GitHub: https://github.com/Nico2603
+ * LinkedIn: https://www.linkedin.com/in/nicolas-ceballos-brito/
+ * 
+ * Desarrollado para Teilur.ai
+ */
+
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+// El servicio generateSimplifiedEvidenceConsultation sigue siendo válido en la nueva arquitectura
 import { generateSimplifiedEvidenceConsultation } from '../../lib/services/openaiService';
 import { LoadingSpinner, SparklesIcon } from '../ui/Icons';
 import { Button } from '../ui/button';
@@ -8,270 +20,283 @@ import { TextareaWithSpeech } from '@/components';
 
 interface EvidenceBasedConsultationProps {
   className?: string;
-  onConsultationGenerated?: (consultation: string) => void;
+  onEvidenceGenerated?: (evidence: string) => void;
   autoAnalyzeContent?: string;
   enableAutoAnalysis?: boolean;
 }
 
-const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({ 
+const EvidenceBasedConsultation: React.FC<EvidenceBasedConsultationProps> = ({
   className = '',
-  onConsultationGenerated,
+  onEvidenceGenerated,
   autoAnalyzeContent,
   enableAutoAnalysis = true
 }) => {
   // Estados principales
   const [clinicalContent, setClinicalContent] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [analysisResult, setAnalysisResult] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [evidenceResult, setEvidenceResult] = useState<string>('');
   
   // Estados de UI
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  
-  // Usar useRef para trackear el último contenido analizado
-  const lastAnalyzedContentRef = useRef<string>('');
-  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoLoaded, setAutoLoaded] = useState<boolean>(false);
 
-  // Función para limpiar estados cuando cambia el contenido
-  const clearPreviousResults = useCallback(() => {
-    setAnalysisResult('');
-    setError(null);
-    setCopied(false);
-    
-    // Cancelar análisis en progreso si existe
-    if (analysisTimeoutRef.current) {
-      clearTimeout(analysisTimeoutRef.current);
-      analysisTimeoutRef.current = null;
+  // Nuevos estados para información de la arquitectura
+  const [generationMethod, setGenerationMethod] = useState<string>('');
+  const [isUsingNewArchitecture, setIsUsingNewArchitecture] = useState<boolean>(false);
+
+  // Temas de consulta frecuentes (predefinidos)
+  const consultationTopics = [
+    'Manejo de hipertensión arterial resistente',
+    'Diagnóstico diferencial de dolor torácico',
+    'Tratamiento de diabetes mellitus tipo 2',
+    'Enfoque de fiebre sin foco aparente',
+    'Evaluación de síncope en adulto mayor',
+    'Manejo de insuficiencia cardiaca aguda',
+    'Diagnóstico de tromboembolismo pulmonar',
+    'Tratamiento de neumonía adquirida en comunidad'
+  ];
+
+  // Auto-cargar contenido si está disponible
+  useEffect(() => {
+    if (autoAnalyzeContent && enableAutoAnalysis && !autoLoaded) {
+      setClinicalContent(autoAnalyzeContent);
+      setAutoLoaded(true);
     }
-  }, []);
+  }, [autoAnalyzeContent, enableAutoAnalysis, autoLoaded]);
 
-  // Función con useCallback mejorada con mejor manejo de errores
-  const handleAnalyzeContent = useCallback(async (contentToAnalyze?: string) => {
-    const content = contentToAnalyze || clinicalContent;
-    
-    if (!content.trim()) {
-      setError("Por favor, ingresa información clínica para analizar.");
+  // Función para generar evidencia usando la arquitectura mejorada
+  const generateEvidence = useCallback(async () => {
+    if (!clinicalContent.trim()) {
+      setError('Por favor ingresa contenido clínico para consultar');
       return;
     }
 
-    // Evitar análisis duplicados
-    if (content === lastAnalyzedContentRef.current && analysisResult && !error) {
-      return;
-    }
-
-    setIsAnalyzing(true);
     setError(null);
-    setAnalysisResult('');
-    
-    // Actualizar el último contenido analizado
-    lastAnalyzedContentRef.current = content;
+    setIsGenerating(true);
+    setEvidenceResult('');
+    setGenerationMethod('');
+    setIsUsingNewArchitecture(false);
 
     try {
-      const result = await generateSimplifiedEvidenceConsultation(content.trim());
+      console.log('🔄 Generando evidencia con arquitectura mejorada...');
+      setIsUsingNewArchitecture(true);
+
+      // Esta función ya utiliza internamente la nueva arquitectura híbrida
+      const result = await generateSimplifiedEvidenceConsultation(clinicalContent.trim());
       
-      // Verificar que el resultado sigue siendo relevante (no ha cambiado el contenido mientras analizaba)
-      if (lastAnalyzedContentRef.current === content) {
-        setAnalysisResult(result.text);
-        
-        // Notificar al componente padre si se proporciona el callback
-        if (onConsultationGenerated) {
-          onConsultationGenerated(result.text);
-        }
-      }
-    } catch (error) {
-      console.error('Error analyzing clinical content:', error);
+      // Detectar información del método usado
+      const methodInfo = result.groundingMetadata?.groundingChunks?.[0]?.web?.title || 'Sistema de evidencia mejorado';
+      setGenerationMethod(methodInfo);
       
-      // Solo mostrar error si sigue siendo relevante
-      if (lastAnalyzedContentRef.current === content) {
-        setError(`Error al analizar contenido clínico: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(`✅ Evidencia generada usando: ${methodInfo}`);
+      
+      setEvidenceResult(result.text);
+      
+      // Notificar al componente padre si existe el callback
+      if (onEvidenceGenerated) {
+        onEvidenceGenerated(result.text);
       }
+      
+    } catch (err) {
+      console.error('Error generando evidencia:', err);
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Error desconocido al generar evidencia';
+      setError(`Error: ${errorMessage}`);
+      setEvidenceResult('');
+      setIsUsingNewArchitecture(false);
     } finally {
-      setIsAnalyzing(false);
+      setIsGenerating(false);
     }
-  }, [clinicalContent, onConsultationGenerated, analysisResult, error]);
+  }, [clinicalContent, onEvidenceGenerated]);
 
-  // Auto-análisis mejorado que detecta cambios en el contenido
-  useEffect(() => {
-    if (!autoAnalyzeContent || !autoAnalyzeContent.trim() || !enableAutoAnalysis) {
-      // Si no hay contenido para auto-analizar, limpiar resultados anteriores
-      if (!autoAnalyzeContent && (analysisResult || error)) {
-        clearPreviousResults();
-        lastAnalyzedContentRef.current = '';
-      }
-      return;
+  // Función para copiar resultado
+  const copyToClipboard = useCallback(async () => {
+    if (!evidenceResult) return;
+
+    try {
+      await navigator.clipboard.writeText(evidenceResult);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Error copiando al portapapeles:', err);
     }
+  }, [evidenceResult]);
 
-    // Si el contenido para auto-análisis cambió, limpiar resultados anteriores
-    if (autoAnalyzeContent !== lastAnalyzedContentRef.current) {
-      clearPreviousResults();
-      setClinicalContent(autoAnalyzeContent);
-      
-      // Usar timeout para evitar análisis múltiples rápidos
-      analysisTimeoutRef.current = setTimeout(() => {
-        handleAnalyzeContent(autoAnalyzeContent);
-      }, 300);
-    }
-
-    // Cleanup del timeout
-    return () => {
-      if (analysisTimeoutRef.current) {
-        clearTimeout(analysisTimeoutRef.current);
-        analysisTimeoutRef.current = null;
-      }
-    };
-  }, [autoAnalyzeContent, enableAutoAnalysis, handleAnalyzeContent, clearPreviousResults, analysisResult, error]);
-
-  const handleCopyReport = () => {
-    if (!analysisResult) return;
-    
-    navigator.clipboard.writeText(analysisResult)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => console.error('Error al copiar:', err));
-  };
-
-  const handleClearAll = () => {
+  // Función para limpiar todo
+  const clearAll = useCallback(() => {
     setClinicalContent('');
-    clearPreviousResults();
-    lastAnalyzedContentRef.current = '';
-  };
+    setEvidenceResult('');
+    setError(null);
+    setCopied(false);
+    setAutoLoaded(false);
+    setGenerationMethod('');
+    setIsUsingNewArchitecture(false);
+  }, []);
 
-  // Determinar si se está ejecutando auto-análisis
-  const isAutoAnalyzing = autoAnalyzeContent && autoAnalyzeContent.trim() && 
-                          autoAnalyzeContent === lastAnalyzedContentRef.current && 
-                          (isAnalyzing || analysisResult);
+  // Función para usar tema predefinido
+  const usePresetTopic = useCallback((topic: string) => {
+    const template = `${topic}\n\n${autoAnalyzeContent || '[Información clínica específica]'}`;
+    setClinicalContent(template);
+  }, [autoAnalyzeContent]);
 
   return (
-    <div className={className}>
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-        <div className="flex items-center space-x-2 mb-3">
-          <div className="flex-shrink-0">
-            <SparklesIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-            Consulta Clínica Basada en Evidencia
+    <div className={`space-y-4 ${className}`}>
+      {/* Header mejorado con información de arquitectura */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SparklesIcon className="h-5 w-5 text-purple-500" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Consulta Basada en Evidencia
           </h3>
+          {isUsingNewArchitecture && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">
+              🧠 Arquitectura Mejorada
+            </span>
+          )}
         </div>
         
-        <p className="text-sm text-blue-800 dark:text-blue-200 mb-4">
-          Análisis automático del contenido clínico con recomendaciones basadas en evidencia científica actual de revistas médicas indexadas.
-        </p>
-
-        {/* Análisis automático realizado */}
-        {isAutoAnalyzing && (
-          <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center">
-              <SparklesIcon className="h-4 w-4 mr-2" />
-              {isAnalyzing ? 'Analizando contenido clínico automáticamente...' : 'Análisis automático realizado basado en el contenido clínico proporcionado'}
-            </p>
+        {evidenceResult && (
+          <div className="flex gap-2">
+            <Button
+              onClick={copyToClipboard}
+              className="text-sm"
+              variant={copied ? "default" : "outline"}
+            >
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </Button>
+            <Button
+              onClick={clearAll}
+              variant="outline"
+              className="text-sm"
+            >
+              Limpiar
+            </Button>
           </div>
         )}
+      </div>
 
-        {/* Área de entrada de contenido clínico */}
-        <div className="space-y-4">
-          <div>
-            <TextareaWithSpeech
-              value={clinicalContent}
-              onChange={(e) => {
-                setClinicalContent(e.target.value);
-                // Limpiar resultados anteriores cuando el usuario modifica manualmente
-                if (e.target.value !== lastAnalyzedContentRef.current) {
-                  clearPreviousResults();
-                }
-              }}
-              rows={4}
-              placeholder="Ingrese aquí la información clínica que desea analizar (síntomas, diagnósticos, tratamientos, etc.)"
-              label="Información Clínica para Análisis"
-              showCharacterCount={false}
-              speechLanguage="es-ES"
-              className="focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => handleAnalyzeContent()}
-              disabled={isAnalyzing || !clinicalContent.trim()}
-              data-tutorial="evidence-generate"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 flex items-center gap-2"
+      {/* Temas de consulta frecuentes */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Temas frecuentes (click para usar):
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {consultationTopics.slice(0, 6).map((topic) => (
+            <button
+              key={topic}
+              onClick={() => usePresetTopic(topic)}
+              className="px-3 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 rounded-full transition-colors"
+              title={topic}
             >
-              {isAnalyzing ? (
-                <>
-                  <LoadingSpinner className="h-4 w-4" />
-                  Analizando...
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="h-4 w-4" />
-                  Analizar con IA
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleClearAll}
-              variant="outline"
-              className="px-6 py-2"
-              disabled={isAnalyzing}
-            >
-              Limpiar Todo
-            </Button>
-          </div>
-
-          {/* Errores */}
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-              <Button
-                onClick={() => setError(null)}
-                variant="outline"
-                size="sm"
-                className="mt-2 text-xs"
-              >
-                Cerrar
-              </Button>
-            </div>
-          )}
-
-          {/* Resultado del análisis */}
-          {analysisResult && (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-md font-semibold text-gray-900 dark:text-white">
-                  Análisis Basado en Evidencia
-                </h4>
-                <Button
-                  onClick={handleCopyReport}
-                  variant="outline"
-                  size="sm"
-                  className="text-sm"
-                >
-                  {copied ? 'Copiado ✓' : 'Copiar'}
-                </Button>
-              </div>
-              
-              <div className="prose dark:prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                  {analysisResult}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mensaje cuando no hay contenido */}
-          {!analysisResult && !isAnalyzing && !error && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              {autoAnalyzeContent && autoAnalyzeContent.trim() ? 
-                'Preparando análisis automático...' : 
-                'No hay contenido para mostrar aún.'
-              }
-            </div>
-          )}
+              {topic.length > 30 ? `${topic.substring(0, 30)}...` : topic}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Área de input mejorada */}
+      <div>
+        <label htmlFor="clinical-content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Contenido clínico para consultar:
+        </label>
+        <TextareaWithSpeech
+          id="clinical-content"
+          value={clinicalContent}
+          onChange={(e) => setClinicalContent(e.target.value)}
+          placeholder="Describe el caso clínico, síntomas, hallazgos, o pregunta específica sobre la cual necesitas recomendaciones basadas en evidencia científica..."
+          className="min-h-32"
+          disabled={isGenerating}
+        />
+      </div>
+
+      {/* Botón de generación mejorado */}
+      <Button
+        onClick={generateEvidence}
+        disabled={isGenerating || !clinicalContent.trim()}
+        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700"
+      >
+        {isGenerating ? (
+          <>
+            <LoadingSpinner className="h-4 w-4" />
+            <span>Consultando evidencia científica...</span>
+          </>
+        ) : (
+          <>
+            <SparklesIcon className="h-4 w-4" />
+            <span>Generar Recomendaciones</span>
+          </>
+        )}
+      </Button>
+
+      {/* Información del método usado (nuevo) */}
+      {generationMethod && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span className="text-sm text-purple-700 dark:text-purple-300">
+              Generado usando: {generationMethod}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Manejo de errores */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Resultado de la evidencia */}
+      {evidenceResult && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white">
+              Recomendaciones Basadas en Evidencia:
+            </h4>
+            {isUsingNewArchitecture && (
+              <span className="text-xs text-purple-600 dark:text-purple-400">
+                ✨ Generado con arquitectura mejorada
+              </span>
+            )}
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+            <div className="prose dark:prose-invert max-w-none">
+              <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
+                {evidenceResult}
+              </div>
+            </div>
+          </div>
+          
+          {/* Disclaimer mejorado */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              <strong>Disclaimer:</strong> Esta información es para apoyo educativo y no sustituye el juicio clínico profesional. 
+              Siempre consulte las guías clínicas más recientes y tome decisiones basadas en el contexto específico del paciente.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Indicadores de progreso cuando esté cargando */}
+      {isGenerating && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <LoadingSpinner className="h-5 w-5" />
+            <div>
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                Consultando bases de datos científicas...
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Analizando PubMed, Cochrane, UpToDate y otras fuentes de evidencia
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
