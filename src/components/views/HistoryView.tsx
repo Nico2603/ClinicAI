@@ -1,3 +1,14 @@
+/**
+ * ClínicAI - Asistente de IA para Notas Clínicas
+ * 
+ * Autor: Nicolas Ceballos Brito
+ * Portfolio: https://nico2603.github.io/PersonalPage/
+ * GitHub: https://github.com/Nico2603
+ * LinkedIn: https://www.linkedin.com/in/nicolas-ceballos-brito/
+ * 
+ * Desarrollado para Teilur.ai
+ */
+
 import React, { useState } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
