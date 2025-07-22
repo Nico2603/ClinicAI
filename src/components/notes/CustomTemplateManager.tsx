@@ -5,6 +5,7 @@ import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
 import { TextareaWithSpeech } from '@/components';
 import TemplateCacheManager from './TemplateCacheManager';
+import { templateCacheService } from '@/lib/services/templateCacheService';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -246,6 +247,17 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     setIsCreating(true);
   }, [getNextTemplateName]);
 
+  // Función para manejar selección de plantilla con registro de acceso
+  const handleSelectTemplate = useCallback((template: UserTemplate) => {
+    // Registrar el acceso en el cache
+    templateCacheService.recordTemplateAccess(template.id);
+    
+    // Llamar al callback original
+    onSelectTemplate(template);
+    
+    console.log(`📊 Plantilla seleccionada: ${template.name}`);
+  }, [onSelectTemplate]);
+
   // Memoizar las plantillas filtradas para evitar re-renderizados
   const activeTemplates = useMemo(() => {
     return userTemplates.filter(template => template.is_active);
@@ -338,7 +350,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
               {mostUsed.map((template) => (
                 <button
                   key={template.id}
-                  onClick={() => onSelectTemplate(template)}
+                  onClick={() => handleSelectTemplate(template)}
                   className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                 >
                   {template.name}
@@ -508,7 +520,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
               isEditing={editingId === template.id}
               editingName={editingName}
               editingContent={editingContent}
-              onSelect={onSelectTemplate}
+              onSelect={handleSelectTemplate}
               onStartEdit={handleStartEdit}
               onSaveEdit={handleSaveEdit}
               onCancelEdit={handleCancelEdit}

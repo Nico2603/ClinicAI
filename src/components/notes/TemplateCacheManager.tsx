@@ -8,7 +8,7 @@ interface TemplateCacheManagerProps {
 }
 
 const TemplateCacheManager: React.FC<TemplateCacheManagerProps> = ({ isOpen, onClose }) => {
-  const { getStats, getMostUsed, invalidate, clear } = useTemplateCacheStats();
+  const { getStats, getMostUsed, invalidate, clear, resetCounters } = useTemplateCacheStats();
   const { refreshFromServer, invalidateCache } = useSimpleUserTemplates();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState(getStats());
@@ -37,6 +37,12 @@ const TemplateCacheManager: React.FC<TemplateCacheManagerProps> = ({ isOpen, onC
     refreshStats();
     console.log('✅ Cache limpiado completamente');
   }, [clear, refreshStats]);
+
+  const handleResetCounters = useCallback(() => {
+    resetCounters();
+    refreshStats();
+    console.log('✅ Contadores de acceso reseteados');
+  }, [resetCounters, refreshStats]);
 
   const handleRefreshFromServer = useCallback(async () => {
     setIsLoading(true);
@@ -144,7 +150,7 @@ const TemplateCacheManager: React.FC<TemplateCacheManagerProps> = ({ isOpen, onC
             🔧 Acciones de Cache
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
               onClick={handleRefreshFromServer}
               disabled={isLoading}
@@ -172,6 +178,17 @@ const TemplateCacheManager: React.FC<TemplateCacheManagerProps> = ({ isOpen, onC
             </button>
 
             <button
+              onClick={handleResetCounters}
+              disabled={isLoading}
+              className="flex items-center justify-center px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Resetear Contadores
+            </button>
+
+            <button
               onClick={handleClearCache}
               disabled={isLoading}
               className="flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -190,7 +207,28 @@ const TemplateCacheManager: React.FC<TemplateCacheManagerProps> = ({ isOpen, onC
             <div className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1">
               <div><strong>Refrescar:</strong> Actualiza el cache con datos frescos del servidor</div>
               <div><strong>Invalidar:</strong> Borra el cache y fuerza una recarga completa</div>
+              <div><strong>Resetear Contadores:</strong> Pone todos los contadores de acceso en 0</div>
               <div><strong>Limpiar Todo:</strong> Elimina completamente el cache local</div>
+            </div>
+          </div>
+
+          {/* Alerta de fix aplicado */}
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <div className="text-sm font-medium text-green-800 dark:text-green-300">
+                  ✅ Bug de Contadores Corregido
+                </div>
+                <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Los contadores ahora solo se incrementan cuando realmente seleccionas una plantilla.
+                  Si ves números altos, usa "Resetear Contadores" para empezar fresh.
+                </div>
+              </div>
             </div>
           </div>
         </div>

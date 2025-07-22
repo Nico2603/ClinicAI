@@ -28,7 +28,7 @@ class TemplateCacheService {
     maxSize: 50, // máximo 50 plantillas en cache
     maxAge: 30 * 60 * 1000, // 30 minutos
     storageKey: 'notasai_template_cache',
-    version: 1
+    version: 2 // ← Incrementar versión para resetear caches existentes
   };
 
   private usageStatsKey = 'notasai_template_usage';
@@ -45,7 +45,7 @@ class TemplateCacheService {
     this.usageStatsKey = `notasai_template_usage_${userId}`;
   }
 
-  // Obtener plantillas del cache
+  // Obtener plantillas del cache (SIN incrementar contadores automáticamente)
   getTemplates(): UserTemplate[] | null {
     try {
       const cached = localStorage.getItem(this.config.storageKey);
@@ -62,15 +62,12 @@ class TemplateCacheService {
       const now = Date.now();
       const validEntries: UserTemplate[] = [];
 
-      // Filtrar entradas válidas y actualizar estadísticas de acceso
+      // Filtrar entradas válidas SIN incrementar contadores
       for (const [templateId, entry] of Object.entries(cacheData.data || {})) {
         const cacheEntry = entry as CacheEntry<UserTemplate>;
         
         // Verificar si no ha expirado
         if (now - cacheEntry.timestamp < this.config.maxAge) {
-          // Actualizar estadísticas de acceso
-          cacheEntry.lastAccessed = now;
-          cacheEntry.accessCount += 1;
           validEntries.push(cacheEntry.data);
         }
       }
@@ -80,10 +77,6 @@ class TemplateCacheService {
         return null;
       }
 
-      // Guardar estadísticas actualizadas
-      this.saveCache(cacheData.data);
-      this.updateUsageStats(validEntries);
-
       console.log(`📦 Cache hit: ${validEntries.length} plantillas recuperadas del cache local`);
       return validEntries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
@@ -91,6 +84,24 @@ class TemplateCacheService {
       console.error('Error al leer cache de plantillas:', error);
       this.clear();
       return null;
+    }
+  }
+
+  // Método específico para registrar el acceso a una plantilla individual
+  recordTemplateAccess(templateId: string): void {
+    try {
+      const existing = this.getCacheData();
+      const entry = existing[templateId];
+      
+      if (entry) {
+        entry.lastAccessed = Date.now();
+        entry.accessCount += 1;
+        this.saveCache(existing);
+        
+        console.log(`📊 Acceso registrado para plantilla: ${entry.data.name} (${entry.accessCount} accesos)`);
+      }
+    } catch (error) {
+      console.error('Error al registrar acceso a plantilla:', error);
     }
   }
 
@@ -108,7 +119,7 @@ class TemplateCacheService {
         cacheData[template.id] = {
           data: template,
           timestamp: now,
-          accessCount: existingEntry?.accessCount || 1,
+          accessCount: existingEntry?.accessCount || 0, // Empezar en 0, no en 1
           lastAccessed: existingEntry?.lastAccessed || now,
           version: this.config.version
         };
@@ -134,7 +145,7 @@ class TemplateCacheService {
       existing[template.id] = {
         data: template,
         timestamp: now,
-        accessCount: 1,
+        accessCount: 0, // Empezar en 0, no en 1
         lastAccessed: now,
         version: this.config.version
       };
@@ -149,7 +160,7 @@ class TemplateCacheService {
     }
   }
 
-  // Actualizar una plantilla en el cache
+  // Actualizar una plantilla en el cache (SIN incrementar contador automáticamente)
   updateTemplate(template: UserTemplate): void {
     try {
       const existing = this.getCacheData();
@@ -159,8 +170,7 @@ class TemplateCacheService {
         if (entry) {
           entry.data = template;
           entry.timestamp = Date.now();
-          entry.lastAccessed = Date.now();
-          entry.accessCount += 1;
+          // NO incrementar accessCount automáticamente aquí
           
           this.saveCache(existing);
           console.log(`🔄 Plantilla actualizada en cache: ${template.name}`);
@@ -224,8 +234,9 @@ class TemplateCacheService {
       })
       .filter((item): item is { template: UserTemplate; accessCount: number } => item !== null);
     
-    // Ordenar por uso y retornar solo las plantillas
+    // Solo retornar plantillas que tienen al menos 1 acceso
     return templatesWithUsage
+      .filter(item => item.accessCount > 0)
       .sort((a, b) => b.accessCount - a.accessCount)
       .slice(0, limit)
       .map(item => item.template);
@@ -274,7 +285,9 @@ class TemplateCacheService {
         cacheSize: `${sizeInKB} KB`,
         oldestEntry: oldest.data.name,
         newestEntry: newest.data.name,
-        mostUsed: `${mostUsed.data.name} (${mostUsed.accessCount} accesos)`
+        mostUsed: mostUsed.accessCount > 0 
+          ? `${mostUsed.data.name} (${mostUsed.accessCount} accesos)`
+          : 'Ninguna usada aún'
       };
 
     } catch (error) {
@@ -286,6 +299,26 @@ class TemplateCacheService {
         newestEntry: 'Error',
         mostUsed: 'Error'
       };
+    }
+  }
+
+  // Resetear contadores de acceso (útil para debugging)
+  resetAccessCounters(): void {
+    try {
+      const existing = this.getCacheData();
+      
+      Object.keys(existing).forEach(templateId => {
+        const entry = existing[templateId];
+        if (entry) {
+          entry.accessCount = 0;
+          entry.lastAccessed = Date.now();
+        }
+      });
+      
+      this.saveCache(existing);
+      console.log('🔄 Contadores de acceso reseteados');
+    } catch (error) {
+      console.error('Error al resetear contadores:', error);
     }
   }
 
@@ -352,7 +385,7 @@ class TemplateCacheService {
     try {
       const stats: TemplateUsageStats[] = templates.map(template => ({
         templateId: template.id,
-        accessCount: 1,
+        accessCount: 0, // Empezar en 0
         lastAccessed: Date.now(),
         createdAt: new Date(template.created_at).getTime()
       }));
@@ -400,11 +433,15 @@ export const useTemplateCacheStats = () => {
   const getMostUsed = (limit?: number) => templateCacheService.getMostUsedTemplates(limit);
   const invalidate = () => templateCacheService.invalidate();
   const clear = () => templateCacheService.clear();
+  const resetCounters = () => templateCacheService.resetAccessCounters();
+  const recordAccess = (templateId: string) => templateCacheService.recordTemplateAccess(templateId);
 
   return {
     getStats,
     getMostUsed,
     invalidate,
-    clear
+    clear,
+    resetCounters,
+    recordAccess
   };
 }; 
