@@ -107,10 +107,34 @@ export const CONFIRMATION_MESSAGES = {
 } as const;
 
 // =============================================================================
-// CONFIGURACIÓN SIMPLE DE TIMEOUTS
+// CONFIGURACIÓN DE CACHE LOCAL
+// =============================================================================
+
+export const CACHE_CONFIG = {
+  TEMPLATES: {
+    MAX_SIZE: 50,              // Máximo 50 plantillas en cache
+    MAX_AGE: 30 * 60 * 1000,   // 30 minutos
+    VERSION: 1,                 // Versión del cache (para invalidar automáticamente)
+    STORAGE_PREFIX: 'notasai_template_cache',
+    USAGE_PREFIX: 'notasai_template_usage'
+  },
+  PERFORMANCE: {
+    BACKGROUND_SYNC_DELAY: 100,  // 100ms para sync en background
+    CACHE_WRITE_DEBOUNCE: 500,   // 500ms debounce para escrituras
+    LRU_CHECK_INTERVAL: 1000     // 1 segundo para verificar LRU
+  }
+} as const;
+
+// =============================================================================
+// CONFIGURACIÓN SIMPLE DE TIMEOUTS (ACTUALIZADA)
 // =============================================================================
 
 export const TIMEOUT_CONFIG = {
-  DEFAULT: 10000,    // 10 segundos para todo
-  AI_OPERATIONS: 30000,  // 30 segundos para IA
+  DEFAULT: 10000,           // 10 segundos para operaciones generales
+  AI_OPERATIONS: 30000,     // 30 segundos para IA
+  CACHE_OPERATIONS: 5000,   // 5 segundos para operaciones de cache
+  TEMPLATE_CREATION: 20000, // 20 segundos para crear plantillas
+  TEMPLATE_UPDATE: 15000,   // 15 segundos para actualizar plantillas
+  TEMPLATE_DELETE: 10000,   // 10 segundos para eliminar plantillas
+  TEMPLATE_FETCH: 15000     // 15 segundos para cargar plantillas
 } as const;

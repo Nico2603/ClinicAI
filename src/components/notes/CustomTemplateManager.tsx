@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner } from '../ui/Icons';
 import { TextareaWithSpeech } from '@/components';
+import TemplateCacheManager from './TemplateCacheManager';
 
 interface CustomTemplateManagerProps {
   onSelectTemplate: (template: UserTemplate) => void;
@@ -81,9 +82,12 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   const { 
     userTemplates, 
     isLoading, 
-    error,
-    isTimedOut,
+    isLoadingFromCache,
+    error: dbError,
     retryFetch,
+    refreshFromServer,
+    invalidateCache,
+    getMostUsedTemplates,
     createUserTemplate, 
     updateUserTemplate, 
     deleteUserTemplate
@@ -98,6 +102,8 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   const [newTemplateContent, setNewTemplateContent] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [showCacheManager, setShowCacheManager] = useState(false);
 
   // Generar nombre de plantilla automático
   const getNextTemplateName = useCallback(() => {
@@ -112,7 +118,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     return `Plantilla ${nextNumber}`;
   }, [userTemplates]);
 
-  // Crear plantilla
+  // Crear plantilla mejorado
   const handleCreateTemplate = useCallback(async () => {
     if (!newTemplateName.trim() || !newTemplateContent.trim()) {
       return;
@@ -122,6 +128,9 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
     try {
       setIsProcessing(true);
+      setLocalError(null); // Limpiar errores previos
+      
+      console.log('🔄 Iniciando creación de plantilla desde UI...');
       
       const newTemplate = await createUserTemplate({
         name: newTemplateName.trim(),
@@ -129,12 +138,29 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         is_active: true
       });
 
+      // Limpiar formulario solo si fue exitoso
       setNewTemplateName('');
       setNewTemplateContent('');
       setIsCreating(false);
       onSelectTemplate(newTemplate);
+      
+      console.log('✅ Plantilla creada y seleccionada exitosamente');
+      
     } catch (err) {
-      console.error('Error al crear plantilla:', err);
+      console.error('❌ Error al crear plantilla desde UI:', err);
+      
+      // No limpiar el formulario en caso de error para que el usuario pueda reintentar
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al crear plantilla';
+      setLocalError(errorMessage);
+      
+      // Scroll al error para que sea visible
+      setTimeout(() => {
+        const errorElement = document.querySelector('[data-error-display]');
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+      
     } finally {
       setIsProcessing(false);
     }
@@ -147,21 +173,38 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     setEditingContent(template.content);
   }, []);
 
-  // Guardar edición
+  // Guardar edición mejorado
   const handleSaveEdit = useCallback(async () => {
     if (!editingId) return;
 
+    if (!editingName.trim()) {
+      setLocalError('El nombre de la plantilla no puede estar vacío');
+      return;
+    }
+
+    if (!editingContent.trim()) {
+      setLocalError('El contenido de la plantilla no puede estar vacío');
+      return;
+    }
+
     try {
+      setLocalError(null);
+      
       await updateUserTemplate(editingId, {
-        name: editingName,
-        content: editingContent
+        name: editingName.trim(),
+        content: editingContent.trim()
       });
       
       setEditingId(null);
       setEditingName('');
       setEditingContent('');
+      
+      console.log('✅ Plantilla actualizada exitosamente');
+      
     } catch (err) {
-      console.error('Error al actualizar plantilla:', err);
+      console.error('❌ Error al actualizar plantilla desde UI:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar plantilla';
+      setLocalError(errorMessage);
     }
   }, [editingId, editingName, editingContent, updateUserTemplate]);
 
@@ -172,13 +215,21 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     setEditingContent('');
   }, []);
 
-  // Eliminar plantilla
+  // Eliminar plantilla mejorado
   const handleDelete = useCallback(async (templateId: string) => {
     try {
+      setLocalError(null);
+      
       await deleteUserTemplate(templateId);
       setShowDeleteConfirm(null);
+      
+      console.log('✅ Plantilla eliminada exitosamente');
+      
     } catch (err) {
-      console.error('Error al eliminar plantilla:', err);
+      console.error('❌ Error al eliminar plantilla desde UI:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar plantilla';
+      setLocalError(errorMessage);
+      setShowDeleteConfirm(null); // Cerrar el diálogo incluso si hay error
     }
   }, [deleteUserTemplate]);
 
@@ -214,34 +265,134 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header con Cache Info */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
             Mis Plantillas Personalizadas
           </h2>
+          {/* Indicador de Cache */}
+          {isLoadingFromCache && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-600 dark:text-green-400">Cache</span>
+            </div>
+          )}
           {isLoading && userTemplates.length > 0 && !isProcessing && (
             <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-              <span className="text-xs text-blue-600 dark:text-blue-400">Cargando plantillas...</span>
+              <span className="text-xs text-blue-600 dark:text-blue-400">Sincronizando...</span>
             </div>
           )}
         </div>
-        <button
-          onClick={handleStartCreating}
-          disabled={isProcessing || isLoading}
-          data-tutorial="create-template"
-          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Nueva Plantilla
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botón de gestión de cache */}
+          <button
+            onClick={() => setShowCacheManager(true)}
+            className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+            title="Gestionar Cache"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+            Cache
+          </button>
+          
+          {/* Botón de refresh desde servidor */}
+          <button
+            onClick={refreshFromServer}
+            disabled={isLoading}
+            className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 disabled:opacity-50 transition-colors"
+            title="Refrescar desde servidor"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sync
+          </button>
+
+          <button
+            onClick={handleStartCreating}
+            disabled={isProcessing || isLoading}
+            data-tutorial="create-template"
+            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Nueva Plantilla
+          </button>
+        </div>
       </div>
 
-      {/* Error display */}
-      {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+      {/* Plantillas Más Usadas (solo si hay cache) */}
+      {(() => {
+        const mostUsed = getMostUsedTemplates(3);
+        return mostUsed.length > 0 ? (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-3 flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              Plantillas Más Utilizadas
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {mostUsed.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => onSelectTemplate(template)}
+                  className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                >
+                  {template.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
+
+      {/* Error display mejorado */}
+      {(localError || dbError) && (
+        <div 
+          data-error-display
+          className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+        >
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{localError || dbError}</p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => setLocalError(null)}
+                  className="text-xs text-red-500 hover:text-red-600 underline"
+                >
+                  Cerrar
+                </button>
+                {dbError && (
+                  <button
+                    onClick={invalidateCache}
+                    className="text-xs text-red-500 hover:text-red-600 underline"
+                  >
+                    Limpiar Cache y Reintentar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading indicator mejorado */}
+      {isLoading && userTemplates.length === 0 && (
+        <div className="flex items-center justify-center py-8">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-neutral-600 dark:text-neutral-400">
+              Cargando tus plantillas...
+            </span>
+          </div>
         </div>
       )}
 
@@ -318,7 +469,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-neutral-600 dark:text-neutral-400 mb-2">
-            {isTimedOut ? 'La carga está tomando más tiempo del esperado...' : 'Cargando tus plantillas...'}
+            Cargando tus plantillas...
           </p>
           <div className="space-y-3">
             <p className="text-sm text-amber-600 dark:text-amber-400">
@@ -332,14 +483,14 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
             </button>
           </div>
         </div>
-      ) : error && activeTemplates.length === 0 ? (
+      ) : dbError && activeTemplates.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-red-500 mb-4">
             <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">{dbError}</p>
           <button
             onClick={retryFetch}
             className="inline-flex items-center px-4 py-2 border border-red-500 text-sm font-medium rounded-md text-red-600 bg-white dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
@@ -374,6 +525,12 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         templateId={showDeleteConfirm}
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(null)}
+      />
+
+      {/* Cache Manager Modal */}
+      <TemplateCacheManager 
+        isOpen={showCacheManager}
+        onClose={() => setShowCacheManager(false)}
       />
     </div>
   );

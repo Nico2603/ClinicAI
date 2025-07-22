@@ -130,108 +130,226 @@ export const notesService = {
 export const userTemplatesService = {
   // Obtener plantillas personalizadas del usuario (función optimizada)
   getUserTemplates: async (userId: string): Promise<UserTemplate[]> => {
+    console.log('🔄 Cargando plantillas del usuario:', userId);
+    
     // Usar la función SQL optimizada para mejor rendimiento
     const { data, error } = await supabase
       .rpc('get_user_templates_fast');
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error al obtener plantillas:', error);
+      throw error;
+    }
+    
+    console.log(`✅ ${data?.length || 0} plantillas cargadas exitosamente`);
     return data || [];
   },
 
-  // Crear una nueva plantilla personalizada
+  // Crear una nueva plantilla personalizada (optimizada)
   createUserTemplate: async (userTemplate: Omit<UserTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<UserTemplate> => {
-    console.log('🔄 Creando plantilla...');
+    console.log('🔄 Creando plantilla:', userTemplate.name);
     
-    // Usar el método RPC que ya funciona según el schema
-    const { data: templateId, error: rpcError } = await supabase
-      .rpc('create_user_template', {
-        template_name: userTemplate.name.trim(),
-        template_content: userTemplate.content.trim()
-      });
-
-    if (rpcError) {
-      console.error('❌ Error al crear plantilla:', rpcError);
-      throw rpcError;
+    if (!userTemplate.name?.trim()) {
+      throw new Error('El nombre de la plantilla es requerido');
     }
-
-    // Obtener la plantilla creada
-    const { data: newTemplate, error: selectError } = await supabase
-      .from('user_templates')
-      .select('*')
-      .eq('id', templateId)
-      .single();
-
-    if (selectError) {
-      console.error('❌ Error al obtener plantilla creada:', selectError);
-      throw selectError;
+    
+    if (!userTemplate.content?.trim()) {
+      throw new Error('El contenido de la plantilla es requerido');
     }
+    
+    try {
+      // Usar el método RPC optimizado que ya retorna la plantilla completa
+      const { data: templateId, error: rpcError } = await supabase
+        .rpc('create_user_template', {
+          template_name: userTemplate.name.trim(),
+          template_content: userTemplate.content.trim()
+        });
 
-    console.log('✅ Plantilla creada exitosamente');
-    return newTemplate;
+      if (rpcError) {
+        console.error('❌ Error RPC al crear plantilla:', rpcError);
+        
+        // Mapear errores específicos de Supabase
+        if (rpcError.code === '23505') {
+          throw new Error('Ya existe una plantilla con ese nombre');
+        }
+        if (rpcError.code === '42501') {
+          throw new Error('No tienes permisos para crear plantillas. Recarga la página.');
+        }
+        
+        throw rpcError;
+      }
+
+      if (!templateId) {
+        throw new Error('No se pudo obtener el ID de la plantilla creada');
+      }
+
+      // Obtener la plantilla creada con mejor manejo de errores
+      const { data: newTemplate, error: selectError } = await supabase
+        .from('user_templates')
+        .select('*')
+        .eq('id', templateId)
+        .maybeSingle(); // maybeSingle en lugar de single para mejor manejo
+
+      if (selectError) {
+        console.error('❌ Error al obtener plantilla creada:', selectError);
+        throw new Error('Plantilla creada pero no se pudo recuperar. Actualiza la lista.');
+      }
+
+      if (!newTemplate) {
+        throw new Error('No se encontró la plantilla después de crearla');
+      }
+
+      console.log('✅ Plantilla creada exitosamente:', newTemplate.name);
+      return newTemplate;
+      
+    } catch (error: any) {
+      console.error('❌ Error en createUserTemplate:', error);
+      
+      // Re-throw con mensaje más específico
+      if (error.message.includes('plantilla')) {
+        throw error; // Ya tiene un mensaje específico
+      }
+      
+      throw new Error(`Error al crear plantilla: ${error.message}`);
+    }
   },
 
-
-
-  // Actualizar una plantilla personalizada
+  // Actualizar una plantilla personalizada (optimizada)
   updateUserTemplate: async (id: string, updates: Partial<Omit<UserTemplate, 'id' | 'created_at'>>): Promise<UserTemplate> => {
-    // Verificar que la plantilla pertenece al usuario actual antes de actualizar
-    const { data: existingTemplate, error: checkError } = await supabase
-      .from('user_templates')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-
-    if (checkError || !existingTemplate) {
-      throw new Error('No se pudo encontrar la plantilla o no tienes permisos para actualizarla.');
+    if (!id) {
+      throw new Error('ID de plantilla requerido');
     }
+    
+    console.log('🔄 Actualizando plantilla:', id);
+    
+    try {
+      // Verificación de permisos más eficiente
+      const { data: existingTemplate, error: checkError } = await supabase
+        .from('user_templates')
+        .select('id, user_id, name')
+        .eq('id', id)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle();
 
-    const { data, error } = await supabase
-      .from('user_templates')
-      .update({ 
-        ...updates, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', id)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-      .select()
-      .single();
+      if (checkError) {
+        console.error('❌ Error al verificar plantilla:', checkError);
+        throw new Error('Error al verificar permisos de la plantilla');
+      }
 
-    if (error) throw error;
-    if (!data) {
-      throw new Error('No se pudo actualizar la plantilla.');
-    }
-    return data;
-  },
+      if (!existingTemplate) {
+        throw new Error('No se encontró la plantilla o no tienes permisos para actualizarla');
+      }
 
-  // Eliminar (desactivar) una plantilla personalizada
-  deleteUserTemplate: async (id: string): Promise<void> => {
-    const { data: success, error } = await supabase
-      .rpc('deactivate_user_template', {
-        template_uuid: id
+      // Actualizar con datos validados
+      const updateData = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Limpiar datos undefined
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] === undefined) {
+          delete updateData[key as keyof typeof updateData];
+        }
       });
 
-    if (error) throw error;
-    
-    if (!success) {
-      throw new Error('No se pudo eliminar la plantilla. Verifica que te pertenezca y esté activa.');
+      const { data, error } = await supabase
+        .from('user_templates')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error al actualizar plantilla:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('No se pudo actualizar la plantilla');
+      }
+      
+      console.log('✅ Plantilla actualizada exitosamente:', data.name);
+      return data;
+      
+    } catch (error: any) {
+      console.error('❌ Error en updateUserTemplate:', error);
+      throw new Error(`Error al actualizar plantilla: ${error.message}`);
     }
   },
 
-  // Renombrar una plantilla personalizada
-  renameUserTemplate: async (id: string, newName: string): Promise<UserTemplate> => {
-    const { data, error } = await supabase
-      .from('user_templates')
-      .update({ 
-        name: newName,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', id)
-      .select()
-      .single();
+  // Eliminar (desactivar) una plantilla personalizada (optimizada)
+  deleteUserTemplate: async (id: string): Promise<void> => {
+    if (!id) {
+      throw new Error('ID de plantilla requerido');
+    }
+    
+    console.log('🔄 Eliminando plantilla:', id);
+    
+    try {
+      const { data: success, error } = await supabase
+        .rpc('deactivate_user_template', {
+          template_uuid: id
+        });
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error('❌ Error al eliminar plantilla:', error);
+        
+        if (error.code === '42501') {
+          throw new Error('No tienes permisos para eliminar esta plantilla');
+        }
+        
+        throw error;
+      }
+      
+      if (!success) {
+        throw new Error('No se pudo eliminar la plantilla. Verifica que te pertenezca y esté activa.');
+      }
+      
+      console.log('✅ Plantilla eliminada exitosamente');
+      
+    } catch (error: any) {
+      console.error('❌ Error en deleteUserTemplate:', error);
+      throw new Error(`Error al eliminar plantilla: ${error.message}`);
+    }
+  },
+
+  // Renombrar una plantilla personalizada (optimizada)
+  renameUserTemplate: async (id: string, newName: string): Promise<UserTemplate> => {
+    if (!id || !newName?.trim()) {
+      throw new Error('ID y nombre de plantilla son requeridos');
+    }
+    
+    console.log('🔄 Renombrando plantilla:', id, '->', newName.trim());
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_templates')
+        .update({ 
+          name: newName.trim(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error al renombrar plantilla:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('No se pudo renombrar la plantilla');
+      }
+      
+      console.log('✅ Plantilla renombrada exitosamente:', data.name);
+      return data;
+      
+    } catch (error: any) {
+      console.error('❌ Error en renameUserTemplate:', error);
+      throw new Error(`Error al renombrar plantilla: ${error.message}`);
+    }
   }
 }; 
 
