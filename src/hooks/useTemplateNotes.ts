@@ -11,8 +11,7 @@
 
 import { useState, useCallback } from 'react';
 import { GroundingMetadata, UserTemplate, MissingDataInfo, GenerationResult } from '../types';
-import { generateNoteWithAssistant } from '../lib/services/assistantsService';
-import { generateNoteWithFunctionCalling } from '../lib/services/enhancedOpenAIService';
+import { generateNoteFromTemplate } from '../lib/services/openaiService';
 import { optimizeTemplateSet, preloadTemplateCache } from '../lib/services/contextManager';
 import { notesService } from '../lib/services/databaseService';
 import { ERROR_MESSAGES } from '../lib/constants';
@@ -159,32 +158,16 @@ export const useTemplateNotes = () => {
       updateProgress(2);
       let result: any;
       
-      try {
-        // Estrategia 1: Assistant API (preferida)
-        console.log('🤖 Generando con OpenAI Assistant...');
-        result = await generateNoteWithAssistant(
-          template.content,
-          patientInfo,
-          template.name
-        );
-        
-        setGenerationMethod('assistant');
-        console.log('✅ Generación exitosa con Assistant');
-        
-      } catch (assistantError) {
-        console.warn('⚠️ Assistant falló, intentando Function Calling...', assistantError);
-        
-        // Estrategia 2: Function Calling como fallback
-        result = await generateNoteWithFunctionCalling(
-          template.content,
-          patientInfo,
-          template.name,
-          userTemplates
-        );
-        
-        setGenerationMethod(result.method || 'function_calling');
-        console.log(`✅ Generación exitosa con ${result.method}`);
-      }
+      // Usar servicio simplificado que maneja Assistant → Legacy fallback automáticamente
+      console.log('🤖 Generando nota con servicio híbrido (Assistant → Legacy)...');
+      result = await generateNoteFromTemplate(
+        template.name,
+        template.content,
+        patientInfo
+      );
+      
+      setGenerationMethod('assistant');
+      console.log('✅ Generación exitosa con servicio híbrido');
 
       // Paso 4: Validación de calidad
       updateProgress(3);

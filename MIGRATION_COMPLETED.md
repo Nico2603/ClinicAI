@@ -18,10 +18,8 @@ La migración completa a la nueva arquitectura con OpenAI Assistants API ha sido
 ```typescript
 // ✅ IMPLEMENTADO
 src/lib/services/assistantsService.ts      // OpenAI Assistants API
-src/lib/services/enhancedOpenAIService.ts  // Function Calling mejorado
 src/lib/services/contextManager.ts         // Gestión inteligente de contexto
 src/lib/schemas/medicalNoteSchemas.ts      // JSON Schemas estrictos
-src/lib/services/mcpFallbackService.ts     // Sistema MCP (disponible, no activado)
 ```
 
 ### **2. Componentes Actualizados**
@@ -250,4 +248,28 @@ El sistema ahora ofrece:
 
 *Migración completada el ${new Date().toLocaleDateString()} por el equipo de desarrollo*
 
-**🎯 Next Steps**: Activar en producción y monitorear métricas de rendimiento. 
+**🎯 Next Steps**: Activar en producción y monitorear métricas de rendimiento.
+
+---
+
+## ✨ **SIMPLIFICACIÓN DE ARQUITECTURA v2.1** (Enero 2025)
+
+### **Problema Identificado**
+- Duplicación innecesaria entre `openaiService.ts` y `enhancedOpenAIService.ts`
+- Capas intermedias que agregaban complejidad sin valor
+- Flujo: `useTemplateNotes` → `openaiService` → `enhancedOpenAIService` → `assistantsService`
+
+### **Solución Implementada**
+- ✅ **Eliminado**: `enhancedOpenAIService.ts` (duplicación innecesaria)
+- ✅ **Simplificado**: Flujo directo `useTemplateNotes` → `openaiService` → `assistantsService`
+- ✅ **Mantenido**: Assistant API como método principal con fallback legacy directo
+- ✅ **Resultado**: Arquitectura más limpia, código más mantenible, bundle 2.5KB menor
+
+### **Flujo Simplificado Final**
+```
+openaiService.ts:
+1. Intenta Assistant API (assistantsService.ts)
+2. Si falla → Fallback directo a método legacy
+```
+
+**Beneficios**: Menos complejidad, mejor mantenibilidad, mismo rendimiento. 

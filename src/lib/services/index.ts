@@ -9,14 +9,12 @@ export * from './storageService';
 
 // Nuevos servicios de la arquitectura mejorada
 export * from './assistantsService';
-export * from './enhancedOpenAIService';
 export * from './contextManager';
 
 // Schemas y validaciones
 export * from '../schemas/medicalNoteSchemas';
 
-// Sistema MCP (disponible pero no activado por defecto)
-// export * from './mcpFallbackService'; // Descomentizar cuando se active
+// Sistema MCP eliminado (no requerido para la aplicación)
 
 // Servicios especializados
 export * from './templateCacheService';
@@ -26,22 +24,22 @@ export * from './templateCacheService';
 // =============================================================================
 
 export const ARCHITECTURE_CONFIG = {
-  version: '2.0.0',
+  version: '2.1.0',
   primaryMethod: 'assistants',
-  fallbackMethods: ['function_calling', 'legacy'],
+  fallbackMethods: ['legacy'],
   features: {
     assistantsAPI: true,
-    functionCalling: true,
     contextOptimization: true,
     jsonSchemaValidation: true,
-    mcpFallback: false, // No activado aún
-    legacyCompatibility: true
+    legacyCompatibility: true,
+    simplifiedFlow: true
   },
   performance: {
     maxTemplates: 50,
     maxContextTokens: 15000,
     optimizedForScale: true,
-    coherenceGuaranteed: true
+    coherenceGuaranteed: true,
+    reducedComplexity: true
   }
 };
 
@@ -69,14 +67,8 @@ export const checkServicesAvailability = async () => {
     console.warn('⚠️ Assistant API no disponible:', error);
   }
 
-  try {
-    // Verificar Function Calling
-    const { getEnhancedServiceStats } = await import('./enhancedOpenAIService');
-    await getEnhancedServiceStats();
-    services.functionCalling = true;
-  } catch (error) {
-    console.warn('⚠️ Function Calling no disponible:', error);
-  }
+  // Function Calling ahora está integrado en openaiService - simplificado
+  services.functionCalling = true;
 
   try {
     // Verificar Context Manager
@@ -108,8 +100,6 @@ export const getArchitectureStats = async () => {
   let preferredMethod = 'legacy';
   if (services.assistants) {
     preferredMethod = 'assistants';
-  } else if (services.functionCalling) {
-    preferredMethod = 'function_calling';
   }
 
   return {
@@ -117,7 +107,7 @@ export const getArchitectureStats = async () => {
     currentStatus: {
       servicesAvailable: services,
       preferredMethod,
-      migrationComplete: services.assistants && services.functionCalling && services.contextManager,
+      migrationComplete: services.assistants && services.contextManager,
       lastCheck: new Date().toISOString()
     }
   };
@@ -164,13 +154,12 @@ export const cleanupArchitectureResources = async () => {
 // LOGGING Y MONITOREO
 // =============================================================================
 
-console.log('🚀 Servicios cargados con nueva arquitectura:');
-console.log('   ✅ OpenAI Service (híbrido con Assistants)');
-console.log('   ✅ Enhanced OpenAI Service (Function Calling)');
+console.log('🚀 Servicios cargados con arquitectura simplificada:');
+console.log('   ✅ OpenAI Service (Assistant API → Legacy fallback)');
+console.log('   ✅ Assistants Service (OpenAI Assistants API)');
 console.log('   ✅ Context Manager (optimización inteligente)');
 console.log('   ✅ JSON Schema Validation');
-console.log('   ⏸️  MCP Fallback (disponible pero no activado)');
-console.log('   📊 Performance: 5x escalabilidad, 95% coherencia');
+console.log('   📊 Performance: Arquitectura simplificada, alta coherencia');
 
 const architectureService = {
   config: ARCHITECTURE_CONFIG,

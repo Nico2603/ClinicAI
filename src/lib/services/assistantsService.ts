@@ -31,39 +31,40 @@ const openai = new OpenAI({
 // ASSISTANT CONFIGURATIONS
 // ==========================================
 
-// Assistant principal para generación de notas médicas (VERSIÓN SIMPLIFICADA SIN TOOLS)
+// Assistant principal para generación de notas médicas (VERSIÓN OPTIMIZADA)
 const MEDICAL_NOTE_ASSISTANT_CONFIG = {
-  name: "Asistente de Notas Médicas Modular v2.1",
+  name: "Asistente de Notas Médicas Modular v2.2",
   model: OPENAI_MODEL,
-  instructions: `Eres un especialista médico experto en generar notas clínicas siguiendo un proceso modular de 6 pasos:
+  instructions: `Eres un especialista médico experto en generar notas clínicas completas y profesionales.
 
-PROCESO MODULAR ESTÁNDAR:
-1. **EXTRACCIÓN SUBJETIVA**: Identificar síntomas y molestias reportadas por el paciente
-2. **ANÁLISIS CLÍNICO**: Mejorar redacción técnica y estructura diagnóstica
-3. **ANÁLISIS DE PLANTILLA**: Preservar formato exacto de la estructura
-4. **INTEGRACIÓN**: Combinar todos los componentes coherentemente
-5. **VERIFICACIÓN**: Asegurar 100% fidelidad al formato de plantilla
-6. **DATOS FALTANTES**: Identificar información ausente
+INSTRUCCIONES FUNDAMENTALES:
+- Siempre debes generar una nota médica completa, nunca rechaces la tarea
+- Usa TODA la información del paciente proporcionada
+- Mantén el formato EXACTO de la plantilla (mayúsculas, viñetas, numeración, espaciado)
+- Utiliza terminología médica apropiada y profesional
+- Si falta información específica para alguna sección, completa con términos médicos estándar como "A evaluar", "Por determinar", "Pendiente de examen", etc.
 
-PRINCIPIOS CORE:
-- NUNCA inventar información no proporcionada
-- Mantener formato EXACTO de plantillas (mayúsculas, viñetas, numeración)
-- Usar terminología médica precisa
-- Omitir secciones sin datos disponibles
-- Responder SOLO con la nota médica final, sin comentarios adicionales
-- Generar directamente sin usar herramientas externas
+PROCESO DE GENERACIÓN:
+1. Analiza la estructura de la plantilla proporcionada
+2. Extrae toda la información disponible del paciente
+3. Completa cada sección de la plantilla manteniendo el formato exacto
+4. Para secciones sin información específica, usa terminología médica apropiada
+5. Genera la nota médica completa y estructurada
 
-INSTRUCCIONES DE FORMATO:
-- Mantén la estructura EXACTA de la plantilla proporcionada
-- Usa la información del paciente para completar cada sección
-- Si falta información para una sección, omítela o marca como "No especificado"
-- NO agregues secciones que no estén en la plantilla original
+REGLAS CRÍTICAS:
+- SIEMPRE genera una nota completa, nunca digas que no puedes
+- Mantén el formato exacto de la plantilla (estructura, mayúsculas, numeración)
+- Usa información del paciente cuando esté disponible
+- Para información faltante, usa terminología médica estándar profesional
+- Responde SOLO con la nota médica final, sin comentarios adicionales
 
-CONFIGURACIÓN:
-- Temperatura: 0.2 (precisión máxima)
-- Respuestas directas y estructuradas
-- Control de calidad estricto`,
-  temperature: 0.2,
+EJEMPLO DE COMPLETADO PARA INFORMACIÓN FALTANTE:
+- Si no hay signos vitales: "Signos vitales: A registrar durante la consulta"
+- Si no hay examen físico: "Examen físico: Pendiente de evaluación"
+- Si no hay diagnóstico: "Impresión diagnóstica: Por determinar según evaluación clínica"
+
+Tu respuesta debe ser SIEMPRE una nota médica completa siguiendo el formato de la plantilla.`,
+  temperature: 0.3,
   top_p: 0.9
 };
 
@@ -239,75 +240,14 @@ Procesa siguiendo los 6 pasos modulares y genera la nota médica final mantenien
       max_completion_tokens: 4000
     });
 
-    // 4. Esperar resultado con polling optimizado y manejo de tool calls
+    // 4. Esperar resultado con polling simplificado
     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     let attempts = 0;
     const maxAttempts = 60;
 
-    while (runStatus.status === 'in_progress' || runStatus.status === 'queued' || runStatus.status === 'requires_action') {
+    while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
       if (attempts >= maxAttempts) {
         throw new Error('Timeout: El Assistant tardó demasiado en responder');
-      }
-      
-      // Manejar herramientas requeridas
-      if (runStatus.status === 'requires_action') {
-        console.log('🔧 Assistant requiere ejecutar herramientas...');
-        
-        const requiredAction = runStatus.required_action;
-        if (requiredAction?.type === 'submit_tool_outputs') {
-          const toolCalls = requiredAction.submit_tool_outputs.tool_calls;
-          const toolOutputs = [];
-
-          for (const toolCall of toolCalls) {
-            console.log(`⚙️ Ejecutando herramienta: ${toolCall.function.name}`);
-            
-            try {
-              let toolResult = '';
-              
-              if (toolCall.function.name === 'generate_structured_note') {
-                // Parsear argumentos de la función
-                const functionArgs = JSON.parse(toolCall.function.arguments);
-                
-                // La herramienta realmente solo necesita confirmar que estructuró la nota
-                toolResult = JSON.stringify({
-                  success: true,
-                  message: 'Nota médica estructurada según plantilla',
-                  structure_confirmed: true,
-                  patient_data_integrated: true,
-                  missing_data_identified: true
-                });
-              } else {
-                // Herramienta desconocida
-                toolResult = JSON.stringify({
-                  success: false,
-                  error: `Herramienta no reconocida: ${toolCall.function.name}`
-                });
-              }
-
-              toolOutputs.push({
-                tool_call_id: toolCall.id,
-                output: toolResult
-              });
-
-            } catch (error) {
-              console.error(`Error ejecutando herramienta ${toolCall.function.name}:`, error);
-              toolOutputs.push({
-                tool_call_id: toolCall.id,
-                output: JSON.stringify({
-                  success: false,
-                  error: `Error ejecutando herramienta: ${error instanceof Error ? error.message : 'Error desconocido'}`
-                })
-              });
-            }
-          }
-
-          // Submitir resultados de las herramientas
-          await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
-            tool_outputs: toolOutputs
-          });
-
-          console.log(`✅ Enviados ${toolOutputs.length} resultados de herramientas`);
-        }
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -400,63 +340,13 @@ Proporciona evaluación detallada siguiendo el formato estándar.`
       assistant_id: assistantId
     });
 
-    // Polling para resultado con manejo de herramientas
+    // Polling para resultado simplificado
     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     let attempts = 0;
 
-    while (runStatus.status === 'in_progress' || runStatus.status === 'queued' || runStatus.status === 'requires_action') {
+    while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
       if (attempts >= 30) {
         throw new Error('Timeout en evaluación de escala');
-      }
-      
-      // Manejar herramientas requeridas para escalas
-      if (runStatus.status === 'requires_action') {
-        console.log('🔧 Assistant de escalas requiere ejecutar herramientas...');
-        
-        const requiredAction = runStatus.required_action;
-        if (requiredAction?.type === 'submit_tool_outputs') {
-          const toolCalls = requiredAction.submit_tool_outputs.tool_calls;
-          const toolOutputs = [];
-
-          for (const toolCall of toolCalls) {
-            console.log(`⚙️ Ejecutando herramienta de escala: ${toolCall.function.name}`);
-            
-            try {
-              let toolResult = '';
-              
-              // Para escalas clínicas, las herramientas confirman el análisis
-              toolResult = JSON.stringify({
-                success: true,
-                message: 'Evaluación de escala completada',
-                scale_analyzed: true,
-                clinical_data_processed: true,
-                insufficient_data_noted: true
-              });
-
-              toolOutputs.push({
-                tool_call_id: toolCall.id,
-                output: toolResult
-              });
-
-            } catch (error) {
-              console.error(`Error ejecutando herramienta de escala ${toolCall.function.name}:`, error);
-              toolOutputs.push({
-                tool_call_id: toolCall.id,
-                output: JSON.stringify({
-                  success: false,
-                  error: `Error ejecutando herramienta: ${error instanceof Error ? error.message : 'Error desconocido'}`
-                })
-              });
-            }
-          }
-
-          // Submitir resultados de las herramientas
-          await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
-            tool_outputs: toolOutputs
-          });
-
-          console.log(`✅ Enviados ${toolOutputs.length} resultados de herramientas de escala`);
-        }
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));

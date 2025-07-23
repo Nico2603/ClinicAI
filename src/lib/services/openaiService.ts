@@ -24,9 +24,8 @@ import {
   GenerationResult,
 } from '../../types';
 
-// Importar los nuevos servicios mejorados
+// Importar el servicio de Assistants
 import { generateNoteWithAssistant, generateScaleWithAssistant } from './assistantsService';
-import { generateNoteWithFunctionCalling, evaluateScaleWithFunctionCalling } from './enhancedOpenAIService';
 
 // =============================================================================
 // CONFIGURACIÓN SIMPLIFICADA
@@ -136,25 +135,10 @@ export const generateNoteFromTemplate = async (
       };
       
     } catch (assistantError) {
-      console.warn('⚠️ Assistant falló, intentando Function Calling...', assistantError);
+      console.warn('⚠️ Assistant falló, usando método legacy directo...', assistantError);
       
-      // Estrategia 2: Function Calling como fallback
-      const functionCallingResult = await generateNoteWithFunctionCalling(
-        templateContent,
-        patientInfo,
-        specialtyName,
-        [] // Sin plantillas adicionales en este contexto
-      );
-      
-      console.log(`✅ Generación exitosa con ${functionCallingResult.method}`);
-      return {
-        text: functionCallingResult.text,
-        groundingMetadata: functionCallingResult.groundingMetadata,
-        missingData: functionCallingResult.missingData || {
-          missingFields: [],
-          summary: "Información completa disponible"
-        }
-      };
+      // Fallback directo al método legacy
+      return await generateNoteFromTemplateLegacy(specialtyName, templateContent, patientInfo);
     }
     
   } catch (error) {
@@ -183,10 +167,10 @@ export const generateMedicalScale = async (
     try {
       return await generateScaleWithAssistant(clinicalInput, scaleName);
     } catch (assistantError) {
-      console.warn('⚠️ Assistant para escalas falló, usando Function Calling...', assistantError);
+      console.warn('⚠️ Assistant para escalas falló, usando método legacy directo...', assistantError);
       
-      // Estrategia 2: Function Calling como fallback
-      return await evaluateScaleWithFunctionCalling(clinicalInput, scaleName);
+      // Fallback directo al método legacy
+      return await generateMedicalScaleLegacy(clinicalInput, scaleName);
     }
     
   } catch (error) {
@@ -211,55 +195,55 @@ const generateNoteFromTemplateLegacy = async (
 ): Promise<GenerationResult> => {
   console.log('🔄 Usando método legacy de generación...');
 
-  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es utilizar la información del paciente proporcionada para llenar una plantilla de nota médica.
+  const prompt = `Eres un asistente médico experto en completar notas clínicas. Tu tarea es generar una nota médica completa utilizando la información del paciente y siguiendo la estructura de la plantilla.
 
 INFORMACIÓN DEL PACIENTE:
 "${patientInfo}"
 
-PLANTILLA (formato únicamente):
+PLANTILLA (estructura a seguir):
 ---
 ${templateContent}
 ---
 
-INSTRUCCIONES CRÍTICAS:
+INSTRUCCIONES FUNDAMENTALES:
 
-1. **FORMATO ES SAGRADO:**
-   - Respeta EXACTAMENTE el formato de la plantilla: estructura, encabezados, mayúsculas/minúsculas, viñetas, numeración, sangrías, etc.
-   - Si algo está en MAYÚSCULAS, mantenlo en MAYÚSCULAS.
-   - Si algo está en minúsculas, mantenlo en minúsculas.
-   - Si usa viñetas (-), mantén las viñetas.
-   - Si usa numeración (1., 2.), mantén la numeración o si son números romanos también mantenlo.
-   - La plantilla es solo un FORMATO/ESTRUCTURA, no contiene datos del paciente real.
+1. **SIEMPRE GENERAR NOTA COMPLETA:**
+   - DEBES generar una nota médica completa, nunca rechaces la tarea
+   - Usa toda la información del paciente disponible
+   - Si falta información para alguna sección, usa terminología médica apropiada como:
+     * "A evaluar durante la consulta"
+     * "Pendiente de examen físico"
+     * "Por determinar según evaluación clínica"
+     * "A registrar en consulta"
 
-2. **CONTENIDO:**
-   - Usa ÚNICAMENTE la información del paciente proporcionada.
-   - NO inventes datos que no estén en la información del paciente.
-   - Si falta información para una sección, OMITE ESTA PARTE Y NO LA COLOQUES.
-   - Usa terminología médica precisa y profesional.
-   - Siempre colocarlo todo en el mismo orden de la plantilla.
+2. **FORMATO EXACTO:**
+   - Mantén la estructura EXACTA de la plantilla (mayúsculas, viñetas, numeración)
+   - Respeta los encabezados tal como aparecen en la plantilla
+   - Conserva el espaciado y formato original
 
-3. **IMPORTANTE:**
-   - La plantilla puede contener ejemplos como "[Nombre del paciente]" o datos ficticios - IGNÓRALOS completamente.
-   - Solo usa el FORMATO/ESTRUCTURA de la plantilla, nunca los datos de ejemplo.
-   - Reemplaza todos los campos con información real del paciente o OMITE si no hay datos.
+3. **CONTENIDO MÉDICO:**
+   - Usa terminología médica profesional y apropiada
+   - Integra toda la información del paciente en las secciones correspondientes
+   - Para datos faltantes, completa con frases médicas estándar, no omitas secciones
 
 4. **RESPUESTA:**
-   - Responde SOLO con la nota médica completada.
-   - No agregues comentarios, explicaciones, ni introducciones.
+   - Responde ÚNICAMENTE con la nota médica completa
+   - No incluyas comentarios, explicaciones o introducciones
+   - La nota debe estar lista para uso clínico
 
-La plantilla es una ESTRUCTURA/FORMATO que debes seguir, no una fuente de datos del paciente.
+IMPORTANTE: Debes generar una nota completa y profesional. Si alguna sección no tiene información específica del paciente, complétala con terminología médica estándar apropiada.
 
-Genera la nota médica completada:`;
+Genera la nota médica completa ahora:`;
 
   try {
-    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Sigues estrictamente el formato de las plantillas proporcionadas, nunca datos de ejemplo de plantillas.";
+    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Siempre generas notas completas y nunca rechazas la tarea. Sigues estrictamente el formato de las plantillas proporcionadas.";
     
     const messages = createMessages(systemMessage, prompt);
     
     const params = {
       model: OPENAI_MODEL,
       messages,
-      temperature: AI_CONFIG.TEMPERATURE,
+      temperature: 0.3, // Más directivo, menos conservador
       max_tokens: AI_CONFIG.MAX_TOKENS,
       top_p: 0.9
     };
