@@ -57,6 +57,89 @@ const createMessages = (systemMessage: string, userMessage: string) => {
   ];
 };
 
+// =============================================================================
+// ANÁLISIS DE DATOS FALTANTES
+// =============================================================================
+
+/**
+ * Analiza qué datos faltan comparando la plantilla con la información del paciente
+ */
+const analyzeMissingData = async (
+  templateContent: string,
+  patientInfo: string
+): Promise<{ missingFields: string[]; summary: string }> => {
+  try {
+    const analysisPrompt = `Analiza qué datos específicos faltan para completar esta plantilla médica con la información del paciente proporcionada.
+
+PLANTILLA MÉDICA:
+---
+${templateContent}
+---
+
+INFORMACIÓN DEL PACIENTE DISPONIBLE:
+---
+${patientInfo}
+---
+
+INSTRUCCIONES:
+1. Identifica qué campos/secciones de la plantilla NO pueden completarse con la información disponible
+2. Lista específicamente qué datos faltan (ej: "signos vitales", "antecedentes familiares", "examen físico")
+3. Genera un resumen conciso de los datos faltantes
+4. NO incluyas recomendaciones de tratamiento en esta respuesta
+5. Enfócate solo en datos objetivos que faltan
+
+RESPUESTA EN JSON:
+{
+  "missingFields": ["campo1", "campo2", "campo3"],
+  "summary": "Resumen de qué información falta para completar la nota médica"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: "Eres un analista médico que identifica qué información falta para completar notas clínicas. Respondes solo en JSON válido."
+        },
+        {
+          role: "user",
+          content: analysisPrompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 1000
+    });
+
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    try {
+      const analysis = JSON.parse(responseText);
+      
+      // Validar estructura
+      if (!analysis.missingFields || !Array.isArray(analysis.missingFields) || !analysis.summary) {
+        throw new Error('Estructura inválida');
+      }
+      
+      return {
+        missingFields: analysis.missingFields,
+        summary: analysis.summary
+      };
+    } catch (parseError) {
+      console.warn('Error parsing missing data analysis, using fallback:', parseError);
+      return {
+        missingFields: [],
+        summary: "Información completa disponible"
+      };
+    }
+  } catch (error) {
+    console.warn('Error analyzing missing data:', error);
+    return {
+      missingFields: [],
+      summary: "Información completa disponible"
+    };
+  }
+};
+
 const validateApiKey = (): void => {
   if (!API_KEY) {
     throw new Error(ERROR_MESSAGES.API_KEY_MISSING);
@@ -125,13 +208,14 @@ export const generateNoteFromTemplate = async (
       );
       
       console.log('✅ Generación exitosa con Assistant API');
+      
+      // Analizar datos faltantes reales
+      const missingDataAnalysis = await analyzeMissingData(templateContent, patientInfo);
+      
       return {
         text: assistantResult.text,
         groundingMetadata: assistantResult.groundingMetadata,
-        missingData: assistantResult.missingData || {
-          missingFields: [],
-          summary: "Información completa disponible"
-        }
+        missingData: missingDataAnalysis
       };
       
     } catch (assistantError) {
@@ -230,13 +314,15 @@ INSTRUCCIONES FUNDAMENTALES:
    - Responde ÚNICAMENTE con la nota médica completa
    - No incluyas comentarios, explicaciones o introducciones
    - La nota debe estar lista para uso clínico
+   - NO incluyas texto sobre "datos faltantes", "análisis", "información pendiente" o metadatos
+   - Genera solo la nota médica limpia y profesional
 
-IMPORTANTE: Debes generar una nota completa y profesional. Si alguna sección no tiene información específica del paciente, complétala con terminología médica estándar apropiada.
+IMPORTANTE: Debes generar una nota completa y profesional. Si alguna sección no tiene información específica del paciente, complétala con terminología médica estándar apropiada. No menciones qué información falta.
 
 Genera la nota médica completa ahora:`;
 
   try {
-    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Siempre generas notas completas y nunca rechazas la tarea. Sigues estrictamente el formato de las plantillas proporcionadas.";
+    const systemMessage = "Eres un asistente médico experto especializado en generar notas clínicas precisas y profesionales. Siempre generas notas completas y nunca rechazas la tarea. Sigues estrictamente el formato de las plantillas proporcionadas. NUNCA incluyes análisis de datos faltantes o comentarios sobre información pendiente en la nota médica.";
     
     const messages = createMessages(systemMessage, prompt);
     
@@ -255,6 +341,9 @@ Genera la nota médica completa ahora:`;
       throw new Error('No se pudo generar contenido válido');
     }
 
+    // Analizar datos faltantes reales
+    const missingDataAnalysis = await analyzeMissingData(templateContent, patientInfo);
+
     return {
       text: generatedText,
       groundingMetadata: {
@@ -267,10 +356,7 @@ Genera la nota médica completa ahora:`;
           }
         ]
       },
-      missingData: {
-        missingFields: [],
-        summary: "Método legacy - datos faltantes no analizados"
-      }
+      missingData: missingDataAnalysis
     };
   } catch (error) {
     throw handleOpenAIError(error, 'generación de nota con plantilla (legacy)');

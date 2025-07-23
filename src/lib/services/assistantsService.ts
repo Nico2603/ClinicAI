@@ -43,6 +43,8 @@ INSTRUCCIONES FUNDAMENTALES:
 - Mantén el formato EXACTO de la plantilla (mayúsculas, viñetas, numeración, espaciado)
 - Utiliza terminología médica apropiada y profesional
 - Si falta información específica para alguna sección, completa con términos médicos estándar como "A evaluar", "Por determinar", "Pendiente de examen", etc.
+- NUNCA incluyas análisis de datos faltantes, comentarios sobre información faltante, o metadatos en la nota médica
+- Genera ÚNICAMENTE el contenido médico profesional siguiendo la plantilla
 
 PROCESO DE GENERACIÓN:
 1. Analiza la estructura de la plantilla proporcionada
@@ -57,6 +59,8 @@ REGLAS CRÍTICAS:
 - Usa información del paciente cuando esté disponible
 - Para información faltante, usa terminología médica estándar profesional
 - Responde SOLO con la nota médica final, sin comentarios adicionales
+- NO incluyas texto sobre "datos faltantes", "información pendiente" o similares
+- La respuesta debe ser únicamente la nota médica limpia y profesional
 
 EJEMPLO DE COMPLETADO PARA INFORMACIÓN FALTANTE:
 - Si no hay signos vitales: "Signos vitales: A registrar durante la consulta"
@@ -297,11 +301,8 @@ Procesa siguiendo los 6 pasos modulares y genera la nota médica final mantenien
             }
           }
         ]
-      },
-      missingData: {
-        missingFields: [],
-        summary: "Análisis de datos faltantes incluido en la nota"
       }
+      // missingData será agregado por el servicio que llama a esta función
     };
 
   } catch (error) {
