@@ -11,7 +11,7 @@
 
 import React, { useState } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
-import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
+import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon, DocumentTextIcon, EvidenceIcon, ScalesIcon } from '../ui/Icons';
 import { HistorySearchFilter, HistoryFilterOptions, FilteredHistoryData } from '../notes/HistorySearchFilter';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks';
@@ -152,9 +152,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   };
 
   const tabs = [
-    { id: 'notes', label: 'Notas', shortLabel: 'Notas', icon: '📝', count: notesHistory.length },
-    { id: 'evidence', label: 'Evidencias científicas', shortLabel: 'Evidencias', icon: '🔬', count: evidenceHistory.length },
-    { id: 'scales', label: 'Escalas clínicas generadas por IA', shortLabel: 'Escalas', icon: '📊', count: scalesHistory.length },
+    { id: 'notes', label: 'Notas', shortLabel: 'Notas', icon: <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" />, count: notesHistory.length },
+    { id: 'evidence', label: 'Evidencias científicas', shortLabel: 'Evidencias', icon: <EvidenceIcon className="h-4 w-4 sm:h-5 sm:w-5" />, count: evidenceHistory.length },
+    { id: 'scales', label: 'Escalas clínicas generadas por IA', shortLabel: 'Escalas', icon: <ScalesIcon className="h-4 w-4 sm:h-5 sm:w-5" />, count: scalesHistory.length },
   ];
 
   // Mostrar indicador si hay filtros activos
@@ -315,13 +315,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as 'notes' | 'evidence' | 'scales')}
-              className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap touch-target ${
+              className={`py-2 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap touch-target flex items-center gap-1 sm:gap-2 ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300'
               }`}
             >
-              <span className="mr-1 sm:mr-2">{tab.icon}</span>
+              {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.shortLabel}</span>
               {tab.count > 0 && (

@@ -19,6 +19,7 @@ import AIClinicalScales from '../notes/AIClinicalScales';
 import { ProgressBar, type ProgressStep } from '../ui/ProgressBar';
 import { TextareaWithSpeech } from '@/components';
 import { Button } from '../ui/button';
+import { DocumentTextIcon, EvidenceIcon, ScalesIcon } from '../ui/Icons';
 
 interface TemplateNoteViewProps {
   selectedTemplate: UserTemplate | null;
@@ -219,22 +220,23 @@ export const TemplateNoteView: React.FC<TemplateNoteViewProps> = ({
       {/* Tabs */}
       <div className="bg-white dark:bg-neutral-800 shadow-lg rounded-lg overflow-hidden">
         <div className="border-b border-neutral-200 dark:border-neutral-700">
-          <nav className="-mb-px flex space-x-8 px-4 md:px-6" aria-label="Tabs">
+          <nav className="-mb-px flex space-x-8 px-4 md:px-6" aria-label="Tabs" data-tutorial="note-tabs">
             {[
-              { id: 'note', name: 'Generar Nota', icon: '📝' },
-              { id: 'evidence', name: 'Consulta Basada en Evidencia', icon: '🔬' },
-              { id: 'scales', name: 'Escalas Clínicas', icon: '📊' }
+              { id: 'note', name: 'Generar Nota', icon: <DocumentTextIcon className="h-5 w-5" /> },
+              { id: 'evidence', name: 'Consulta Basada en Evidencia', icon: <EvidenceIcon className="h-5 w-5" /> },
+              { id: 'scales', name: 'Escalas Clínicas', icon: <ScalesIcon className="h-5 w-5" /> }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                data-tutorial={tab.id === 'evidence' ? 'evidence-tab' : tab.id === 'scales' ? 'scales-tab' : undefined}
                 className={`${
                   activeTab === tab.id
                     ? 'border-primary text-primary'
                     : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-600'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2`}
               >
-                <span className="mr-2">{tab.icon}</span>
+                {tab.icon}
                 {tab.name}
               </button>
             ))}

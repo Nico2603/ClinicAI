@@ -239,9 +239,9 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   }), [activeView, setActiveView, theme, toggleTheme, historicNotes, userTemplates, refreshTemplates, handleLoadNoteInEditor]);
 
   return (
-    <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans">
+    <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-900 font-sans flex flex-col">
       <Sidebar {...sidebarProps} />
-      <div className="md:ml-64 flex flex-col">
+      <div className="md:ml-64 flex flex-col min-h-screen">
         <header className="bg-white dark:bg-neutral-800 shadow-sm p-3 md:p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center sticky top-0 z-10">
           {/* Lado izquierdo: Hamburger + Título */}
           <div className="flex items-center flex-1 min-w-0">
@@ -380,6 +380,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
           )}
 
         </main>
+
         <Footer />
       </div>
 
@@ -387,10 +388,10 @@ const AuthenticatedApp: React.FC = React.memo(() => {
       {isTutorialActive && currentStep && (
         <TutorialOverlay
           step={currentStep}
-          isFirstStep={isFirstStep}
-          isLastStep={isLastStep}
           currentStepIndex={tutorialStepIndex}
           totalSteps={totalSteps}
+          isFirstStep={isFirstStep}
+          isLastStep={isLastStep}
           onNext={nextStep}
           onPrev={prevStep}
           onSkip={skipTutorial}
