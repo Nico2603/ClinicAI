@@ -9,11 +9,13 @@
  * Desarrollado para Teilur.ai
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { HistoricNote, UserTemplate, ActiveView } from '../types';
 import { getUserStoredHistoricNotes, addUserHistoricNoteEntry } from '../lib/services/storageService';
 import { historyService, HistoryEntry } from '../lib/services/databaseService';
+import { historyCacheService } from '../lib/services/historyCacheService';
 import { CONFIRMATION_MESSAGES, STORAGE_KEYS } from '../lib/constants';
+import { useAuth } from '../contexts/AuthContext';
 
 // Función auxiliar para convertir HistoryEntry a HistoricNote para compatibilidad
 const convertHistoryEntryToHistoricNote = (entry: HistoryEntry): HistoricNote => {
@@ -57,92 +59,215 @@ const convertHistoricNoteToHistoryData = (note: Omit<HistoricNote, 'id' | 'times
 };
 
 export const useHistoryManager = (userId: string | null) => {
+  const { user } = useAuth();
   const [historicNotes, setHistoricNotes] = useState<HistoricNote[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingFromCache, setIsLoadingFromCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Flag para evitar múltiples llamadas concurrentes
+  const isLoadingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasLoadedFromCache = useRef(false);
 
-  // Cargar historial al montar el componente
+  // Configurar cache para el usuario
   useEffect(() => {
-    const loadHistory = async () => {
-      if (!userId) return;
-      
+    if (user?.id) {
+      historyCacheService.setUser(user.id);
+    }
+  }, [user?.id]);
+
+  const cleanup = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    isLoadingRef.current = false;
+  }, []);
+
+  // Cargar desde cache primero, luego desde servidor si es necesario
+  const loadFromCache = useCallback(() => {
+    if (!user?.id || hasLoadedFromCache.current) return false;
+    
+    setIsLoadingFromCache(true);
+    const cachedEntries = historyCacheService.getHistoryEntries();
+    
+    if (cachedEntries && cachedEntries.length > 0) {
+      const convertedNotes = cachedEntries.map(convertHistoryEntryToHistoricNote);
+      setHistoricNotes(convertedNotes);
+      setError(null);
+      hasLoadedFromCache.current = true;
+      setIsLoadingFromCache(false);
+      console.log('⚡ Historial cargado desde cache local');
+      return true;
+    }
+    
+    setIsLoadingFromCache(false);
+    return false;
+  }, [user?.id]);
+
+  const fetchHistoryEntries = useCallback(async (options: { 
+    isRetry?: boolean; 
+    forceRefresh?: boolean;
+    useCache?: boolean;
+  } = {}) => {
+    const { isRetry = false, forceRefresh = false, useCache = true } = options;
+    
+    if (!user?.id || (isLoadingRef.current && !isRetry)) return;
+    
+    // Intentar cargar desde cache primero (si no es un force refresh)
+    if (useCache && !forceRefresh && !isRetry) {
+      const cacheLoaded = loadFromCache();
+      if (cacheLoaded) {
+        // Cargar en background desde servidor para mantener cache actualizado
+        setTimeout(() => {
+          fetchHistoryEntries({ forceRefresh: true, useCache: false });
+        }, 100);
+        return;
+      }
+    }
+    
+    // Cleanup anterior si es retry
+    if (isRetry) {
+      cleanup();
+    }
+    
+    isLoadingRef.current = true;
+    setIsLoading(true);
+    setError(null);
+    
+    // Solo mostrar loading si no tenemos datos del cache
+    if (historicNotes.length === 0) {
       setIsLoading(true);
+    }
+    
+    // Crear nuevo AbortController
+    abortControllerRef.current = new AbortController();
+    
+    try {
+      // Intentar cargar desde la base de datos primero
+      const historyEntries = await historyService.getAllHistoryGrouped();
+      const convertedNotes = historyEntries.map(convertHistoryEntryToHistoricNote);
+      
+      // Actualizar estado y cache
+      setHistoricNotes(convertedNotes);
       setError(null);
       
-      try {
-        // Intentar cargar desde la base de datos primero
-        const historyEntries = await historyService.getAllHistoryGrouped();
-        const convertedNotes = historyEntries.map(convertHistoryEntryToHistoricNote);
-        setHistoricNotes(convertedNotes);
-      } catch (dbError) {
-        console.warn('Error loading from database, falling back to localStorage:', dbError);
-        // Fallback a localStorage
-        setHistoricNotes(getUserStoredHistoricNotes(userId));
-      } finally {
-        setIsLoading(false);
+      // Guardar en cache
+      historyCacheService.setHistoryEntries(historyEntries);
+      hasLoadedFromCache.current = true;
+      
+      console.log(`📚 ${historyEntries.length} entradas de historial cargadas desde servidor`);
+      
+    } catch (dbError) {
+      console.warn('Error al cargar historial desde base de datos, usando fallback:', dbError);
+      
+      // Fallback a localStorage si no hay cache y falla la DB
+      if (historicNotes.length === 0) {
+        const localNotes = getUserStoredHistoricNotes(user.id);
+        setHistoricNotes(localNotes);
+        console.warn('⚠️ Usando datos de localStorage como fallback');
+      } else {
+        console.warn('⚠️ Error del servidor, manteniendo datos del cache');
       }
-    };
+      
+      setError('Error de conexión - usando datos locales');
+    } finally {
+      cleanup();
+      setIsLoading(false);
+    }
+  }, [user?.id, cleanup, loadFromCache, historicNotes.length]);
 
-    loadHistory();
-  }, [userId]);
+  useEffect(() => {
+    if (user?.id) {
+      hasLoadedFromCache.current = false;
+      fetchHistoryEntries();
+    } else {
+      setHistoricNotes([]);
+      setError(null);
+      hasLoadedFromCache.current = false;
+    }
+    
+    // Cleanup al desmontar o cambiar de usuario
+    return cleanup;
+  }, [user?.id, fetchHistoryEntries, cleanup]);
 
   const addNoteToHistory = useCallback(async (noteData: Omit<HistoricNote, 'id' | 'timestamp'>) => {
-    if (!userId) return;
+    if (!user?.id) return;
     
     setError(null);
     
     try {
-      // Intentar guardar en la base de datos primero
+      // Actualización optimista - agregar al estado local inmediatamente
+      const tempHistoricNote: HistoricNote = {
+        ...noteData,
+        id: `temp_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+      };
+      
+      setHistoricNotes(prev => [tempHistoricNote, ...prev]);
+      
+      // Intentar guardar en la base de datos
       const historyData = convertHistoricNoteToHistoryData(noteData);
       const newEntry = await historyService.createHistoryEntry(historyData);
       const newHistoricNote = convertHistoryEntryToHistoricNote(newEntry);
       
-      // Actualizar estado local
-      setHistoricNotes(prev => [newHistoricNote, ...prev]);
+      // Reemplazar entrada temporal con la real
+      setHistoricNotes(prev => prev.map(note => 
+        note.id === tempHistoricNote.id ? newHistoricNote : note
+      ));
+      
+      // Agregar al cache
+      historyCacheService.addHistoryEntry(newEntry);
+      
+      console.log('✅ Entrada de historial guardada exitosamente');
+      
     } catch (dbError) {
-      console.warn('Error saving to database, falling back to localStorage:', dbError);
+      console.warn('Error al guardar en la base de datos, usando fallback:', dbError);
       setError('Error al guardar en la base de datos, usando almacenamiento local');
       
-      // Fallback a localStorage
+      // Revertir actualización optimista y usar localStorage como fallback
       const newHistoricNote: HistoricNote = {
         ...noteData,
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
       };
       
-      const updatedHistory = addUserHistoricNoteEntry(userId, newHistoricNote);
+      const updatedHistory = addUserHistoricNoteEntry(user.id, newHistoricNote);
       setHistoricNotes(updatedHistory);
     }
-  }, [userId]);
+  }, [user?.id]);
 
   const deleteNote = useCallback(async (noteId: string) => {
-    if (!userId) return;
+    if (!user?.id) return;
     
     setError(null);
     
     try {
-      // Intentar eliminar de la base de datos primero
+      // Actualización optimista
+      setHistoricNotes(prev => prev.filter(note => note.id !== noteId));
+      
+      // Intentar eliminar de la base de datos
       await historyService.deleteHistoryEntry(noteId);
       
-      // Actualizar estado local
-      setHistoricNotes(prev => prev.filter(note => note.id !== noteId));
-    } catch (dbError) {
-      console.warn('Error deleting from database, falling back to localStorage:', dbError);
-      setError('Error al eliminar de la base de datos, usando almacenamiento local');
+      // Remover del cache
+      historyCacheService.removeHistoryEntry(noteId);
       
-      // Fallback a localStorage
-      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        const currentHistory = getUserStoredHistoricNotes(userId);
-        const updatedHistory = currentHistory.filter(note => note.id !== noteId);
-        
-        localStorage.setItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`, JSON.stringify(updatedHistory));
-        setHistoricNotes(updatedHistory);
-      }
+      console.log('✅ Entrada de historial eliminada exitosamente');
+      
+    } catch (dbError) {
+      console.error('❌ Error al eliminar entrada de historial:', dbError);
+      
+      // Revertir eliminación optimista y refrescar desde servidor
+      await fetchHistoryEntries({ forceRefresh: true });
+      
+      setError('Error al eliminar de la base de datos');
+      throw new Error('Error al eliminar entrada de historial');
     }
-  }, [userId]);
+  }, [user?.id, fetchHistoryEntries]);
 
   const clearHistory = useCallback(async () => {
-    if (!userId) return;
+    if (!user?.id) return;
     
     if (!window.confirm(CONFIRMATION_MESSAGES.CLEAR_ALL)) return;
     
@@ -152,19 +277,28 @@ export const useHistoryManager = (userId: string | null) => {
       // Intentar limpiar la base de datos primero
       await historyService.clearHistoryByType();
       
+      // Limpiar cache
+      historyCacheService.clear();
+      
       // Actualizar estado local
       setHistoricNotes([]);
+      
+      console.log('✅ Historial limpiado exitosamente');
+      
     } catch (dbError) {
-      console.warn('Error clearing database, falling back to localStorage:', dbError);
+      console.warn('Error al limpiar la base de datos, usando fallback:', dbError);
       setError('Error al limpiar la base de datos, usando almacenamiento local');
       
       // Fallback a localStorage
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        localStorage.removeItem(`${STORAGE_KEYS.HISTORY_PREFIX}${userId}`);
+        localStorage.removeItem(`${STORAGE_KEYS.HISTORY_PREFIX}${user.id}`);
       }
+      
+      // Limpiar cache de todas formas
+      historyCacheService.clear();
       setHistoricNotes([]);
     }
-  }, [userId]);
+  }, [user?.id]);
 
   const loadNoteFromHistory = useCallback((
     note: HistoricNote,
@@ -204,13 +338,34 @@ export const useHistoryManager = (userId: string | null) => {
     }
   }, []);
 
+  // Funciones adicionales para cache
+  const refreshFromServer = useCallback(() => {
+    return fetchHistoryEntries({ forceRefresh: true, useCache: false });
+  }, [fetchHistoryEntries]);
+
+  const invalidateCache = useCallback(() => {
+    historyCacheService.invalidate();
+    hasLoadedFromCache.current = false;
+    return fetchHistoryEntries({ forceRefresh: true, useCache: false });
+  }, [fetchHistoryEntries]);
+
+  const getMostUsedEntries = useCallback((limit?: number) => {
+    return historyCacheService.getMostUsedEntries(limit);
+  }, []);
+
   return {
     historicNotes,
+    isLoading,
+    isLoadingFromCache,
+    error,
     addNoteToHistory,
     deleteNote,
     clearHistory,
     loadNoteFromHistory,
-    isLoading,
-    error,
+    fetchHistoryEntries,
+    retryFetch: () => fetchHistoryEntries({ isRetry: true }),
+    refreshFromServer,
+    invalidateCache,
+    getMostUsedEntries,
   };
 }; 

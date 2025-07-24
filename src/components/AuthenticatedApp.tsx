@@ -105,10 +105,16 @@ const AuthenticatedApp: React.FC = React.memo(() => {
   const memoizedUserId = useMemo(() => user?.id || null, [user?.id]);
   const {
     historicNotes,
+    isLoading: isLoadingHistory,
+    isLoadingFromCache: isLoadingHistoryFromCache,
+    error: historyError,
     addNoteToHistory,
     deleteNote,
     clearHistory,
     loadNoteFromHistory,
+    refreshFromServer: refreshHistoryFromServer,
+    invalidateCache: invalidateHistoryCache,
+    getMostUsedEntries,
   } = useHistoryManager(memoizedUserId);
 
   // Estado para el actualizador de notas

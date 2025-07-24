@@ -129,6 +129,13 @@ export const CACHE_CONFIG = {
     STORAGE_PREFIX: 'notasai_template_cache',
     USAGE_PREFIX: 'notasai_template_usage'
   },
+  HISTORY: {
+    MAX_SIZE: 100,             // Máximo 100 entradas de historial en cache
+    MAX_AGE: 60 * 60 * 1000,   // 60 minutos (más tiempo que plantillas)
+    VERSION: 1,                // Versión del cache (para invalidar automáticamente)
+    STORAGE_PREFIX: 'notasai_history_cache',
+    USAGE_PREFIX: 'notasai_history_usage'
+  },
   PERFORMANCE: {
     BACKGROUND_SYNC_DELAY: 100,  // 100ms para sync en background
     CACHE_WRITE_DEBOUNCE: 500,   // 500ms debounce para escrituras

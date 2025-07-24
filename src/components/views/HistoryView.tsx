@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
 import { HistorySearchFilter, HistoryFilterOptions, FilteredHistoryData } from '../notes/HistorySearchFilter';
+import HistoryCacheManager from '../notes/HistoryCacheManager';
 
 interface HistoryViewProps {
   historicNotes: HistoricNote[];
@@ -33,6 +34,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'notes' | 'evidence' | 'scales'>('notes');
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [showCacheManager, setShowCacheManager] = useState(false);
   
   // Estados para el filtrado
   const [filteredData, setFilteredData] = useState<FilteredHistoryData | null>(null);
@@ -225,16 +227,28 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         <h2 className="mobile-heading text-primary">
           📚 Historial de Notas
         </h2>
-        {historicNotes.length > 0 && (
+        <div className="flex gap-2">
           <button
-            onClick={onClearHistory}
-            className="mobile-button bg-red-600 text-white hover:bg-red-700"
+            onClick={() => setShowCacheManager(true)}
+            className="mobile-button bg-blue-600 text-white hover:bg-blue-700"
+            title="Gestionar cache de historial"
           >
-            <TrashIcon className="h-4 w-4 mr-2 shrink-0" />
-            <span className="hidden sm:inline">Limpiar historial</span>
-            <span className="sm:hidden">Limpiar</span>
+            <svg className="h-4 w-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+            <span className="hidden sm:inline">Cache</span>
           </button>
-        )}
+          {historicNotes.length > 0 && (
+            <button
+              onClick={onClearHistory}
+              className="mobile-button bg-red-600 text-white hover:bg-red-700"
+            >
+              <TrashIcon className="h-4 w-4 mr-2 shrink-0" />
+              <span className="hidden sm:inline">Limpiar historial</span>
+              <span className="sm:hidden">Limpiar</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filtros de búsqueda */}
@@ -313,6 +327,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Cache Manager Modal */}
+      <HistoryCacheManager
+        isOpen={showCacheManager}
+        onClose={() => setShowCacheManager(false)}
+      />
     </section>
   );
 }; 
