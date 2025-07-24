@@ -9,7 +9,7 @@ const HISTORY_KEY = 'notasai_history';
 const getUserFavoritesKey = (userId: string): string => `notasai_fav_templates_${userId}`;
 
 // Tipos
-interface FavoriteTemplate {
+export interface FavoriteTemplate {
   id: string; // uuid
   name: string;
   content: string;
