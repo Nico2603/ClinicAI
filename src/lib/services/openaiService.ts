@@ -84,14 +84,16 @@ ${patientInfo}
 INSTRUCCIONES:
 1. Identifica qué campos/secciones de la plantilla NO pueden completarse con la información disponible
 2. Lista específicamente qué datos faltan (ej: "signos vitales", "antecedentes familiares", "examen físico")
-3. Genera un resumen conciso de los datos faltantes
-4. NO incluyas recomendaciones de tratamiento en esta respuesta
-5. Enfócate solo en datos objetivos que faltan
+3. Si REALMENTE no falta información, puedes usar el summary: "Información completa para esta plantilla"
+4. Si faltan datos, genera un resumen conciso de los datos faltantes
+5. NO incluyas recomendaciones de tratamiento en esta respuesta
+6. Enfócate solo en datos objetivos que faltan
+7. Sé específico sobre qué información clínica falta
 
 RESPUESTA EN JSON:
 {
   "missingFields": ["campo1", "campo2", "campo3"],
-  "summary": "Resumen de qué información falta para completar la nota médica"
+  "summary": "Resumen específico de qué información falta para completar la nota médica"
 }`;
 
     const response = await openai.chat.completions.create({
@@ -99,7 +101,7 @@ RESPUESTA EN JSON:
       messages: [
         {
           role: "system",
-          content: "Eres un analista médico que identifica qué información falta para completar notas clínicas. Respondes solo en JSON válido."
+          content: "Eres un analista médico experto que identifica qué información falta para completar notas clínicas. Siempre respondes en JSON válido y eres muy específico sobre qué datos clínicos faltan."
         },
         {
           role: "user",
@@ -125,19 +127,52 @@ RESPUESTA EN JSON:
         summary: analysis.summary
       };
     } catch (parseError) {
-      console.warn('Error parsing missing data analysis, using fallback:', parseError);
-      return {
-        missingFields: [],
-        summary: "Información completa disponible"
-      };
+      console.warn('Error parsing missing data analysis, intentando análisis básico:', parseError);
+      
+      // Análisis básico como fallback
+      const basicAnalysis = performBasicMissingDataAnalysis(templateContent, patientInfo);
+      return basicAnalysis;
     }
   } catch (error) {
-    console.warn('Error analyzing missing data:', error);
+    console.warn('Error analyzing missing data, usando análisis básico:', error);
+    
+    // Análisis básico como fallback
+    const basicAnalysis = performBasicMissingDataAnalysis(templateContent, patientInfo);
+    return basicAnalysis;
+  }
+};
+
+/**
+ * Análisis básico de datos faltantes cuando falla el AI
+ */
+const performBasicMissingDataAnalysis = (templateContent: string, patientInfo: string) => {
+  const commonMedicalSections = [
+    'signos vitales', 'examen físico', 'antecedentes', 'diagnóstico', 
+    'tratamiento', 'evolución', 'laboratorios', 'estudios'
+  ];
+  
+  const missingFields: string[] = [];
+  const lowerTemplate = templateContent.toLowerCase();
+  const lowerPatientInfo = patientInfo.toLowerCase();
+  
+  // Buscar secciones comunes que estén en la plantilla pero no en la información del paciente
+  commonMedicalSections.forEach(section => {
+    if (lowerTemplate.includes(section) && !lowerPatientInfo.includes(section)) {
+      missingFields.push(section);
+    }
+  });
+  
+  if (missingFields.length === 0) {
     return {
       missingFields: [],
-      summary: "Información completa disponible"
+      summary: "La información disponible cubre las secciones principales de la plantilla"
     };
   }
+  
+  return {
+    missingFields,
+    summary: `Podrían faltar detalles sobre: ${missingFields.join(', ')}. Considera agregar más información clínica específica.`
+  };
 };
 
 const validateApiKey = (): void => {

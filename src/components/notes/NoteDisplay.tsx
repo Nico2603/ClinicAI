@@ -51,15 +51,30 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
   };
   
   const renderMissingData = () => {
-    if (!missingData || !missingData.summary || missingData.summary.includes('Información completa')) {
+    // Debug temporal para verificar qué datos llegan
+    console.log('🔍 Debug missingData:', missingData);
+    
+    // Solo ocultar si realmente no hay missingData o si explícitamente dice que todo está completo
+    if (!missingData || !missingData.summary) {
+      console.log('🚫 No hay missingData o summary');
       return null;
     }
 
+    // Solo ocultar si el mensaje indica explícitamente que la información está completa
+    if ((missingData.summary === "Información completa disponible" || 
+         missingData.summary === "Información completa para esta plantilla" ||
+         missingData.summary === "La información disponible cubre las secciones principales de la plantilla") && 
+        (!missingData.missingFields || missingData.missingFields.length === 0)) {
+      console.log('🚫 Información completa detectada, ocultando sección');
+      return null;
+    }
+
+    console.log('✅ Mostrando sección de datos faltantes');
     return (
       <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-700">
         <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center">
           <span className="mr-2">📊</span>
-          Datos Faltantes:
+          Análisis de Datos Faltantes:
         </h4>
         <div className="text-xs text-amber-700 dark:text-amber-300 whitespace-pre-wrap leading-relaxed">
           {missingData.summary}
@@ -67,7 +82,7 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
         {missingData.missingFields && missingData.missingFields.length > 0 && (
           <div className="mt-3">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">
-              Campos específicos pendientes:
+              Campos específicos que podrían necesitar más información:
             </p>
             <ul className="list-disc list-inside text-xs space-y-1 text-amber-700 dark:text-amber-300">
               {missingData.missingFields.map((field, index) => (
@@ -78,6 +93,9 @@ const NoteDisplay: React.FC<NoteDisplayProps> = ({ note, onNoteChange, title = "
             </ul>
           </div>
         )}
+        <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 italic">
+          💡 Esta información puede ayudarte a complementar la nota médica con datos adicionales.
+        </div>
       </div>
     );
   };
