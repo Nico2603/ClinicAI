@@ -14,6 +14,8 @@ import { HistoricNote, UserTemplate } from '@/types';
 import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
 import { HistorySearchFilter, HistoryFilterOptions, FilteredHistoryData } from '../notes/HistorySearchFilter';
 import HistoryCacheManager from '../notes/HistoryCacheManager';
+import { Button } from '../ui/button';
+import { useToast } from '@/hooks';
 
 interface HistoryViewProps {
   historicNotes: HistoricNote[];
@@ -35,6 +37,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [activeTab, setActiveTab] = useState<'notes' | 'evidence' | 'scales'>('notes');
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [showCacheManager, setShowCacheManager] = useState(false);
+  const { showDeleteSuccess, showDeleteConfirmation, showClearConfirmation } = useToast();
   
   // Estados para el filtrado
   const [filteredData, setFilteredData] = useState<FilteredHistoryData | null>(null);
@@ -100,12 +103,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   };
 
   const handleDeleteClick = (noteId: string) => {
-    setConfirmingDelete(noteId);
+    showDeleteConfirmation(() => {
+      onDeleteNote(noteId);
+      showDeleteSuccess();
+    });
   };
 
   const confirmDelete = (noteId: string) => {
     onDeleteNote(noteId);
     setConfirmingDelete(null);
+    showDeleteSuccess();
   };
 
   const cancelDelete = () => {
@@ -239,14 +246,19 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <span className="hidden sm:inline">Cache</span>
           </button>
           {historicNotes.length > 0 && (
-            <button
-              onClick={onClearHistory}
-              className="mobile-button bg-red-600 text-white hover:bg-red-700"
+            <Button
+              onClick={() => showClearConfirmation(() => {
+                onClearHistory();
+                showDeleteSuccess();
+              })}
+              variant="tertiary"
+              size="sm"
+              className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border-red-200"
             >
               <TrashIcon className="h-4 w-4 mr-2 shrink-0" />
               <span className="hidden sm:inline">Limpiar historial</span>
               <span className="sm:hidden">Limpiar</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>

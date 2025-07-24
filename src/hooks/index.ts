@@ -11,3 +11,4 @@ export { useSimpleNotes } from './useSimpleDatabase';
 export { useSimpleLoading } from './useSimpleLoading';
 export { useSpeechRecognition } from './useSpeechRecognition';
 export { useTutorial } from './useTutorial';
+export { useToast } from './useToast';

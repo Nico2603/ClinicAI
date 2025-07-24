@@ -15,6 +15,7 @@ import React, { useState, useCallback } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { SaveIcon, PlusIcon, PencilSquareIcon } from '../ui/Icons';
 import { TextareaWithSpeech } from '@/components';
+import { useToast } from '@/hooks';
 
 interface NoteEditorProps {
   note: HistoricNote;
@@ -34,6 +35,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [originalInput, setOriginalInput] = useState(note.originalInput);
   const [content, setContent] = useState(note.content);
   const [isModified, setIsModified] = useState(false);
+  const { showSaveSuccess, showCreateSuccess } = useToast();
 
   const getTemplateName = (specialtyId?: string): string => {
     if (!specialtyId) return 'Plantilla desconocida';
@@ -62,7 +64,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       scaleName: note.scaleName,
     };
     onSaveAsNew(editedNote);
-  }, [note, originalInput, content, onSaveAsNew]);
+    showCreateSuccess();
+  }, [note, originalInput, content, onSaveAsNew, showCreateSuccess]);
 
   const handleOverwrite = useCallback(() => {
     const editedNote: Omit<HistoricNote, 'id' | 'timestamp'> = {
@@ -75,7 +78,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       scaleName: note.scaleName,
     };
     onOverwrite(note.id, editedNote);
-  }, [note, originalInput, content, onOverwrite]);
+    showSaveSuccess();
+  }, [note, originalInput, content, onOverwrite, showSaveSuccess]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { SearchIcon, FilterIcon, XMarkIcon, ClockIcon } from '../ui/Icons';
 import { HistoricNote, UserTemplate } from '../../types';
+import { Button } from '../ui/button';
 
 // Simple debounce implementation
 function useDebounce<T extends (...args: any[]) => void>(
@@ -346,13 +347,15 @@ export const HistorySearchFilter: React.FC<HistorySearchFilterProps> = ({
           {/* Botón limpiar filtros */}
           {hasActiveFilters && (
             <div className="flex justify-end">
-              <button
+              <Button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
+                variant="tertiary"
+                size="sm"
+                className="h-auto py-1"
               >
                 <XMarkIcon className="h-4 w-4" />
                 Limpiar filtros
-              </button>
+              </Button>
             </div>
           )}
         </div>

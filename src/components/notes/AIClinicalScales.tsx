@@ -176,8 +176,8 @@ const AIClinicalScales: React.FC<AIClinicalScalesProps> = ({
             </Button>
             <Button
               onClick={clearAll}
-              variant="outline"
-              className="text-sm"
+              variant="tertiary"
+              size="sm"
             >
               Limpiar
             </Button>

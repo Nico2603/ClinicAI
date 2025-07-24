@@ -146,8 +146,8 @@ const NoteUpdater: React.FC<NoteUpdaterProps> = ({ className = '', initialNote =
         
         <Button
           onClick={handleClearAll}
-          variant="outline"
-          className="text-gray-600 border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+          variant="tertiary"
+          size="sm"
         >
           Limpiar Todo
         </Button>
