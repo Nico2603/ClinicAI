@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
+import { HistorySearchFilter, HistoryFilterOptions, FilteredHistoryData } from '../notes/HistorySearchFilter';
 
 interface HistoryViewProps {
   historicNotes: HistoricNote[];
@@ -32,15 +33,40 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'notes' | 'evidence' | 'scales'>('notes');
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  
+  // Estados para el filtrado
+  const [filteredData, setFilteredData] = useState<FilteredHistoryData | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<HistoryFilterOptions | null>(null);
 
-  // Filtrar notas por tipo
-  const filterNotesByType = (type: HistoricNote['type'][]): HistoricNote[] => {
-    return historicNotes.filter(note => type.includes(note.type));
+  // Función para manejar cambios de filtros
+  const handleFilterChange = (newFilteredData: FilteredHistoryData, filters: HistoryFilterOptions) => {
+    setFilteredData(newFilteredData);
+    setCurrentFilters(filters);
   };
 
-  const notesHistory = filterNotesByType(['template', 'suggestion']);
-  const evidenceHistory = filterNotesByType(['evidence']);
-  const scalesHistory = filterNotesByType(['scale']);
+  // Usar datos filtrados si existen, sino usar datos originales
+  const getDataSource = () => {
+    if (filteredData) {
+      return filteredData;
+    }
+    
+    // Datos originales sin filtrar
+    const notesHistory = historicNotes.filter(note => ['template', 'suggestion'].includes(note.type));
+    const evidenceHistory = historicNotes.filter(note => note.type === 'evidence');
+    const scalesHistory = historicNotes.filter(note => note.type === 'scale');
+    
+    return {
+      notes: notesHistory,
+      evidence: evidenceHistory,
+      scales: scalesHistory,
+      all: historicNotes
+    };
+  };
+
+  const dataSource = getDataSource();
+  const notesHistory = dataSource.notes;
+  const evidenceHistory = dataSource.evidence;
+  const scalesHistory = dataSource.scales;
 
   const getCurrentNotes = (): HistoricNote[] => {
     switch (activeTab) {
@@ -105,16 +131,41 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     { id: 'scales', label: 'Escalas clínicas generadas por IA', shortLabel: 'Escalas', icon: '📊', count: scalesHistory.length },
   ];
 
+  // Mostrar indicador si hay filtros activos
+  const hasActiveFilters = currentFilters && (
+    currentFilters.searchTerm || 
+    currentFilters.patientFilter || 
+    currentFilters.dateRange.start || 
+    currentFilters.dateRange.end || 
+    currentFilters.typeFilter !== 'all'
+  );
+
   const currentNotes = getCurrentNotes();
 
   const renderNotesList = (notes: HistoricNote[]) => {
     if (notes.length === 0) {
+      const isFiltered = currentFilters && (
+        currentFilters.searchTerm || 
+        currentFilters.patientFilter || 
+        currentFilters.dateRange.start || 
+        currentFilters.dateRange.end || 
+        currentFilters.typeFilter !== 'all'
+      );
+      
       return (
         <div className="text-center py-8 sm:py-12">
           <ClockIcon className="h-12 w-12 sm:h-16 sm:w-16 text-neutral-400 mx-auto mb-3 sm:mb-4" />
           <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-400">
-            No hay notas en el historial de esta categoría
+            {isFiltered 
+              ? 'No se encontraron resultados con los filtros aplicados' 
+              : 'No hay notas en el historial de esta categoría'
+            }
           </p>
+          {isFiltered && (
+            <p className="text-xs text-neutral-400 mt-2">
+              Intenta ajustar los filtros de búsqueda
+            </p>
+          )}
         </div>
       );
     }
@@ -186,8 +237,24 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         )}
       </div>
 
+      {/* Filtros de búsqueda */}
+      {historicNotes.length > 0 && (
+        <HistorySearchFilter
+          historicNotes={historicNotes}
+          userTemplates={userTemplates}
+          onFilterChange={handleFilterChange}
+        />
+      )}
+
       {/* Tabs Navigation */}
       <div className="border-b border-neutral-200 dark:border-neutral-700 mb-4 sm:mb-6" data-tutorial="history-tabs">
+        {hasActiveFilters && (
+          <div className="mb-3 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1">
+              🔍 Filtros activos - Los contadores reflejan solo los resultados filtrados
+            </p>
+          </div>
+        )}
         <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
@@ -203,7 +270,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.shortLabel}</span>
               {tab.count > 0 && (
-                <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary">
+                <span className={`ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs ${
+                  hasActiveFilters 
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                    : 'bg-primary/10 text-primary'
+                }`}>
                   {tab.count}
                 </span>
               )}

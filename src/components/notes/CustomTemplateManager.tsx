@@ -1,7 +1,8 @@
 import React, { useState, useCallback, memo, useMemo } from 'react';
-import { useSimpleUserTemplates } from '../../hooks/useSimpleDatabase';
+import { useSimpleUserTemplates, useSimpleNotes } from '../../hooks/useSimpleDatabase';
 import { useFavoriteTemplates } from '../../hooks/useFavoriteTemplates';
 import { useRecentTemplates } from '../../hooks/useRecentTemplates';
+import { useHistoryManager } from '../../hooks/useHistoryManager';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTemplate } from '../../types';
 import { SaveIcon, TrashIcon, PencilIcon, PlusIcon, CheckIcon, XMarkIcon, LoadingSpinner, StarIcon, ClockIcon, DocumentTextIcon } from '../ui/Icons';
@@ -420,6 +421,44 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     getLastAccessed
   } = useRecentTemplates(userTemplates);
 
+  // Hook de historial
+  const { historicNotes } = useHistoryManager(user?.id || null);
+
+  // Hook de notas creadas (para obtener más datos de pacientes)
+  const { notes: userNotes } = useSimpleNotes();
+
+  // Combinar datos de historial y notas para filtro más completo
+  const combinedNotesData = useMemo(() => {
+    const allNotes = [...historicNotes];
+    
+    // Agregar notas creadas como datos adicionales de búsqueda
+    userNotes.forEach(note => {
+      if (note.patient_name || note.content) {
+        allNotes.push({
+          id: note.id,
+          type: 'template' as const,
+          timestamp: note.created_at,
+          originalInput: note.patient_name || '',
+          original_input: note.patient_name || '',
+          content: note.content,
+          specialty_id: note.user_template_id || '',
+          specialtyName: '',
+          specialty_name: '',
+          title: note.title,
+          created_at: note.created_at,
+          updated_at: note.updated_at,
+          metadata: {
+            patient_name: note.patient_name,
+            diagnosis: note.diagnosis,
+            treatment: note.treatment
+          }
+        });
+      }
+    });
+    
+    return allNotes;
+  }, [historicNotes, userNotes]);
+
   // Estados del componente
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -447,8 +486,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
     }
   }, [userTemplates, currentFilters]);
 
-  // Datos para el historial (simulado para el filtro de búsqueda)
-  const historicNotes = useMemo(() => [], []);
+  // Los datos del historial ya vienen del hook useHistoryManager
 
   // Generar nombre de plantilla automático
   const getNextTemplateName = useCallback(() => {
@@ -646,7 +684,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       {userTemplates.length > 0 && (
         <TemplateSearchFilter
           templates={userTemplates}
-          historicNotes={historicNotes}
+          historicNotes={combinedNotesData}
           onFilterChange={handleFilterChange}
           favorites={favoriteIds}
           onToggleFavorite={(templateId: string) => {
