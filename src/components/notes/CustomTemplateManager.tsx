@@ -469,7 +469,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [showCacheManager, setShowCacheManager] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Estados de filtros
   const [filteredTemplates, setFilteredTemplates] = useState<UserTemplate[]>([]);
@@ -564,6 +564,23 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
       console.error('Error toggling favorite:', error);
     }
   }, [toggleFavorite]);
+
+  // Sincronizar datos con la base de datos
+  const handleSyncData = useCallback(async () => {
+    if (isSyncing) return;
+    
+    try {
+      setIsSyncing(true);
+      setLocalError(null);
+      await refreshFromServer();
+      console.log('✅ Datos sincronizados con la base de datos');
+    } catch (error) {
+      console.error('Error al sincronizar datos:', error);
+      setLocalError('Error al sincronizar datos con la base de datos');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isSyncing, refreshFromServer]);
 
   // Otras funciones (editar, eliminar, etc.)
   const handleStartEdit = useCallback((template: UserTemplate) => {
@@ -672,10 +689,24 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowCacheManager(!showCacheManager)}
-            className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600"
+            onClick={handleSyncData}
+            disabled={isSyncing}
+            className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 px-3 py-2 rounded border border-neutral-300 dark:border-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Sincronizar datos con la base de datos"
           >
-            {showCacheManager ? 'Ocultar' : 'Cache'}
+            {isSyncing ? (
+              <>
+                <div className="animate-spin w-3 h-3 border border-current border-t-transparent rounded-full"></div>
+                Sincronizando...
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Sincronizar
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -694,28 +725,7 @@ const CustomTemplateManager: React.FC<CustomTemplateManagerProps> = memo(({
         />
       )}
 
-      {/* Cache Manager - Temporalmente deshabilitado */}
-      {showCacheManager && (
-        <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg">
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Sistema de cache - Funciones disponibles: invalidar cache, refrescar desde servidor.
-          </p>
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={refreshFromServer}
-              className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded"
-            >
-              Refrescar
-            </button>
-            <button
-              onClick={invalidateCache}
-              className="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded"
-            >
-              Invalidar Cache
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Error Display */}
       {(localError || dbError) && (

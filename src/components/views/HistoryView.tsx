@@ -13,7 +13,6 @@ import React, { useState } from 'react';
 import { HistoricNote, UserTemplate } from '@/types';
 import { ClockIcon, PencilSquareIcon, EditIcon, TrashIcon } from '../ui/Icons';
 import { HistorySearchFilter, HistoryFilterOptions, FilteredHistoryData } from '../notes/HistorySearchFilter';
-import HistoryCacheManager from '../notes/HistoryCacheManager';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks';
 
@@ -24,6 +23,7 @@ interface HistoryViewProps {
   onLoadNoteInUpdater: (note: HistoricNote) => void;
   onDeleteNote: (noteId: string) => void;
   onClearHistory: () => void;
+  onSyncData?: () => Promise<void>;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
@@ -33,11 +33,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onLoadNoteInUpdater,
   onDeleteNote,
   onClearHistory,
+  onSyncData,
 }) => {
   const [activeTab, setActiveTab] = useState<'notes' | 'evidence' | 'scales'>('notes');
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
-  const [showCacheManager, setShowCacheManager] = useState(false);
-  const { showDeleteSuccess, showDeleteConfirmation, showClearConfirmation } = useToast();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { showDeleteSuccess, showDeleteConfirmation, showClearConfirmation, showInfo, showError } = useToast();
   
   // Estados para el filtrado
   const [filteredData, setFilteredData] = useState<FilteredHistoryData | null>(null);
@@ -47,6 +48,22 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const handleFilterChange = (newFilteredData: FilteredHistoryData, filters: HistoryFilterOptions) => {
     setFilteredData(newFilteredData);
     setCurrentFilters(filters);
+  };
+
+  // Función para sincronizar datos
+  const handleSyncData = async () => {
+    if (!onSyncData || isSyncing) return;
+    
+    try {
+      setIsSyncing(true);
+      await onSyncData();
+      showInfo('Datos sincronizados correctamente');
+    } catch (error) {
+      console.error('Error al sincronizar datos:', error);
+      showError('Error al sincronizar datos con la base de datos');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Usar datos filtrados si existen, sino usar datos originales
@@ -235,16 +252,28 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           📚 Historial de Notas
         </h2>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowCacheManager(true)}
-            className="mobile-button bg-blue-600 text-white hover:bg-blue-700"
-            title="Gestionar cache de historial"
-          >
-            <svg className="h-4 w-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-            </svg>
-            <span className="hidden sm:inline">Cache</span>
-          </button>
+          {onSyncData && (
+            <button
+              onClick={handleSyncData}
+              disabled={isSyncing}
+              className="mobile-button bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Sincronizar datos con la base de datos"
+            >
+              {isSyncing ? (
+                <>
+                  <div className="animate-spin w-4 h-4 mr-2 border border-current border-t-transparent rounded-full shrink-0"></div>
+                  <span className="hidden sm:inline">Sincronizando...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="hidden sm:inline">Sincronizar</span>
+                </>
+              )}
+            </button>
+          )}
           {historicNotes.length > 0 && (
             <Button
               onClick={() => showClearConfirmation(() => {
@@ -340,11 +369,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </div>
       )}
 
-      {/* Cache Manager Modal */}
-      <HistoryCacheManager
-        isOpen={showCacheManager}
-        onClose={() => setShowCacheManager(false)}
-      />
+
     </section>
   );
 }; 

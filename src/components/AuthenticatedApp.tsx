@@ -356,6 +356,7 @@ const AuthenticatedApp: React.FC = React.memo(() => {
               }}
               onDeleteNote={deleteNote}
               onClearHistory={clearHistory}
+              onSyncData={refreshHistoryFromServer}
             />
           )}
 
