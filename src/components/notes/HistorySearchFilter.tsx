@@ -164,7 +164,7 @@ export const HistorySearchFilter: React.FC<HistorySearchFilterProps> = ({
     };
 
     onFilterChange(filteredData, currentFilters);
-  }, [historicNotes, userTemplates, getTemplateName, onFilterChange]);
+  }, [historicNotes, getTemplateName, onFilterChange]);
 
   // Debounced search function
   const debouncedSearch = useDebounce((searchTerm: string, currentFilters: HistoryFilterOptions) => {
